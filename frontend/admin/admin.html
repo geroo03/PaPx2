@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PaP — Panel de Administración</title>
+  <meta name="description" content="Panel de administración general de Puerta a Puerta — KPIs, comercios, cadetes y tracking de pedidos." />
+  <!doctype html>
+  <html lang="es">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>PaP — Panel de Administración</title>
+      <meta name="description" content="Panel de administración — Puerta a Puerta" />
+  <script src="/env.js"></script>
+      <style>
+        /* Design system tokens */
+        :root{
+          --bg: #f8f9fa;
+          --card: #ffffff;
+          --muted: #6b7280;
+          --brand: #FF6B35;
+          --radius: 12px;
+          --gap: 20px;
+          --shadow: 0 6px 20px rgba(12,15,20,0.06);
+          --glass: rgba(255,255,255,0.6);
+        }
+
+        html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#0f1724}
+        .container{max-width:1200px;margin:32px auto;padding:24px;box-sizing:border-box}
+
+        header{display:flex;align-items:center;gap:16px}
+        .brand{display:flex;align-items:center;gap:12px}
+        .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#ff8a5a);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px}
+        h1{margin:0;font-size:18px;font-weight:800}
+        .sub{color:var(--muted);font-size:13px}
+
+        .top-controls{margin-left:auto;display:flex;gap:12px;align-items:center}
+        .search{padding:10px 12px;border-radius:10px;border:1px solid #e6eef7;background:#fff;min-width:220px}
+        .btn-primary{background:var(--brand);color:#fff;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;transition:transform .12s ease,box-shadow .12s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,107,53,0.12)}
+
+        /* KPIs */
+        .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--gap);margin-top:22px}
+        .kpi{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;border:1px solid #f1f5f9}
+        .kpi .left{display:flex;flex-direction:column}
+        .kpi .title{font-size:12px;color:var(--muted);font-weight:700}
+        .kpi .value{font-size:24px;font-weight:900;margin-top:6px}
+        .kpi svg{width:110px;height:44px}
+
+        main.grid{display:grid;grid-template-columns:2fr 1fr;gap:var(--gap);margin-top:20px}
+
+        .panel{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid #eef2f5}
+        .panel h2{margin:0 0 12px 0;font-size:16px}
+
+        /* Tables */
+        table{width:100%;border-collapse:collapse;font-size:14px}
+        thead th{font-size:12px;color:var(--muted);text-align:left;padding:10px 8px;font-weight:800}
+        tbody tr{background:transparent;transition:background .12s ease}
+        tbody tr:hover{background:#fbfdff}
+        td{padding:12px 8px;border-bottom:1px solid #f1f5f9}
+
+        .action-btn{background:var(--brand);color:#fff;border:none;padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:700;transition:opacity .12s}
+        .action-btn:hover{opacity:0.9}
+
+        /* Orders & Cadetes list styles */
+        .list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid #f1f5f9;margin-bottom:8px;background:#fff}
+
+        footer{margin-top:18px;text-align:center;color:#94a3b8;font-size:13px}
+
+        /* Responsive tweaks */
+        @media(max-width:980px){main.grid{grid-template-columns:1fr}} 
+      </style>
+    </head>
+    <body>
+  <div id="admin-root" class="container" style="display:none;">
+        <header>
+          <div class="brand">
+            <div class="logo">PaP</div>
+            <div>
+              <h1>Panel de Administración</h1>
+              <div class="sub">Visión general • KPIs en tiempo simulado</div>
+            </div>
+          </div>
+          <div class="top-controls">
+            <input id="search" class="search" placeholder="Buscar comercio, cadete o pedido" />
+            <button id="btn-refresh" class="btn-primary">Actualizar</button>
+            <button id="btn-back-site" style="background:#fff;border:1px solid #e6eef7;color:#374151;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;margin-left:8px" onclick="window.location.href='../cliente/index.html'">Volver al sitio</button>
+            <button id="btn-logout" style="background:#fff;border:1px solid #e6eef7;color:#B71C1C;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;margin-left:8px" onclick="signOutAdmin()">Cerrar sesión</button>
+          </div>
+        </header>
+
+        <!-- KPI row -->
+        <section class="kpi-row" aria-label="KPIs">
+          <article class="kpi" id="kpi-users">
+            <div class="left"><div class="title">Usuarios Activos</div><div class="value" data-key="users">0</div></div>
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#10b981" stroke-width="2" points="0,30 20,26 40,14 60,10 80,8 100,6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
+          </article>
+
+          <article class="kpi" id="kpi-comercios">
+            <div class="left"><div class="title">Comercios</div><div class="value" data-key="comercios">0</div></div>
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#ff9800" stroke-width="2" points="0,28 20,20 40,14 60,22 80,18 100,12" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
+          </article>
+
+          <article class="kpi" id="kpi-cadetes">
+            <div class="left"><div class="title">Cadetes</div><div class="value" data-key="cadetes">0</div></div>
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#3b82f6" stroke-width="2" points="0,30 20,24 40,18 60,10 80,12 100,8" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
+          </article>
+
+          <article class="kpi" id="kpi-rev">
+            <div class="left"><div class="title">Facturación</div><div class="value" data-key="revenue">$0</div></div>
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#ff6347" stroke-width="2" points="0,34 20,30 40,22 60,18 80,12 100,10" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
+          </article>
+        </section>
+
+        <main class="grid">
+          <section class="panel">
+            <h2>Comercios</h2>
+            <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+              <div style="color:var(--muted);font-weight:700">Listado de comercios simulados</div>
+              <div style="color:var(--muted);">Total: <span id="comerciosCount">0</span></div>
+            </div>
+            <div style="overflow:auto">
+              <table aria-describedby="comerciosCount">
+                <thead><tr><th>Nombre</th><th>Rubro</th><th>Pedidos</th><th style="text-align:right">Acción</th></tr></thead>
+                <tbody id="table-comercios"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Comercios Pendientes (Registrados por Embajadores)</h2>
+            <div id="pendientes-list" style="margin-top:10px">Cargando...</div>
+          </section>
+
+          <section class="panel" id="patrocinios-panel" style="margin-top:18px">
+            <h2 class="text-lg font-semibold">Gestión de Patrocinios (Carrusel)</h2>
+            <div class="text-sm text-slate-500 mb-4">Administra los 3 slots del carrusel. Editá contenido, orden y activá/desactivá cada banner.</div>
+            <div id="patrocinios-grid" class="space-y-6">
+              <!-- Slots will be injected here -->
+            </div>
+            <div class="mt-3 text-sm text-slate-500">Los cambios se guardan con 'Actualizar Slot [X]'. El orden determina la posición en el carrusel.</div>
+          </section>
+
+          <aside>
+            <section class="panel" style="margin-bottom:16px">
+              <h2>Pedidos Activos</h2>
+              <div id="orders" style="margin-top:8px"></div>
+              <div style="margin-top:8px;color:var(--muted);font-size:13px">Activos: <span id="ordersCount">0</span></div>
+            </section>
+
+            <section class="panel">
+              <h2>Crear Embajador (Admin)</h2>
+              <form id="form-create-embajador">
+                <label style="font-size:13px;color:var(--muted);margin-top:8px">Email</label>
+                <input id="admin-e-email" type="email" style="padding:8px;width:100%" required>
+                <label style="font-size:13px;color:var(--muted);margin-top:8px">Nombre</label>
+                <input id="admin-e-name" type="text" style="padding:8px;width:100%">
+                <label style="font-size:13px;color:var(--muted);margin-top:8px">Clave temporal</label>
+                <input id="admin-e-pass" type="password" value="temporal123" style="padding:8px;width:100%" required>
+                <button id="admin-create-btn" class="btn-primary" style="width:100%;margin-top:10px">Crear Embajador</button>
+              </form>
+              <div id="admin-create-result" style="margin-top:8px;color:var(--muted)"></div>
+            </section>
+
+            <section class="panel">
+              <h2>Cadetes</h2>
+              <div id="cadetes" style="margin-top:8px"></div>
+              <div style="margin-top:8px;color:var(--muted);font-size:13px">Total: <span id="cadetesCount">0</span></div>
+            </section>
+          </aside>
+        </main>
+
+        <footer>Puerta a Puerta — Panel Admin • Datos simulados</footer>
+      </div>
+
+      <!-- Encapsulated JS module (no inline code outside script) -->
+
+        <script type="module">
+          // env.js will be generated at build time from env.template.js and must be loaded before config
+          const envScript = document.createElement('script'); envScript.src = '/env.js'; document.head.appendChild(envScript);
+          import { supabase } from '../assets/js/config.js';
+
+          // Route guard: protect admin panel from unauthorized access
+          (async function adminRouteGuard(){
+            // local safe buildUrl helper (prefer global if available)
+            const safeBuildUrl = (p)=>{
+              if(window.buildUrl) return window.buildUrl(p);
+              if(!p) p='';
+              if(p.startsWith('/')) p=p.slice(1);
+              if(p===''||p.toLowerCase()==='index.html') p='cliente/index.html';
+              const base = window.location.origin + window.location.pathname.replace(/[^/]*$/,'');
+              return new URL(p, base).toString();
+            };
+
+            try{
+              const { data:{ session } } = await supabase.auth.getSession();
+              if(!session){
+                alert('Acceso denegado. Por favor, iniciá sesión.');
+                window.location.href = safeBuildUrl('cliente/login-usuario.html');
+                return;
+              }
+              const role = session?.user?.user_metadata?.role || session?.user?.raw_user_meta_data?.role || null;
+              if(role !== 'admin'){
+                alert('No tenés permisos para acceder a esta sección');
+                // redirect based on role
+                if(role === 'usuario') window.location.href = safeBuildUrl('cliente/index.html');
+                else if(role === 'cadete') window.location.href = safeBuildUrl('cadete/cadete.html');
+                else if(role === 'comercio') window.location.href = safeBuildUrl('comercio/comercio.html');
+                else if(role === 'embajador') window.location.href = safeBuildUrl('embajador/dashboard.html');
+                else window.location.href = safeBuildUrl('cliente/index.html');
+                return;
+              }
+              // authorized admin — show the panel
+              const root = document.getElementById('admin-root');
+              if(root) root.style.display='block';
+            }catch(err){
+              console.error('Admin route guard error', err);
+              alert('Error verificando sesión. Redirigiendo al login.');
+              window.location.href = safeBuildUrl('cliente/login-usuario.html');
+            }
+          })();
+
+          // Sign-out helper for admin panel
+          async function signOutAdmin(){
+            try{ await supabase.auth.signOut(); }catch(e){ console.warn('SignOut error', e); }
+            try{ localStorage.clear(); }catch(e){}
+            // prefer global buildUrl if available
+            const target = (window.buildUrl) ? window.buildUrl('cliente/index.html') : '../cliente/index.html';
+            window.location.href = target;
+          }
+
+          // Load pending comercios registered by embajadores
+          async function loadPendientes(){
+            const el = document.getElementById('pendientes-list');
+            el.innerHTML = 'Cargando...';
+            try{
+              // Safety: ensure Supabase client is configured before attempting signUp
+              if(typeof window !== 'undefined' && window.SUPABASE_CONFIG_OK === false){
+                const msg = 'Supabase no está configurado correctamente en este entorno. Revisa assets/js/config.js y las variables window.SUPABASE_URL / window.SUPABASE_ANON_KEY.';
+                console.error(msg);
+                alert(msg);
+                resEl.textContent = 'Error: Supabase no configurado';
+                return;
+              }
+              const { data, error } = await supabase
+                .from('comercios')
+                .select('id,nombre,telefono,direccion,creado_por_embajador_id,created_at')
+                .eq('estado_registro','pendiente')
+                .order('created_at',{ascending:false});
+              if(error) throw error;
+              if(!data || !data.length){ el.innerHTML = '<div class="empty">No hay comercios pendientes.</div>'; return; }
+              el.innerHTML = data.map(c=>{
+                const t = new Date(c.created_at).toLocaleString();
+                return `<div class="list-item" data-id="${c.id}"><div><div style="font-weight:800">${c.nombre}</div><div style="color:var(--muted);font-size:12px">${c.direccion} · ${c.telefono||''}</div><div style="font-size:12px;color:var(--muted)">Alta: ${t}</div></div><div><button class="action-btn approve" data-id="${c.id}">Aprobar</button></div></div>`;
+              }).join('');
+              // attach handlers
+              el.querySelectorAll('.approve').forEach(b=> b.addEventListener('click', async ()=>{
+                const id = b.dataset.id;
+                b.disabled = true; b.textContent = 'Aprobando...';
+                try{
+                  const { error } = await supabase.from('comercios').update({ estado_registro: 'activo', activo: true }).eq('id', id);
+                  if(error) throw error;
+                  loadPendientes();
+                }catch(err){ console.error('Error aprobando', err); alert('Error: '+err.message); b.disabled=false; b.textContent='Aprobar'; }
+              }));
+            }catch(e){ console.error(e); document.getElementById('pendientes-list').innerHTML = '<div class="empty">Error cargando pendientes</div>'; }
+          }
+
+          // Admin: crear embajador via server endpoint
+          const form = document.getElementById('form-create-embajador');
+          form.addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const email = document.getElementById('admin-e-email').value.trim();
+            const name = document.getElementById('admin-e-name').value.trim();
+            const pass = document.getElementById('admin-e-pass').value;
+            const resEl = document.getElementById('admin-create-result');
+            resEl.textContent = 'Creando embajador...';
+            console.log('Datos enviados para crear embajador:', { email, name, password: pass ? 'REDACTED' : '' });
+            try{
+              // Use Supabase client directly to create the user instead of posting to a static-server endpoint
+              // We add basic user_metadata (nombre, role)
+              const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: pass,
+                options: {
+                  data: { nombre: name, role: 'embajador' }
+                }
+              });
+
+              if(error){
+                console.error('Supabase signUp error:', error);
+                const serverMsg = error.message || JSON.stringify(error);
+                alert('Error al crear embajador: ' + serverMsg);
+                resEl.textContent = 'Error: ' + serverMsg;
+                return;
+              }
+
+              // Success
+              console.log('Supabase signUp result:', data);
+              resEl.textContent = 'Embajador creado: ' + (data?.user?.email || email);
+            }catch(err){
+              console.error('SignUp exception:', err);
+              const cleanMsg = (err && err.message) ? err.message : String(err);
+              alert('Error al crear embajador: ' + cleanMsg);
+              resEl.textContent = 'Error: ' + cleanMsg;
+            }
+          });
+
+          // init
+          // init
+          loadPendientes();
+          // --- Patrocinios management ---
+          async function loadPatrocinios(){
+            const container=document.getElementById('patrocinios-grid');
+            container.innerHTML='Cargando...';
+            try{
+              const { data, error } = await supabase.from('patrocinios').select('*').order('orden',{ascending:true}).limit(3);
+              if(error) throw error;
+              const rows = data || [];
+              // ensure we always render 3 slots
+              const slots = [0,1,2].map(i=>rows[i]||null);
+              container.innerHTML = slots.map((r,i)=>renderPatrocinioSlot(r,i+1)).join('');
+              // attach handlers
+              slots.forEach((r,i)=>{
+                const idx=i+1;
+                const form=document.getElementById('pat-form-'+idx);
+                form.addEventListener('submit', async (e)=>{ e.preventDefault(); await handleUpdateSlot(idx); });
+                const activoSwitch=document.getElementById('pat-activo-'+idx);
+                activoSwitch.addEventListener('change',()=>{ /* visual only; handled on submit */ });
+
+                // file input handler for immediate upload
+                const fileInput = document.getElementById('pat-file-'+idx);
+                if(fileInput){
+                  fileInput.addEventListener('change', async (ev)=>{
+                    const f = ev.target.files && ev.target.files[0];
+                    if(!f) return;
+                    const uploadEl = document.getElementById('pat-upload-'+idx);
+                    const previewImg = document.getElementById('pat-preview-'+idx);
+                    const hiddenImg = document.getElementById('pat-img-'+idx);
+                    uploadEl.textContent = 'Subiendo...';
+                    try{
+                      const publicUrl = await uploadPatrocinioImage(f, idx);
+                      if(publicUrl){
+                        hiddenImg.value = publicUrl;
+                        // update preview image (preview element is an <img> with this id)
+                        if(previewImg){ previewImg.src = publicUrl; previewImg.style.display = 'block'; }
+                        uploadEl.textContent = 'Listo';
+                      } else { uploadEl.textContent = 'Error'; }
+                    }catch(err){ console.error('Upload failed',err); uploadEl.textContent = 'Error'; }
+                    setTimeout(()=>{ if(uploadEl) uploadEl.textContent = ''; }, 2200);
+                  });
+                }
+              });
+            }catch(err){ console.error('Error cargando patrocinios',err); container.innerHTML='<div class="empty">Error cargando patrocinios</div>'; }
+          }
+
+          // Upload image to Supabase Storage bucket 'patrocinios' and return public URL
+          async function uploadPatrocinioImage(file, slot){
+            try{
+              const ext = file.name.split('.').pop();
+              const fileName = `patro_${Date.now()}_${Math.random().toString(36).slice(2,9)}.${ext}`;
+              const path = fileName;
+              // upload
+              const { data, error } = await supabase.storage.from('patrocinios').upload(path, file, { cacheControl: '3600', upsert: false });
+              if(error){ console.error('Storage upload error', error); throw error; }
+              // get public url
+              const { data: urlData } = await supabase.storage.from('patrocinios').getPublicUrl(path);
+              return urlData?.publicUrl || null;
+            }catch(e){ console.error('uploadPatrocinioImage failed', e); return null; }
+          }
+
+          function renderPatrocinioSlot(row,slot){
+            const idVal = row?.id||'';
+            const sub = row?.sub_titulo||'';
+            const title = row?.titulo||'';
+            const img = row?.imagen_url||'';
+            const link = row?.link_oferta||'';
+            const activo = (typeof row?.activo === 'boolean') ? row.activo : true;
+            const orden = row?.orden!=null ? row.orden : (slot-1);
+            return `
+              <form id="pat-form-${slot}" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(12,15,20,0.04);">
+                <input type="hidden" id="pat-id-${slot}" value="${idVal}">
+                <div style="display:flex;gap:16px;align-items:flex-start;">
+                  <!-- LEFT: form fields -->
+                  <div style="flex:0 0 65%;max-width:65%;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                      <div style="font-weight:700;font-size:14px;">Slot ${slot}</div>
+                      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;">
+                        <label for="pat-activo-${slot}" style="font-size:13px;color:#374151;">Activo</label>
+                        <input type="checkbox" id="pat-activo-${slot}" ${activo? 'checked':''} />
+                      </div>
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                      <label style="display:block;font-size:13px;color:#374151;margin-bottom:6px;">Sub título</label>
+                      <input id="pat-sub-${slot}" value="${sub}" style="width:100%;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                      <label style="display:block;font-size:13px;color:#374151;margin-bottom:6px;">Título</label>
+                      <input id="pat-title-${slot}" value="${title}" style="width:100%;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                      <label style="display:block;font-size:13px;color:#374151;margin-bottom:6px;">Link de oferta (URL)</label>
+                      <input id="pat-link-${slot}" value="${link}" style="width:100%;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                      <div style="display:flex;flex-direction:column;">
+                        <label style="font-size:13px;color:#374151;margin-bottom:6px;">Orden</label>
+                        <input id="pat-orden-${slot}" type="number" value="${orden}" style="width:90px;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
+                      </div>
+
+                      <div style="margin-left:auto;display:flex;gap:8px;">
+                        <button type="submit" style="background:#ff6b35;color:#fff;padding:8px 12px;border-radius:8px;border:none;font-weight:700;">Actualizar Slot ${slot}</button>
+                        <button type="button" onclick="document.getElementById('pat-form-${slot}').reset();loadPatrocinios();" style="background:#fff;border:1px solid #d1d5db;padding:8px 12px;border-radius:8px;color:#374151;">Cancelar</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- RIGHT: image preview and upload -->
+                  <div style="flex:0 0 35%;max-width:35%;display:flex;flex-direction:column;align-items:center;">
+                    <label style="font-size:13px;color:#374151;margin-bottom:8px;">Imagen</label>
+                    <!-- preview image (strictly sized) -->
+                    <img id="pat-preview-${slot}" src="${img||''}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; display: ${img? 'block':'none'}; margin-bottom: 8px;" onerror="this.style.display='none'" />
+
+                    <label for="pat-file-${slot}" style="display:inline-block;text-align:center;cursor:pointer;margin-bottom:6px;">
+                      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px dashed #d1d5db;background:#fff;">
+                        <span style="font-size:16px;">📸</span>
+                        <span style="font-size:13px;color:#374151;">Cambiar imagen / Sacar foto</span>
+                      </div>
+                    </label>
+                    <div style="font-size:11px;color:#6b7280;margin-bottom:6px;">PNG, JPG • recomendado 1200×600</div>
+                    <input id="pat-file-${slot}" type="file" accept="image/*" style="display:none" />
+                    <div id="pat-upload-${slot}" style="font-size:13px;color:#6b7280;">${img? 'Cargada':''}</div>
+                    <input type="hidden" id="pat-img-${slot}" value="${img}" />
+                  </div>
+                </div>
+              </form>
+            `;
+          }
+
+          async function handleUpdateSlot(slot){
+            const id = document.getElementById('pat-id-'+slot).value || null;
+            const sub = document.getElementById('pat-sub-'+slot).value.trim();
+            const title = document.getElementById('pat-title-'+slot).value.trim();
+            const img = document.getElementById('pat-img-'+slot).value.trim();
+            const link = document.getElementById('pat-link-'+slot).value.trim();
+            const activo = document.getElementById('pat-activo-'+slot).checked;
+            const orden = Number(document.getElementById('pat-orden-'+slot).value||0);
+            const payload = { sub_titulo: sub, titulo: title, imagen_url: img, link_oferta: link, activo, orden };
+            try{
+              // If id present -> update, else insert with orden
+              let res;
+              if(id){
+                res = await supabase.from('patrocinios').update(payload).eq('id',id).select().single();
+              } else {
+                // upsert by orden will be handled by inserting with orden
+                res = await supabase.from('patrocinios').insert([{...payload}]).select().single();
+              }
+              if(res.error) throw res.error;
+              alert('Slot '+slot+' actualizado');
+              loadPatrocinios();
+            }catch(err){console.error('Error actualizando slot',err);alert('Error: '+(err.message||err));}
+          }
+
+          // load patrocinios on init
+          loadPatrocinios();
+        </script>
+    </body>
+  </html>
+      list.forEach(c=>{

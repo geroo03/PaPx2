@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Puerta a Puerta — Ingresá</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="/env.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      background: #0d0d0d;
+      overflow-y: auto;
+    }
+    /* Fondo con foto */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=900&q=80') center/cover no-repeat;
+      filter: brightness(.3);
+    }
+    /* Wrapper */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100vh;
+      padding: 52px 0 0;
+    }
+    /* Parte superior — headline */
+    .top {
+      padding: 0 28px 36px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .logo-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: #FF6B35;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(255,107,53,.4);
+    }
+    .headline {
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      letter-spacing: -.5px;
+    }
+    .headline span { color: #FF6B35; }
+    .subline {
+      font-size: 15px;
+      color: rgba(255,255,255,.55);
+      font-weight: 500;
+      line-height: 1.6;
+    }
+    /* Card de formulario */
+    .card {
+      background: #fff;
+      border-radius: 28px 28px 0 0;
+      padding: 32px 24px 48px;
+    }
+    .card-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #111;
+      margin-bottom: 4px;
+    }
+    .card-sub {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .form-label span { color: #FF6B35; }
+    .form-input {
+      width: 100%;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #111;
+      background: #fafafa;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    .form-input:focus { border-color: #FF6B35; background: #fff; }
+    .form-input::placeholder { color: #bbb; }
+    .pass-wrap { position: relative; }
+    .toggle-pass-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #888;
+      display: flex;
+      align-items: center;
+      padding: 0;
+    }
+    .btn-login {
+      width: 100%;
+      background: #FF6B35;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-login:hover  { opacity: .9; }
+    .btn-login:active { transform: scale(.98); }
+    .btn-login:disabled { opacity: .5; cursor: not-allowed; }
+    .error-msg {
+      background: #FFEBEE; color: #B71C1C;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; font-weight: 600;
+      margin-top: 12px; display: none;
+    }
+    .success-msg {
+      background: #E8F5E9; color: #2E7D32;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; font-weight: 600;
+      margin-top: 12px; display: none;
+    }
+    .forgot-link {
+      text-align: right;
+      margin-top: 8px;
+    }
+    .forgot-link a {
+      font-size: 12px;
+      color: #FF6B35;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 16px;
+    }
+    .divider-line { flex: 1; height: 1px; background: #eee; }
+    .divider-text { font-size: 12px; color: #aaa; white-space: nowrap; }
+    .btn-register {
+      width: 100%;
+      background: #f5f5f5;
+      color: #555;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-register:hover { background: #ececec; }
+    /* Menú de registro */
+    .register-wrap { position: relative; }
+    #register-menu {
+      position: absolute;
+      left: 0; right: 0;
+      top: calc(100% + 10px);
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 16px;
+      box-shadow: 0 10px 32px rgba(0,0,0,.14);
+      padding: 10px;
+      z-index: 50;
+    }
+    #register-menu button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1.5px solid #eee;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #333;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: border-color .15s, background .15s;
+      text-align: left;
+    }
+    #register-menu button:last-child { margin-bottom: 0; }
+    #register-menu button:hover { border-color: #FF6B35; background: #FFF8F5; }
+    #register-menu button[data-register="comercio"] {
+      background: #FF6B35;
+      color: #fff;
+      border-color: transparent;
+    }
+    #register-menu button[data-register="comercio"]:hover { background: #E55A27; }
+    .is-hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Fondo fotográfico -->
+<div class="bg"></div>
+
+<div class="wrap">
+
+  <!-- Headline superior -->
+  <div class="top">
+    <div class="logo-box">
+      <svg width="30" height="30" viewBox="0 0 90 90" fill="none">
+        <path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="12" y="36" width="30" height="46" rx="5" fill="#fff" opacity=".95"/>
+        <rect x="48" y="36" width="30" height="46" rx="5" fill="#fff"/>
+        <circle cx="36" cy="59" r="4" fill="#FF6B35"/>
+        <circle cx="54" cy="59" r="4" fill="#FF6B35"/>
+      </svg>
+    </div>
+    <div class="headline">Tu pedido,<br><span>ya mismo.</span></div>
+    <div class="subline">Restaurantes, farmacias, supermercados y más — directo a tu puerta.</div>
+  </div>
+
+  <!-- Formulario de login -->
+  <div class="card">
+    <div class="card-title">Bienvenido</div>
+    <div class="card-sub">Ingresá con tu email y contraseña. Tu acceso se detecta automáticamente.</div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label class="form-label" for="input-email">Email <span>*</span></label>
+      <input
+        class="form-input"
+        id="input-email"
+        type="email"
+        placeholder="tucorreo@gmail.com"
+        autocomplete="email"
+        inputmode="email"
+      >
+    </div>
+
+    <!-- Contraseña -->
+    <div class="form-group">
+      <label class="form-label" for="input-pass">Contraseña <span>*</span></label>
+      <div class="pass-wrap">
+        <input
+          class="form-input"
+          id="input-pass"
+          type="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          style="padding-right:44px"
+        >
+        <button
+          class="toggle-pass-btn"
+          id="toggle-pass"
+          type="button"
+          aria-label="Mostrar contraseña"
+          title="Mostrar contraseña"
+        >
+          <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="display:none">
+            <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
+            <path d="M9.9 4.24A9.12 9.12 0 0112 4c6 0 10 7 10 7a18.5 18.5 0 01-2.16 3.19"/>
+            <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <button class="btn-login" id="btn-login">Ingresar</button>
+
+    <!-- Mensajes -->
+    <div class="error-msg"   id="error-msg"></div>
+    <div class="success-msg" id="success-msg"></div>
+
+    <!-- Recuperar contraseña -->
+    <div class="forgot-link">
+      <a href="#" id="link-olvide">Olvidé mi contraseña</a>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">¿No tenés cuenta?</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- Registro -->
+    <div class="register-wrap">
+      <button class="btn-register" id="btn-register">Registrarme</button>
+      <div id="register-menu" class="is-hidden" role="menu">
+        <button data-register="comercio">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 9l1-2h16l1 2"/>
+            <path d="M21 9v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9"/>
+            <path d="M7 9V6a5 5 0 0110 0v3"/>
+          </svg>
+          Registrar mi Comercio
+        </button>
+        <button data-register="cadete">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 13h3l2-5h6l2 5h3"/>
+            <circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/>
+          </svg>
+          Registrarme como Cadete
+        </button>
+        <button data-register="usuario">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Registrarme como Cliente
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+</div><!-- /wrap -->
+
+<!-- Módulo unificado de login — mismo que usa comercio/login.html -->
+<script type="module" src="assets/js/login.js"></script>
+
+</body>
+</html>

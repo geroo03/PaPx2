@@ -1,0 +1,137 @@
+/* ============================================================
+   PUERTA A PUERTA — PORTAL DESIGN TOKENS
+   Fuente única de verdad para todos los estilos del portal.
+   Importar este archivo PRIMERO en cualquier hoja que use vars.
+   ============================================================ */
+
+:root {
+  /* ── Brand ─────────────────────────────────────────────── */
+  --pap-primary:        #FF6B35;
+  --pap-primary-dark:   #E55A27;
+  --pap-primary-hover:  #F05A28;
+  --pap-primary-light:  #FFF0EB;
+  --pap-primary-rgb:    255, 107, 53;
+
+  /* ── Surfaces ───────────────────────────────────────────── */
+  --surface-page:       #F5F5F5;
+  --surface-card:       #FFFFFF;
+  --surface-sidebar:    #FFFFFF;
+  --surface-topbar:     #FFFFFF;
+  --surface-input:      #F7F7F7;
+  --surface-hover:      #F0F0F0;
+  --surface-selected:   #FFF0EB;
+
+  /* ── Text ───────────────────────────────────────────────── */
+  --text-primary:       #1A1A1A;
+  --text-secondary:     #555555;
+  --text-tertiary:      #888888;
+  --text-disabled:      #BBBBBB;
+  --text-on-brand:      #FFFFFF;
+  --text-link:          #FF6B35;
+
+  /* ── Borders ────────────────────────────────────────────── */
+  --border-default:     #E5E5E5;
+  --border-strong:      #CCCCCC;
+  --border-focus:       #FF6B35;
+
+  /* ── Semantic ───────────────────────────────────────────── */
+  --color-success:      #2E7D32;
+  --color-success-bg:   #E8F5E9;
+  --color-warning:      #E65100;
+  --color-warning-bg:   #FFF3E0;
+  --color-error:        #C62828;
+  --color-error-bg:     #FFEBEE;
+  --color-info:         #1565C0;
+  --color-info-bg:      #E3F2FD;
+  --color-purple:       #5E35B1;
+  --color-purple-bg:    #EDE7F6;
+  --color-gray:         #616161;
+  --color-gray-bg:      #F5F5F5;
+
+  /* ── Order status badges ────────────────────────────────── */
+  --badge-nuevo-text:        var(--pap-primary-dark);
+  --badge-nuevo-bg:          var(--pap-primary-light);
+  --badge-preparando-text:   var(--color-info);
+  --badge-preparando-bg:     var(--color-info-bg);
+  --badge-listo-text:        var(--color-success);
+  --badge-listo-bg:          var(--color-success-bg);
+  --badge-en-camino-text:    var(--color-purple);
+  --badge-en-camino-bg:      var(--color-purple-bg);
+  --badge-entregado-text:    var(--color-gray);
+  --badge-entregado-bg:      var(--color-gray-bg);
+  --badge-cancelado-text:    var(--color-error);
+  --badge-cancelado-bg:      var(--color-error-bg);
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  --sidebar-width:          240px;
+  --sidebar-collapsed-w:    64px;
+  --topbar-height:          56px;
+  --content-max-w:          1200px;
+  --content-pad:            32px;
+
+  /* ── Spacing ─────────────────────────────────────────────── */
+  --sp-1:   4px;
+  --sp-2:   8px;
+  --sp-3:   12px;
+  --sp-4:   16px;
+  --sp-5:   20px;
+  --sp-6:   24px;
+  --sp-8:   32px;
+  --sp-10:  40px;
+  --sp-12:  48px;
+
+  /* ── Border radius ───────────────────────────────────────── */
+  --r-xs:   4px;
+  --r-sm:   6px;
+  --r-md:   10px;
+  --r-lg:   16px;
+  --r-xl:   24px;
+  --r-full: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.06);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.10);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,.13);
+  --shadow-xl: 0 16px 40px rgba(0,0,0,.16);
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont,
+               'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 14px;
+  --text-md:   15px;
+  --text-lg:   16px;
+  --text-xl:   18px;
+  --text-2xl:  22px;
+  --text-3xl:  28px;
+  --text-4xl:  36px;
+
+  --w-regular:  400;
+  --w-medium:   500;
+  --w-semibold: 600;
+  --w-bold:     700;
+  --w-extrabold: 800;
+
+  --lh-tight:   1.2;
+  --lh-snug:    1.35;
+  --lh-normal:  1.5;
+  --lh-relaxed: 1.65;
+
+  /* ── Transitions ─────────────────────────────────────────── */
+  --t-fast: 120ms ease;
+  --t-base: 200ms ease;
+  --t-slow: 300ms ease;
+
+  /* ── Z-index stack ───────────────────────────────────────── */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-sticky:  100;
+  --z-sidebar: 200;
+  --z-topbar:  300;
+  --z-overlay: 400;
+  --z-modal:   500;
+  --z-toast:   700;
+}

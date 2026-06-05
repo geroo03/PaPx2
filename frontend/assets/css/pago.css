@@ -1,0 +1,21 @@
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+body{background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.container{width:100%;max-width:420px;padding:20px;}
+.logo-wrap{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.logo-box{width:40px;height:40px;border-radius:10px;background:#FF6B35;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.app-name{font-size:17px;font-weight:900;color:#111;}
+.card{background:#fff;border-radius:20px;padding:24px;border:0.5px solid #eee;margin-bottom:12px;}
+.card-title{font-size:15px;font-weight:700;color:#111;margin-bottom:14px;}
+.resumen-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#555;}
+.resumen-row:last-child{border-bottom:none;}
+.resumen-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:#111;padding:12px 0 0;border-top:2px solid #111;margin-top:6px;}
+.loading{text-align:center;padding:30px;}
+.loading-spinner{width:36px;height:36px;border:3px solid #f0f0f0;border-top:3px solid #FF6B35;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:#888;}
+.btn-back{width:100%;background:#f5f5f5;color:#555;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
+.error-box{background:#FFEBEE;color:#B71C1C;border-radius:12px;padding:14px;font-size:13px;text-align:center;line-height:1.6;}
+.success-box{background:#E8F5E9;color:#2E7D32;border-radius:12px;padding:20px;font-size:14px;text-align:center;line-height:1.7;}
+.success-icon{font-size:48px;margin-bottom:12px;}
+.success-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.btn-ver{display:inline-block;background:#FF6B35;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;text-decoration:none;}

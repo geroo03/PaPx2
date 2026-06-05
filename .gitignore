@@ -1,0 +1,40 @@
+.env
+.env.local
+.env.*.local
+.DS_Store
+node_modules/
+dist/
+build/
+*.log
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+secrets/
+.vscode/
+.idea/
+*.env
+*.secret
+coverage/
+coverage/
+npm-debug.log
+yarn-error.log
+npm-debug.log*
+.pnpm-debug.log*
+# Local VSCode settings
+.vscode/
+# Mac
+.DS_Store
+# Windows
+Thumbs.db
+# Ignore compiled python files
+__pycache__/
+*.py[cod]
+# Ignore service account / keys
+service-account.json
+# Ignore any files named credentials
+credentials.json
+# Optional: ignore the .vercel directory (local CLI state)
+.vercel
+env.js

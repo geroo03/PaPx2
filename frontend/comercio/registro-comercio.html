@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Puerta a Puerta — Registrar comercio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/registro-comercio.css">
+  <script src="/env.js"></script>
+  <style>
+    /* Overrides y complementos para esta página */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px 48px;
+    }
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+    .header-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo-box {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: #FF6B35;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 3px 12px rgba(255,107,53,.3);
+    }
+    .app-name { font-size: 18px; font-weight: 800; color: #111; }
+    .app-tag  { font-size: 12px; color: #888; margin-top: 1px; }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 24px 32px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07);
+      border: 1px solid #eee;
+    }
+    .card-title { font-size: 22px; font-weight: 800; color: #111; margin-bottom: 4px; }
+    .card-sub   { font-size: 13px; color: #888; margin-bottom: 24px; line-height: 1.5; }
+
+    .sec-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin: 20px 0 12px;
+    }
+    .sec-label:first-of-type { margin-top: 0; }
+
+    .fg { margin-bottom: 14px; }
+    .fl {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    .fl span { color: #FF6B35; }
+    .fi {
+      width: 100%;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #111;
+      background: #fafafa;
+      outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    .fi:focus { border-color: #FF6B35; background: #fff; }
+    .fi::placeholder { color: #bbb; }
+
+    /* Fila de dos campos lado a lado */
+    .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 440px) { .fr { grid-template-columns: 1fr; } }
+
+    /* Categorías */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .cat-opt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 8px;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      background: #fafafa;
+      transition: all .15s;
+      user-select: none;
+    }
+    .cat-opt:hover { border-color: #FF6B35; background: #FFF8F5; color: #FF6B35; }
+    .cat-opt.sel   { border-color: #FF6B35; background: #FFF3EE; color: #FF6B35; }
+    .cat-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: #f0f0f0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .cat-opt.sel .cat-icon,
+    .cat-opt:hover .cat-icon { background: #FFE8DE; }
+
+    /* Password wrapper */
+    .pass-wrap { position: relative; }
+    .toggle-pass-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #888;
+      display: flex;
+      align-items: center;
+      padding: 0;
+    }
+
+    /* Caja de beneficios */
+    .gratis-box {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #166534;
+      line-height: 1.5;
+      margin: 20px 0 16px;
+    }
+
+    /* Botones */
+    .btn-reg {
+      width: 100%;
+      background: #FF6B35;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-reg:hover  { opacity: .9; }
+    .btn-reg:active { transform: scale(.98); }
+    .btn-reg:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-back {
+      width: 100%;
+      background: transparent;
+      color: #888;
+      border: none;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-back:hover { color: #555; }
+
+    /* Mensajes */
+    .error-msg {
+      background: #FFEBEE;
+      color: #B71C1C;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* Success card */
+    .success-card {
+      display: none;
+      text-align: center;
+      background: #fff;
+      border-radius: 20px;
+      padding: 48px 24px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07);
+      border: 1px solid #eee;
+    }
+    .success-icon  { font-size: 52px; margin-bottom: 20px; }
+    .success-title { font-size: 24px; font-weight: 800; color: #111; margin-bottom: 10px; }
+    .success-sub   { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 28px; }
+    .btn-ir {
+      display: inline-block;
+      background: #FF6B35;
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+    .btn-ir:hover { opacity: .9; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header-wrap">
+    <div class="logo-box">
+      <svg width="24" height="24" viewBox="0 0 90 90" fill="none">
+        <path d="M10 36L45 18L80 36" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="12" y="36" width="30" height="46" rx="5" fill="#fff" opacity=".95"/>
+        <rect x="48" y="36" width="30" height="46" rx="5" fill="#fff"/>
+        <circle cx="36" cy="59" r="4" fill="#FF6B35"/>
+        <circle cx="54" cy="59" r="4" fill="#FF6B35"/>
+      </svg>
+    </div>
+    <div>
+      <div class="app-name">Puerta a Puerta</div>
+      <div class="app-tag">Registrar mi comercio</div>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card" id="form-card">
+    <div class="card-title">Sumá tu comercio</div>
+    <div class="card-sub">60 días gratis, sin tarjeta. Solo pagás cuando vendás.</div>
+
+    <!-- Sección: Datos del comercio -->
+    <div class="sec-label">Datos del comercio</div>
+
+    <div class="fg">
+      <label class="fl" for="r-nombre">Nombre del comercio <span>*</span></label>
+      <input class="fi" id="r-nombre" type="text" placeholder="Ej: La Piola Pizzería" autocomplete="organization">
+    </div>
+
+    <div class="fg">
+      <label class="fl">Categoría <span>*</span></label>
+      <div class="cat-grid" id="cat-grid">
+        <div class="cat-opt" data-cat="comida">
+          <div class="cat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
+              <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+            </svg>
+          </div>
+          Comida
+        </div>
+        <div class="cat-opt" data-cat="carniceria">
+          <div class="cat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 3h18v4H3z"/><path d="M3 7v13h18V7"/>
+            </svg>
+          </div>
+          Carnicería
+        </div>
+        <div class="cat-opt" data-cat="farmacia">
+          <div class="cat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+          </div>
+          Farmacia
+        </div>
+        <div class="cat-opt" data-cat="almacen">
+          <div class="cat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          Almacén
+        </div>
+        <div class="cat-opt" data-cat="verduleria">
+          <div class="cat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2a10 10 0 00-7 17l7 3 7-3a10 10 0 00-7-17z"/>
+            </svg>
+          </div>
+          Verdulería
+        </div>
+        <div class="cat-opt" data-cat="panaderia">
+          <div class="cat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2a5 5 0 015 5v3H7V7a5 5 0 015-5z"/><rect x="3" y="10" width="18" height="12" rx="2"/>
+            </svg>
+          </div>
+          Panadería
+        </div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl" for="r-dir">Dirección del local <span>*</span></label>
+      <input class="fi" id="r-dir" type="text" placeholder="Ej: Av. Belgrano 234, Santiago del Estero">
+    </div>
+
+    <div class="fg">
+      <label class="fl" for="r-ciudad">Ciudad / Provincia</label>
+      <input class="fi" id="r-ciudad" type="text" placeholder="Santiago del Estero" value="Santiago del Estero">
+    </div>
+
+    <div class="fg">
+      <label class="fl" for="r-tel">Teléfono de contacto</label>
+      <input class="fi" id="r-tel" type="tel" placeholder="Ej: 3854123456" inputmode="tel">
+    </div>
+
+    <!-- Sección: Cuenta de acceso -->
+    <div class="sec-label">Tu cuenta de acceso</div>
+
+    <div class="fg">
+      <label class="fl" for="r-email">Email <span>*</span></label>
+      <input class="fi" id="r-email" type="email" placeholder="tucorreo@gmail.com" autocomplete="email">
+    </div>
+
+    <div class="fr">
+      <div class="fg">
+        <label class="fl" for="r-pass">Contraseña <span>*</span></label>
+        <div class="pass-wrap">
+          <input class="fi" id="r-pass" type="password" placeholder="Mín. 6 caracteres" autocomplete="new-password" style="padding-right:40px">
+          <button class="toggle-pass-btn" id="toggle-r-pass" type="button" aria-label="Mostrar contraseña">
+            <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
+              <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
+              <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl" for="r-pass2">Repetir contraseña <span>*</span></label>
+        <div class="pass-wrap">
+          <input class="fi" id="r-pass2" type="password" placeholder="Repetir" autocomplete="new-password" style="padding-right:40px">
+          <button class="toggle-pass-btn" id="toggle-r-pass2" type="button" aria-label="Mostrar contraseña">
+            <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
+              <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
+              <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caja de beneficios -->
+    <div class="gratis-box">
+      ✅ <strong>60 días completamente gratis.</strong> Después pagás solo el 15% de comisión sobre lo que vendas.
+      Sin abono mensual, sin costos fijos.
+    </div>
+
+    <!-- CTA -->
+    <button class="btn-reg" id="btn-reg">Crear mi cuenta</button>
+    <div class="error-msg" id="err"></div>
+
+    <button class="btn-back" id="btn-back">← Ya tengo cuenta, ingresar</button>
+  </div>
+
+  <!-- Estado de éxito (oculto hasta registrar) -->
+  <div class="success-card" id="success-card">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">¡Tu comercio está registrado!</div>
+    <div class="success-sub">
+      Tu cuenta fue creada y está pendiente de activación.<br>
+      Ya podés ingresar a tu panel para cargar tu menú.
+    </div>
+    <a class="btn-ir" href="comercio.html">Ir a mi panel →</a>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── Módulo de lógica — CERO handlers inline ── -->
+<script type="module">
+import { supabase as sb } from '../assets/js/config.js';
+
+// ── Estado local ──────────────────────────────────────────
+let catSel = '';
+
+// ── Helpers DOM ───────────────────────────────────────────
+const el = id => document.getElementById(id);
+
+function showErr(msg) {
+  const e = el('err');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.display = 'block';
+  e.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideErr() {
+  const e = el('err'); if (e) e.style.display = 'none';
+}
+
+function setBtnLoading(loading) {
+  const btn = el('btn-reg');
+  if (!btn) return;
+  btn.disabled    = loading;
+  btn.textContent = loading ? 'Registrando...' : 'Crear mi cuenta';
+}
+
+// ── Selector de categoría ─────────────────────────────────
+el('cat-grid')?.addEventListener('click', e => {
+  const opt = e.target.closest('.cat-opt');
+  if (!opt) return;
+  document.querySelectorAll('.cat-opt').forEach(o => o.classList.remove('sel'));
+  opt.classList.add('sel');
+  catSel = opt.dataset.cat;
+  hideErr();
+});
+
+// ── Toggle password visibility ────────────────────────────
+function bindPasswordToggle(btnId, inputId) {
+  const btn  = el(btnId);
+  const inp  = el(inputId);
+  if (!btn || !inp) return;
+  const eyeO = btn.querySelector('.eye-open');
+  const eyeC = btn.querySelector('.eye-closed');
+  btn.addEventListener('click', () => {
+    const isPass = inp.type === 'password';
+    inp.type = isPass ? 'text' : 'password';
+    if (eyeO) eyeO.style.display = isPass ? 'none'  : 'block';
+    if (eyeC) eyeC.style.display = isPass ? 'block' : 'none';
+    btn.setAttribute('aria-label', isPass ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    inp.focus();
+  });
+}
+bindPasswordToggle('toggle-r-pass',  'r-pass');
+bindPasswordToggle('toggle-r-pass2', 'r-pass2');
+
+// ── Botón "Volver al login" ───────────────────────────────
+el('btn-back')?.addEventListener('click', () => {
+  window.location.href = 'login.html';
+});
+
+// ── Registro principal ────────────────────────────────────
+el('btn-reg')?.addEventListener('click', registrar);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) registrar();
+});
+
+async function registrar() {
+  const nombre  = (el('r-nombre')?.value   || '').trim();
+  const dir     = (el('r-dir')?.value      || '').trim();
+  const ciudad  = (el('r-ciudad')?.value   || '').trim() || 'Santiago del Estero';
+  const tel     = (el('r-tel')?.value      || '').trim();
+  const email   = (el('r-email')?.value    || '').trim();
+  const pass    = (el('r-pass')?.value     || '');
+  const pass2   = (el('r-pass2')?.value    || '');
+
+  // ── Validaciones ──────────────────────────────────────────
+  if (!nombre)          { showErr('El nombre del comercio es obligatorio.'); return; }
+  if (!catSel)          { showErr('Seleccioná una categoría.'); return; }
+  if (!dir)             { showErr('La dirección del local es obligatoria.'); return; }
+  if (!email)           { showErr('El email es obligatorio.'); return; }
+  if (pass.length < 6)  { showErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass !== pass2)   { showErr('Las contraseñas no coinciden.'); return; }
+
+  hideErr();
+  setBtnLoading(true);
+
+  try {
+    // ── 1. Crear cuenta en Supabase Auth ──────────────────────
+    const { data: authData, error: authErr } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          role:   'comercio',
+          nombre: nombre,
+        },
+      },
+    });
+
+    if (authErr) {
+      if (authErr.message.includes('already registered') || authErr.message.includes('already exists')) {
+        showErr('Este email ya tiene una cuenta registrada. Ingresá con tus credenciales.');
+      } else {
+        showErr('Error al crear la cuenta: ' + authErr.message);
+      }
+      setBtnLoading(false);
+      return;
+    }
+
+    const userId = authData.user?.id;
+    if (!userId) {
+      showErr('No se pudo obtener el ID de usuario. Intentá de nuevo.');
+      setBtnLoading(false);
+      return;
+    }
+
+    // ── 2. Insertar en 'perfiles' ─────────────────────────────
+    // Se hace upsert para no romper si el trigger handle_new_auth_user_create_profile
+    // ya creó la fila automáticamente en Supabase.
+    await sb.from('perfiles').upsert(
+      { id: userId, rol: 'comercio', email },
+      { onConflict: 'id', ignoreDuplicates: false }
+    );
+
+    // ── 3. Insertar en 'comercios' ────────────────────────────
+    // Campos basados en el schema real del CSV:
+    // nombre, categoria, descripcion, direccion, telefono, email,
+    // usuario_id, estado_registro, tipo_delivery_defecto, activo, abierto_ahora, deuda
+    // embajador: creado_por_embajador_id queda NULL (desacoplado por diseño)
+    const { data: comData, error: comErr } = await sb
+      .from('comercios')
+      .insert({
+        nombre:                nombre,
+        categoria:             catSel,
+        descripcion:           '',
+        direccion:             dir,
+        telefono:              tel,
+        email:                 email,
+        usuario_id:            userId,
+        estado_registro:       'pendiente',    // admin activa luego
+        tipo_delivery_defecto: 'app',
+        activo:                false,
+        abierto_ahora:         false,
+        deuda:                 0,
+        rating:                0,
+        total_pedidos:         0,
+        // creado_por_embajador_id: null  ← NULL permitido por diseño
+      })
+      .select('id')
+      .single();
+
+    if (comErr) {
+      // Cuenta creada pero fallo al guardar el comercio → no es fatal,
+      // el admin puede completarlo desde el panel.
+      console.warn('[Registro] Error al guardar comercio:', comErr.message);
+    }
+
+    // ── 4. Persistir en sessionStorage para redirigir directo al panel ──
+    try {
+      sessionStorage.setItem('pap_rol', 'comercio');
+      sessionStorage.setItem('pap_uid', userId);
+      if (comData?.id) sessionStorage.setItem('pap_cid', comData.id);
+    } catch (_) {}
+
+    // ── 5. Mostrar éxito ──────────────────────────────────────
+    el('form-card').style.display    = 'none';
+    el('success-card').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    showErr('Error inesperado: ' + (err.message || 'Intentá de nuevo.'));
+    console.error('[Registro]', err);
+  } finally {
+    setBtnLoading(false);
+  }
+}
+</script>
+
+</body>
+</html>

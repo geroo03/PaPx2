@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Puerta a Puerta — Conectando MercadoPago</title>
+<link rel="stylesheet" href="../assets/css/oauth-callback-cadete.css">
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg width="32" height="32" viewBox="0 0 90 90" fill="none">
+      <path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="12" y="36" width="30" height="46" rx="4" fill="#fff" opacity=".9"/>
+      <rect x="48" y="36" width="30" height="46" rx="4" fill="#fff"/>
+    </svg>
+  </div>
+  <div id="estado-cargando">
+    <div class="spinner"></div>
+    <div class="title">Conectando MercadoPago</div>
+    <div class="sub">Vinculando tu cuenta de cadete...</div>
+  </div>
+  <div id="estado-exito" style="display:none;">
+    <div class="success">✅</div>
+    <div class="title" style="color:#fff;">¡MercadoPago conectado!</div>
+    <div class="sub">El 75% de cada viaje llega directo a tu cuenta de MercadoPago automáticamente.</div>
+    <a class="btn" href="cadete.html">Ir a mi panel →</a>
+  </div>
+  <div id="estado-error" style="display:none;">
+    <div class="success">❌</div>
+    <div class="title" style="color:#fff;">Error al conectar</div>
+    <div class="error-box" id="error-msg">Hubo un problema.</div>
+    <a class="btn" href="cadete.html">Volver al panel</a>
+  </div>
+  </div>
+
+<script src="/env.js"></script>
+<script>
+async function procesarOAuth() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const error = params.get('error');
+
+  if (error || !code) {
+    mostrarError('No se recibió autorización de MercadoPago.');
+    return;
+  }
+
+  try {
+    const resp = await fetch('https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/oauth-token-cadete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.SUPABASE_ANON_KEY || '') },
+      body: JSON.stringify({ code })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Error al obtener token');
+
+    // Guardar en tabla cadetes via endpoint server-side
+    await fetch('https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/save-mp-token-cadete', {
+      method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + (window.SUPABASE_ANON_KEY || '') },
+      body: JSON.stringify({ access_token: data.access_token, user_id: String(data.user_id) })
+    });
+
+    mostrarExito();
+  } catch(e) {
+    mostrarError(e.message);
+  }
+}
+
+function mostrarExito() {
+  document.getElementById('estado-cargando').style.display='none';
+  document.getElementById('estado-exito').style.display='block';
+}
+function mostrarError(msg) {
+  document.getElementById('estado-cargando').style.display='none';
+  document.getElementById('estado-error').style.display='block';
+  document.getElementById('error-msg').textContent=msg;
+}
+
+// Only proceed if ANON key is present; otherwise show an explanatory error
+if (!window.SUPABASE_ANON_KEY) {
+  mostrarError('Falta la configuración (env.js). Contactá al administrador.');
+} else {
+  procesarOAuth();
+}
+</script>
+</body>
+</html>

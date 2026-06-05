@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Comercio — Puerta a Puerta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/portal-vars.css">
+  <link rel="stylesheet" href="../assets/css/portal-layout.css">
+  <link rel="stylesheet" href="../assets/css/portal-components.css">
+  <script src="/env.js"></script>
+  <!-- Supabase UMD bundle — sin sub-módulos ESM, compatible con cualquier servidor local -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+  <script>
+    // Inicializa window.sb para que config.js (shim) y comercio.js lo encuentren
+    (function(){
+      if (!window.sb && window.supabase && window.supabase.createClient) {
+        var url = window.SUPABASE_URL     || '';
+        var key = window.SUPABASE_ANON_KEY || '';
+        if (url && key) window.sb = window.supabase.createClient(url, key);
+      }
+    })();
+  </script>
+</head>
+<body class="portal-body">
+
+<div class="portal-wrapper">
+
+  <!-- ══════════════════════════════════════════════════════
+       MOBILE OVERLAY
+  ═══════════════════════════════════════════════════════ -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════════════ -->
+  <aside id="sidebar" class="sidebar">
+
+    <div class="sidebar-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="#FF6B35"/>
+        <path d="M8 22L16 10L24 22H8Z" fill="white" fill-opacity=".9"/>
+        <circle cx="16" cy="18" r="3" fill="white"/>
+      </svg>
+      <span class="sidebar-logo-text">Puerta a Puerta</span>
+      <span class="portal-badge">Portal</span>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <!-- Monitorea tu desempeño -->
+      <div class="nav-section">
+        <span class="nav-section-title">Monitorea tu desempeño</span>
+
+        <a class="nav-link" data-action="nav" data-view="tablero">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Tablero
+        </a>
+
+        <a class="nav-link" data-action="nav" data-view="pedidos" id="nav-pedidos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Pedidos
+          <span class="nav-badge hidden" id="badge-nuevos-nav">0</span>
+        </a>
+
+        <a class="nav-link" data-action="nav" data-view="resenas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Reseñas
+        </a>
+      </div>
+
+      <!-- Potencia tu negocio -->
+      <div class="nav-section">
+        <span class="nav-section-title">Potencia tu negocio</span>
+
+        <a class="nav-link" data-action="nav" data-view="promociones">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Promociones
+        </a>
+      </div>
+
+      <!-- Gestiona tu local -->
+      <div class="nav-section">
+        <span class="nav-section-title">Gestiona tu local</span>
+
+        <a class="nav-link" data-action="nav" data-view="menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          Menú
+        </a>
+
+        <a class="nav-link" data-action="nav" data-view="horarios">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Horarios
+        </a>
+
+        <a class="nav-link" data-action="nav" data-view="finanzas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Finanzas
+        </a>
+
+        <a class="nav-link" data-action="nav" data-view="configuracion">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Configuración
+        </a>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <!-- Logout -->
+      <a class="nav-link" data-action="logout" style="color:var(--color-error)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Cerrar sesión
+      </a>
+
+    </nav>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════
+       MAIN WRAPPER
+  ═══════════════════════════════════════════════════════ -->
+  <div class="portal-main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" data-action="toggle-sidebar" aria-label="Menú">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="topbar-right">
+        <div class="store-selector" id="store-selector" data-action="toggle-sidebar">
+          <span class="store-selector-name" id="topbar-store-name">Cargando...</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <button class="estado-btn" id="btn-estado" data-action="toggle-estado">
+          <span class="estado-dot" id="estado-dot"></span>
+          <span id="estado-texto">Abierto</span>
+        </button>
+        <button class="btn-topbar" id="btn-ayuda">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Ayuda
+        </button>
+        <button class="btn-topbar btn-icon" aria-label="Notificaciones">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <main class="portal-content">
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: TABLERO (Dashboard básico)
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-tablero" data-view="tablero">
+        <div class="page-header">
+          <h1 class="page-title">Tablero</h1>
+          <div class="page-crumb" id="tablero-crumb">
+            <span id="tablero-nombre">Mi Comercio</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="tablero-stats">
+          <div class="stat-card">
+            <div class="stat-label">Pedidos hoy</div>
+            <div class="stat-value" id="dash-pedidos-hoy">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Facturación del día</div>
+            <div class="stat-value" id="dash-facturacion">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Productos activos</div>
+            <div class="stat-value" id="dash-productos">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Deuda acumulada</div>
+            <div class="stat-value text-error" id="dash-deuda">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top:var(--sp-4);display:flex;gap:var(--sp-3);">
+          <button class="btn btn-primary" data-action="nav" data-view="pedidos">Ver pedidos activos</button>
+          <button class="btn btn-outline" data-action="nav" data-view="menu">Gestionar menú</button>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: PEDIDOS
+      ═══════════════════════════════════════════════════ -->
+      <section class="view active" id="view-pedidos" data-view="pedidos">
+        <div class="page-header">
+          <h1 class="page-title">Pedidos</h1>
+          <div class="page-crumb">
+            <span id="pedidos-crumb">Mi Comercio</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="view-toolbar">
+          <div class="toolbar-left">
+            <div class="date-pills">
+              <button class="date-pill active" data-action="date-filter" data-period="7">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Los últimos 7 días
+              </button>
+              <button class="date-pill" data-action="date-filter" data-period="30">Últimos 30 días</button>
+              <button class="date-pill" data-action="date-filter" data-period="180">Últimos 6 meses</button>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <div class="search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="search-input" id="search-pedido" type="text" placeholder="Nro de pedido...">
+            </div>
+            <button class="btn-link" data-action="descargar-pedidos">
+              Descargar informe
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <h3 class="section-subtitle" id="pedidos-period-title">Los últimos 7 días</h3>
+
+        <div class="table-wrap" id="pedidos-table-wrap">
+          <div class="loading-state" id="pedidos-loading"><div class="spinner"></div></div>
+          <div class="empty-state hidden" id="pedidos-empty">
+            <div class="empty-state-icon">📦</div>
+            <p>No hay pedidos en este período.</p>
+          </div>
+          <table class="pap-table" id="tabla-pedidos">
+            <thead>
+              <tr>
+                <th style="width:140px">Estado</th>
+                <th>Nro de pedido</th>
+                <th>Problemas</th>
+                <th class="text-right">Subtotal</th>
+                <th class="text-right">Ingresos estimados</th>
+                <th style="width:160px"></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-pedidos"></tbody>
+          </table>
+        </div>
+
+        <!-- Help section -->
+        <div class="help-section">
+          <div class="help-section-header">
+            <div>
+              <h4>¿Necesitas ayuda?</h4>
+              <p>Revisa estos artículos para conocer más</p>
+            </div>
+            <a href="#" class="help-more-link">Más &rsaquo;</a>
+          </div>
+          <div class="help-cards">
+            <div class="help-card">
+              <h5>Construyendo el pedido perfecto</h5>
+              <p>La clave del éxito en la app está en que todos tus pedidos sean perfectos. ¡Conocé cómo lograrlo!</p>
+              <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+            </div>
+            <div class="help-card">
+              <h5>Sistema Go (para Restaurantes y Cafés)</h5>
+              <p>Encontrá aquí las funcionalidades del sistema de recepción Go.</p>
+              <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+            </div>
+            <div class="help-card">
+              <h5>Política de cancelación y reclamo de pedidos</h5>
+              <p>Conocé a fondo el funcionamiento de la sección de políticas de cancelación.</p>
+              <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+            </div>
+            <div class="help-card">
+              <h5>Sistema de recepción de pedidos en Portal</h5>
+              <p>Descubrí cómo gestionar la recepción de pedidos desde Portal y aprovechar al máximo.</p>
+              <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: MENÚ
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-menu" data-view="menu">
+        <div class="page-header">
+          <h1 class="page-title">Menú</h1>
+          <div class="page-crumb">
+            <span id="menu-crumb">Mi Comercio</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- Sub-tabs: Productos / Opcionales -->
+        <div class="pap-tabs" style="margin-bottom:var(--sp-5)">
+          <button class="pap-tab active" data-action="menu-subtab" data-tab="productos">Productos</button>
+          <button class="pap-tab" data-action="menu-subtab" data-tab="opcionales">Opcionales</button>
+        </div>
+
+        <div class="split-layout">
+          <!-- Category panel (left) -->
+          <div class="category-panel">
+            <div class="category-panel-header">
+              <button class="btn btn-outline btn-full" data-action="agregar-seccion">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Agregar Sección
+              </button>
+            </div>
+            <div id="categorias-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Products panel (right) -->
+          <div>
+            <div class="products-panel">
+              <div class="products-panel-header">
+                <div class="products-cat-title">
+                  <span id="cat-header-nombre">Productos</span>
+                  <span class="cat-nuevo-badge hidden" id="cat-nuevo-badge">Nuevo</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="search-wrap">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input class="search-input" id="search-producto" type="text" placeholder="Buscar producto..." style="min-width:140px">
+                  </div>
+                  <button class="btn btn-primary btn-sm" data-action="open-modal-producto">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Agregar Producto
+                  </button>
+                </div>
+              </div>
+              <div id="productos-list">
+                <div class="loading-state"><div class="spinner"></div></div>
+              </div>
+            </div>
+
+            <!-- Help section -->
+            <div class="help-section">
+              <div class="help-section-header">
+                <div>
+                  <h4>¿Necesitas ayuda?</h4>
+                  <p>Revisa estos artículos para conocer más</p>
+                </div>
+                <a href="#" class="help-more-link">Más &rsaquo;</a>
+              </div>
+              <div class="help-cards">
+                <div class="help-card">
+                  <h5>Menú completo y actualizado</h5>
+                  <p>¡Para que haya ventas, deben haber productos! Aprendé lo importante que es tener tu menú completo para triunfar en la app.</p>
+                  <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+                </div>
+                <div class="help-card">
+                  <h5>Promociones para tus productos</h5>
+                  <p>Los descuentos se aplican en los precios del menú completo, en los días y horarios que elijas. Te ayudan a aumentar las ventas.</p>
+                  <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+                </div>
+                <div class="help-card">
+                  <h5>Gestión de Menú (Restaurantes y Cafés)</h5>
+                  <p>Descubrí todas las posibilidades para autogestionar tu menú de forma sencilla desde el Portal.</p>
+                  <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+                </div>
+                <div class="help-card">
+                  <h5>Calidad de tu menú</h5>
+                  <p>¿Sabías que los usuarios prefieren pedir productos que tengan fotos atractivas y descripciones claras?</p>
+                  <a href="#" class="help-card-link">Leer más &rsaquo;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: FINANZAS
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-finanzas" data-view="finanzas">
+        <div class="page-header">
+          <h1 class="page-title">Finanzas</h1>
+        </div>
+
+        <div class="promo-banner">
+          <div class="promo-banner-text">
+            <div class="promo-banner-label">Disponible hasta el 01/08</div>
+            <div class="promo-banner-amount">$ 374.223</div>
+            <div class="promo-banner-sub">Acompañamos tu crecimiento con adelantos de dinero</div>
+          </div>
+          <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4);">
+            Simular crédito
+          </button>
+        </div>
+
+        <!-- Sub-tabs: Estado de Cuenta / Contrato -->
+        <div class="pap-tabs">
+          <button class="pap-tab fin-tab active" data-action="finanzas-tab" data-tab="estado">Estado de Cuenta</button>
+          <button class="pap-tab fin-tab" data-action="finanzas-tab" data-tab="contrato">Contrato</button>
+        </div>
+
+        <!-- Estado de Cuenta tab -->
+        <div class="tab-content active" id="fin-tab-estado">
+          <div class="date-pills" style="margin-bottom:var(--sp-6)">
+            <button class="date-pill" data-action="fin-filter" data-period="7">Los últimos 7 días</button>
+            <button class="date-pill active" data-action="fin-filter" data-period="30">Últimos 30 días</button>
+            <button class="date-pill" data-action="fin-filter" data-period="180">Últimos 6 meses</button>
+          </div>
+
+          <div class="section-title">Resumen</div>
+          <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="stat-card">
+              <div class="stat-label">
+                Ventas Netas
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div class="stat-value" id="fin-ventas-netas">$ 0,00</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">
+                Servicio PaP
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div class="stat-value" id="fin-servicio">$ 0,00</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Pagado</div>
+              <div class="stat-value" id="fin-total-pagado">$ 0,00</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total de pedidos</div>
+              <div class="stat-value" id="fin-total-pedidos">0</div>
+            </div>
+          </div>
+
+          <div class="section-title mt-6">Historial de Pagos</div>
+          <div class="table-wrap">
+            <div class="finance-table-header">
+              <span class="facturas-label">Facturas Pendientes</span>
+              <div class="flex items-center gap-3">
+                <div class="search-wrap">
+                  <input class="search-input" type="text" placeholder="Buscar factura..." style="min-width:160px">
+                </div>
+                <button class="btn btn-outline btn-sm">
+                  Descargar todos
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div id="facturas-loading" class="loading-state"><div class="spinner"></div></div>
+            <div id="facturas-empty" class="empty-state hidden">
+              <div class="empty-state-icon">🧾</div>
+              <p>No hay facturas pendientes.</p>
+            </div>
+            <table class="pap-table" id="tabla-facturas">
+              <thead>
+                <tr>
+                  <th>Número de factura</th>
+                  <th>Tipo</th>
+                  <th>Fecha de emisión</th>
+                  <th class="text-right">Recuento de pedidos</th>
+                  <th class="text-right">Pago total</th>
+                  <th style="width:40px"></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-facturas"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Contrato tab -->
+        <div class="tab-content" id="fin-tab-contrato">
+          <div class="contract-grid">
+            <div>
+              <div class="contract-section-title">Contrato</div>
+              <div class="contract-field">
+                <span class="contract-field-label">Nombre de referencia</span>
+                <span class="contract-field-value" id="ct-nombre">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Razón social</span>
+                <span class="contract-field-value" id="ct-razon">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Dirección</span>
+                <span class="contract-field-value" id="ct-direccion">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Código postal</span>
+                <span class="contract-field-value" id="ct-cp">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Ciudad</span>
+                <span class="contract-field-value" id="ct-ciudad">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Barrio</span>
+                <span class="contract-field-value" id="ct-barrio">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Email</span>
+                <span class="contract-field-value" id="ct-email">—</span>
+              </div>
+            </div>
+            <div>
+              <div class="contract-section-title">Datos Bancarios</div>
+              <div class="contract-field">
+                <span class="contract-field-label">Titular</span>
+                <span class="contract-field-value" id="ct-titular">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">CUIT</span>
+                <span class="contract-field-value" id="ct-cuit">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Cuenta terminada en</span>
+                <span class="contract-field-value" id="ct-cuenta">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Tipo</span>
+                <span class="contract-field-value" id="ct-tipo-cuenta">—</span>
+              </div>
+              <div class="contract-field">
+                <span class="contract-field-label">Banco</span>
+                <span class="contract-field-value" id="ct-banco">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pap-card mb-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <div style="font-weight:var(--w-semibold);margin-bottom:var(--sp-1)">Política de cancelación y reclamos de pedidos</div>
+                <div style="font-size:var(--text-sm);color:var(--text-secondary)">Cuando un pedido es cancelado o rechazado se aplican reintegros o cargos de manera automática.</div>
+              </div>
+              <a href="#" class="btn-link-red" style="white-space:nowrap;margin-left:var(--sp-6)">Ver política &rsaquo;</a>
+            </div>
+          </div>
+
+          <div class="section-title">Sucursales asociadas</div>
+          <div class="table-wrap">
+            <table class="pap-table">
+              <thead><tr><th>Nombre</th><th>Dirección</th><th>Ciudad</th><th>Estado</th></tr></thead>
+              <tbody id="tbody-sucursales">
+                <tr><td colspan="4"><div class="empty-state" style="padding:var(--sp-6)"><p>Sin sucursales asociadas.</p></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: HORARIOS
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-horarios" data-view="horarios">
+        <div class="page-header">
+          <h1 class="page-title">Horarios</h1>
+          <div class="page-crumb">
+            <span id="horarios-crumb">Mi Comercio</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="split-layout" style="grid-template-columns:1fr 340px">
+          <!-- Horario grid -->
+          <div class="pap-card" style="padding:0;overflow:hidden">
+            <div id="horarios-grid">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Cierre especial panel -->
+          <div class="pap-card" style="text-align:center;padding:var(--sp-8) var(--sp-5)">
+            <div style="font-size:48px;margin-bottom:var(--sp-4)">📅</div>
+            <div style="font-weight:var(--w-bold);font-size:var(--text-lg);margin-bottom:var(--sp-2)">
+              No tienes un cierre especial configurado
+            </div>
+            <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--sp-5);line-height:var(--lh-relaxed)">
+              No tienes un cierre especial configurado para tus locales. Agrega un nuevo cierre especial haciendo clic en el botón a continuación.
+            </p>
+            <button class="btn btn-primary btn-full" data-action="agregar-cierre">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar cierre especial
+            </button>
+          </div>
+        </div>
+
+        <!-- Help -->
+        <div class="help-section">
+          <div class="help-section-header">
+            <div><h4>¿Necesitas ayuda?</h4><p>Revisa estos artículos para conocer más</p></div>
+            <a href="#" class="help-more-link">Más &rsaquo;</a>
+          </div>
+          <div class="help-cards">
+            <div class="help-card"><h5>Cómo abrir tu local</h5><p>Seguí los pasos necesarios para activar tu comercio y comenzar a recibir pedidos.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+            <div class="help-card"><h5>Gestión de Horarios</h5><p>Desde la sección Horarios del Portal, puedes agregar, eliminar horarios y añadir cierres especiales.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+            <div class="help-card"><h5>Horario configurado y tiempo de apertura</h5><p>No olvides que para que tus pedidos sean recibidos, deberías abrir y cerrar a las horas fijadas.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+            <div class="help-card"><h5>Importancia de tus horarios</h5><p>La importancia de tener bien configurados tus horarios de apertura en la app.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: PROMOCIONES
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-promociones" data-view="promociones">
+        <div class="page-header">
+          <h1 class="page-title">Promociones</h1>
+          <div class="page-crumb">
+            <span id="promo-crumb">Mi Comercio</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="pap-tabs">
+          <button class="pap-tab promo-tab active" data-action="promo-tab" data-tab="crear">Crear Promociones</button>
+          <button class="pap-tab promo-tab" data-action="promo-tab" data-tab="mis-promociones">Mis promociones</button>
+        </div>
+
+        <!-- Crear tab -->
+        <div class="tab-content promo-tab-content active" id="promo-tab-crear">
+          <!-- Calculadora de descuento PaP — populada por JS en modo mock -->
+          <div id="promo-calculadora-pap"></div>
+          <div class="section-title">Recomendado para tu local</div>
+          <div class="promo-cards-grid">
+            <div class="promo-card">
+              <div class="promo-card-icon">👥</div>
+              <div class="promo-card-title">Adquiere nuevos usuarios</div>
+              <ul class="promo-card-checks">
+                <li>Atrae clientes que no te compran hace más de 3 meses.</li>
+                <li>Adquiere nuevos usuarios</li>
+              </ul>
+              <button class="btn btn-primary btn-full">Adquirir</button>
+            </div>
+
+            <div class="promo-card">
+              <div class="promo-card-icon">🚀</div>
+              <div class="promo-card-title">Impulsa las ventas de tu menú</div>
+              <ul class="promo-card-checks">
+                <li>30% OFF en los productos más vendidos, para todos los clientes</li>
+                <li>¡Incrementa tus ventas al 50%!</li>
+              </ul>
+              <button class="btn btn-primary btn-full">Activa ahora</button>
+            </div>
+
+            <div class="promo-card promo-card-plus">
+              <div class="promo-card-icon">⚡</div>
+              <div class="promo-card-title">Unite a Puerta a Puerta Plus</div>
+              <ul class="promo-card-checks">
+                <li>¡Aumenta tus ventas al máximo!</li>
+                <li>Los clientes adheridos al programa comprarán más en tu local.</li>
+              </ul>
+              <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3);width:100%">Ver más</button>
+            </div>
+          </div>
+
+          <div class="section-title">Promociones y descuentos</div>
+          <div class="promo-cards-grid">
+            <div class="promo-card" style="cursor:pointer" data-action="nueva-promo" data-tipo="descuento_porcentaje">
+              <div class="promo-card-icon">🏷️</div>
+              <div class="promo-card-title">Descuentos Fugaces</div>
+              <p style="font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--lh-relaxed)">Atrae clientes que son nuevos para tu negocio...</p>
+              <div style="margin-top:var(--sp-3)"><a href="#" class="help-card-link">Crear descuento &rsaquo;</a></div>
+            </div>
+            <div class="promo-card" style="cursor:pointer" data-action="nueva-promo" data-tipo="menu_completo">
+              <div class="promo-card-icon">📋</div>
+              <div class="promo-card-title">Menú Completo</div>
+              <p style="font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--lh-relaxed)">Un descuento en todo el menú es atractivo...</p>
+              <div style="margin-top:var(--sp-3)"><a href="#" class="help-card-link">Crear descuento &rsaquo;</a></div>
+            </div>
+            <div class="promo-card" style="cursor:pointer" data-action="nueva-promo" data-tipo="productos_seleccionados">
+              <div class="promo-card-icon">🎯</div>
+              <div class="promo-card-title">Productos seleccionados</div>
+              <p style="font-size:var(--text-sm);color:var(--text-secondary);line-height:var(--lh-relaxed)">Potencia tus ventas con descuentos en productos específicos...</p>
+              <div style="margin-top:var(--sp-3)"><a href="#" class="help-card-link">Crear descuento &rsaquo;</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mis Promociones tab -->
+        <div class="tab-content promo-tab-content" id="promo-tab-mis-promociones">
+          <div id="mis-promociones-list">
+            <div class="loading-state"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: RESEÑAS
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-resenas" data-view="resenas">
+        <div class="page-header">
+          <h1 class="page-title">Reseñas</h1>
+          <div class="page-crumb">
+            <span id="resenas-crumb">Mi Comercio</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <div class="reviews-layout">
+          <!-- Rating Summary (left) -->
+          <div class="rating-summary">
+            <div class="rating-title">Calificación de la tienda</div>
+            <div class="rating-big">
+              <div class="rating-number" id="resenas-avg">—</div>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#F5A623" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="rating-count" id="resenas-count">Sin reseñas aún</div>
+            <div>
+              <div class="rating-bar-row"><span class="rating-bar-label">5 ★</span><div class="rating-bar-track"><div class="rating-bar-fill" id="bar-5" style="width:0%"></div></div><span class="rating-bar-count" id="bar-count-5">0</span></div>
+              <div class="rating-bar-row"><span class="rating-bar-label">4 ★</span><div class="rating-bar-track"><div class="rating-bar-fill" id="bar-4" style="width:0%"></div></div><span class="rating-bar-count" id="bar-count-4">0</span></div>
+              <div class="rating-bar-row"><span class="rating-bar-label">3 ★</span><div class="rating-bar-track"><div class="rating-bar-fill" id="bar-3" style="width:0%"></div></div><span class="rating-bar-count" id="bar-count-3">0</span></div>
+              <div class="rating-bar-row"><span class="rating-bar-label">2 ★</span><div class="rating-bar-track"><div class="rating-bar-fill" id="bar-2" style="width:0%"></div></div><span class="rating-bar-count" id="bar-count-2">0</span></div>
+              <div class="rating-bar-row"><span class="rating-bar-label">1 ★</span><div class="rating-bar-track"><div class="rating-bar-fill" id="bar-1" style="width:0%"></div></div><span class="rating-bar-count" id="bar-count-1">0</span></div>
+            </div>
+          </div>
+
+          <!-- Reviews list (right) -->
+          <div>
+            <div class="flex items-center gap-3 mb-4" style="flex-wrap:wrap">
+              <div class="date-pills">
+                <button class="date-pill active" data-action="resenas-filter" data-period="180">Últimos 6 meses</button>
+              </div>
+              <select class="pap-select" id="resenas-stars-filter" style="width:auto;min-width:160px">
+                <option value="">Star rating</option>
+                <option value="5">5 estrellas</option>
+                <option value="4">4 estrellas</option>
+                <option value="3">3 estrellas</option>
+                <option value="2">2 estrellas</option>
+                <option value="1">1 estrella</option>
+              </select>
+            </div>
+
+            <div id="resenas-list">
+              <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           VIEW: CONFIGURACIÓN
+      ═══════════════════════════════════════════════════ -->
+      <section class="view" id="view-configuracion" data-view="configuracion">
+        <div class="page-header">
+          <h1 class="page-title">Configuración</h1>
+        </div>
+
+        <div class="config-grid">
+          <div class="config-card" data-action="config-seccion" data-sec="local">
+            <div class="config-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="config-card-body">
+              <div class="config-card-title">Administración del Local</div>
+              <div class="config-card-desc">Aquí puedes ver la información de tu fiscal y los datos de contacto en donde te enviamos comunicaciones relevantes. Además podés actualizar tu foto de portada.</div>
+            </div>
+            <div class="config-card-arrow">›</div>
+          </div>
+
+          <div class="config-card" data-action="config-seccion" data-sec="usuarios">
+            <div class="config-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div class="config-card-body">
+              <div class="config-card-title">Administración de Usuarios</div>
+              <div class="config-card-desc">Aquí puedes ver tus datos de contacto. Verificá que estén completos y actualizados. Si eres administrador, podés también gestionar tu equipo y sus accesos al Portal.</div>
+            </div>
+            <div class="config-card-arrow">›</div>
+          </div>
+
+          <div class="config-card" data-action="config-seccion" data-sec="procesamiento">
+            <div class="config-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            </div>
+            <div class="config-card-body">
+              <div class="config-card-title">
+                Permiso procesamiento de pedidos
+                <span class="badge badge-new">Nuevo</span>
+              </div>
+              <div class="config-card-desc">Asigná los permisos de proceso de pedidos de tus locales a los usuarios correctos.</div>
+            </div>
+            <div class="config-card-arrow">›</div>
+          </div>
+
+          <div class="config-card" data-action="config-seccion" data-sec="portada">
+            <div class="config-card-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div class="config-card-body">
+              <div class="config-card-title">Foto de portada</div>
+              <div class="config-card-desc">La foto de portada es la primera impresión visual que tienen los clientes de tu negocio. ¡Aprendé más sobre nuestras recomendaciones para sacarle el mayor provecho!</div>
+            </div>
+            <div class="config-card-arrow">›</div>
+          </div>
+        </div>
+
+        <!-- Help -->
+        <div class="help-section">
+          <div class="help-section-header">
+            <div><h4>¿Necesitas ayuda?</h4><p>Revisa estos artículos para conocer más</p></div>
+          </div>
+          <div class="help-cards">
+            <div class="help-card"><h5>Portal de autogestión</h5><p>Conocé cómo configurar el Portal de autogestión y todos los accesos a distintos recursos según tu rol.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+            <div class="help-card"><h5>Foto de portada</h5><p>La foto de portada es la primera impresión visual. ¡Aprendé más sobre nuestras recomendaciones!</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+            <div class="help-card"><h5>¿Cómo habilitar el procesamiento de pedidos?</h5><p>Desde la sección de Configuración podés gestionar la recepción de pedidos desde Portal.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+            <div class="help-card"><h5>Gestión de tu equipo</h5><p>Administrá los usuarios con acceso a tu portal y asigná roles específicos según sus responsabilidades.</p><a href="#" class="help-card-link">Leer más &rsaquo;</a></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- /portal-main -->
+</div><!-- /portal-wrapper -->
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: AGREGAR / EDITAR PRODUCTO
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-overlay-producto">
+  <div class="modal-sheet" id="modal-producto">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-producto-title">Agregar producto</h2>
+      <button class="modal-close" data-action="close-modal" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--sp-4)">
+        ¡Agregá una foto para conseguir más pedidos!
+      </p>
+
+      <!-- Upload zone -->
+      <div class="upload-zone" id="upload-zone" data-action="trigger-upload">
+        <div id="upload-preview-wrap" class="hidden">
+          <img id="upload-preview" class="upload-preview" src="" alt="Preview">
+        </div>
+        <div id="upload-placeholder">
+          <div class="upload-zone-icon">🖼️</div>
+          <div class="upload-zone-text">Arrastrá una imagen o hacé clic para subir</div>
+          <div class="upload-zone-hint">• 720 × 540 píxeles mínimos &nbsp;•&nbsp; PNG, JPEG, WEBP &nbsp;•&nbsp; Máx. 20MB</div>
+          <button type="button" class="upload-zone-btn" data-action="trigger-upload">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Subir una foto del plato
+          </button>
+        </div>
+        <input type="file" id="input-imagen" accept="image/*" style="display:none">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mp-nombre">Nombre <span>*</span></label>
+        <input class="pap-input" id="mp-nombre" type="text" placeholder="Ej: Ensalada con Pollo">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mp-desc">Descripción <span>*</span></label>
+        <textarea class="pap-textarea" id="mp-desc" rows="3" placeholder="Ingredientes, presentación, notas..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mp-categoria">Categoría</label>
+        <select class="pap-select" id="mp-categoria">
+          <option value="">Seleccionar categoría...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="mp-precio">Precio base <span>*</span></label>
+        <div style="position:relative">
+          <div style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:var(--text-sm);color:var(--text-secondary);pointer-events:none">ARS $</div>
+          <input class="pap-input" id="mp-precio" type="number" min="0" step="1" placeholder="0" style="padding-left:52px">
+        </div>
+        <div style="font-size:var(--text-xs);color:var(--text-tertiary);margin-top:var(--sp-1)" id="mp-precio-cliente"></div>
+      </div>
+
+      <div style="padding:var(--sp-4);background:var(--surface-page);border-radius:var(--r-md);margin-top:var(--sp-2)">
+        <div style="font-weight:var(--w-semibold);margin-bottom:var(--sp-2)">Grupos de opcionales</div>
+        <div style="font-size:var(--text-sm);color:var(--text-secondary)">
+          Ningún opcional agregado — Agregar un opcional a este producto permitirá a los consumidores personalizar sus órdenes.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-action="close-modal">Cancelar</button>
+      <button class="btn btn-primary" id="mp-save" data-action="save-producto">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: AGREGAR SECCIÓN (CATEGORÍA)
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-overlay-categoria">
+  <div class="modal-sheet" style="max-width:400px">
+    <div class="modal-header">
+      <h2 class="modal-title">Nueva sección</h2>
+      <button class="modal-close" data-action="close-modal-categoria">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="cat-nombre">Nombre de la sección <span>*</span></label>
+        <input class="pap-input" id="cat-nombre" type="text" placeholder="Ej: Almuerzos, Postres, Bebidas...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-action="close-modal-categoria">Cancelar</button>
+      <button class="btn btn-primary" data-action="save-categoria">Crear sección</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: CIERRE ESPECIAL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-overlay-cierre">
+  <div class="modal-sheet" style="max-width:420px">
+    <div class="modal-header">
+      <h2 class="modal-title">Agregar cierre especial</h2>
+      <button class="modal-close" data-action="close-modal-cierre">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="cierre-fecha">Fecha del cierre <span>*</span></label>
+        <input class="pap-input" id="cierre-fecha" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cierre-motivo">Motivo (opcional)</label>
+        <input class="pap-input" id="cierre-motivo" type="text" placeholder="Ej: Feriado nacional, Vacaciones...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-action="close-modal-cierre">Cancelar</button>
+      <button class="btn btn-primary" data-action="save-cierre">Guardar cierre</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TOAST
+═══════════════════════════════════════════════════════════ -->
+<div class="toast hidden toast-success" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPTS — zero inline handlers
+═══════════════════════════════════════════════════════════ -->
+<script type="module" src="../assets/js/comercio.js"></script>
+
+</body>
+</html>

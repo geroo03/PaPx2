@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIlB1ZXJ0YSBhIFB1ZXJ0YSIsICJzaG9ydF9uYW1lIjogIlAgYSBQIiwgImRlc2NyaXB0aW9uIjogIlR1IHBlZGlkbywgeWEgbWlzbW8uIiwgInN0YXJ0X3VybCI6ICIvIiwgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsICJiYWNrZ3JvdW5kX2NvbG9yIjogIiNGRjZCMzUiLCAidGhlbWVfY29sb3IiOiAiI0ZGNkIzNSIsICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsICJpY29ucyI6IFt7InNyYyI6ICJkYXRhOmltYWdlL3BuZztiYXNlNjQsaVZCT1J3MEtHZ29BQUFBTlNVaEVVZ0FBQU1BQUFBREFDQVlBQUFCUzNHd0hBQUFjbTBsRVFWUjRuTzJkZTV5Y1ZYMy8zOTl6bm1kbWRyUFpYQW1KZU9FYUlVUVFja01Fb2dKS3VWaEZSeTZpZUd1TUFkdUtyZFhXZHQzMjE5K3IvZjIwdEFKQ1k2R2dJdEd0V0ZSRUxoWGlCU0Zoc1lKRVZPNFVrQVNTM1d4MmQyYWU1em5mL3ZITWJEWXhsOW5kbWQyZG5mTit2VFo1dlhibjhzd3ozODg1MzhzNTV5dU1Bd3BDQjhLbXZFaFhWN0xMM3o1eHdrR0lMbUl3UG82TVhVNnNNZWhpckRtYVdCMkNHWTlyOU5RTlJVUlExd2ZjaGpHQ2N6MWtiUmVEYkpXcjcrL2U1Y0g1dkFXZ3E4c0phTDB2VHVyOUJwclAyK0ZHcjJ0V3RwRVpQQkZrQlZGeUppS0hFSmdEVWNDVUx5ZHhrTlQ5czN2R0V3SEMxTGJSOG5jYnVRamh0eGh6TjA0Znh0a2Z5SmQrOW5UbEtkcXhNdUJ6NnhPUitnbWhiZ0xRZk40T1Y3RitZdm14T0M3RmNScldIRXdnRUpjTlBYRU9CS1I0WjFURWoveFRFZDA1KzZzSUJvTTFFSlMvNmtKVXdOb2ZrYmhyNkMzZUlWOTdxQjkrMzVacVNjMEY0UHNqL3JMM0VKaFBvRzRwb1EySUhjVE9BUTdFSUVnOXJzUFRFQ2lLZ2pwQU1HSUpiVHBET1A0SFdBdXNsUy9lL3lLVVo0VE85VWt0aFZBenc1TU9UTVhIVnhEK2VNVzVvSmRoelltb1F1UkFOUUUvdW52MlNpb0dSYkRHa0xGUVRGN0NjQ1ZCY3BYOFUvZEw0UHVEN0Zpb2lRQ0dYNUJlc3V5ZEdQazBnVm1lR242U29BZ2lmcVQzVkU0Nk15UllFNUN4RUNXL1EvazNNb1Yva0M0ODFLOTVMRjJNMlMwYWswR20yWjBPa2M1T3A2dVh2cGJRL0FYV2ZCQ0FLSzRZdmgvdFBXTkJVWFVZWThsWktMbHVuUDZqWExtaEMxTFBRenB4bzMzeFVRdEFPekIwb2dLcWx5dzdHeVByeU5ocEZDSnYrSjU2b0tnbWhEWWd0RkNLLzRrWGRuUkkxNllkWTNHSlJpV0FpdW8waitYQTVmK1BqTDJNWWd5cU1TTEJhRjdUNDZrSzFUU0IwaElHbE9LSGlQV2RjdlVEVEF4V0JDTVdnSGFzREtSemZheHJsczNIeXEyRTVuaUtTWUpTeWVoNFBQVW5uUTBzMEU4eCtZaGM0OEE2elMvSzBMVXBHa2xjTUNLREhUTCtEeDMzQ3FZRmR4RUdSMUdJL0tqdm1TQTB3UmlMRVlpVEMrU3FCOVlOZDgycmVZV3EvZlFoNC8vWTB2Tm96OXlITVVkUmlCSnYvSjZKUXl5Sk9oTG5zT2JyZXVueUwwa25qZzVFcXh6Y3EzclFrUEd2WHZvdWNzRi80QndrTGdHeFkvc0FIazhOU0ZPbVNsdkdzQ05hSjEvYWVJR3VXaEt5dGp2ZTMweXdYd0VNQmJ5cmxpd2dhLzhia1FPSUU0ZDQ0L2RNT2lKYWdwQ0IrSVB5cFkzWFZ3YnVmVDFobnk2UWRuUVlBRjJ6YkQ1WmV5ZEc1bm5qOTB4aUFncEpSR2l1MWRWTHo1Zk85YkYyck55bmk3NVhBVlI4S09uRUlkeE9hSThtU2hKdi9KNUpqT0EwSUhIUUV0eWtIMTN5UnVsY0h3OHRzZDREZTU4Qk9sWmE2ZXgwdW1icEY0amFZOHJaSG0vOG5zbU5JS2dxaVNvWisyVmR0V1FCaXhhcGR1eloxdmY0UzgxajAxei9rak5wQ1MrakdQdHNqNmVCRUV1Y0pHU0Rvd2psQzlMWjZXQmxkUUxRamc3RE4zRjZ5YktGQkhZZHBUaEcvYklHVDRNaEVqQVlSZVRDQzNUTmtrL3ZMUjdZZzJIZlkwUlFuUHNzb1oxT3VyalpWM2c5alVoQUtYRVk0eW05Wk5rY1ByYysyYjArc0lzQU5KKzM1V0xYT2VUQ2kzeVYxOVBnQ0lsVE1uWVdqbXRFVVBKNXMrc0RocUg1dkdYUlptSEx3UDFrN1BGRXNTOTJlUm9meFJHS0lkWmxYTFd4bXp4R3VraGcyQXlnSFNzRDZlcEsyTExqTExMMmVFcmUrRDFUQlhWWUE2cC9sVmFHODBOL0dUWWRyQzl2S3BEUG9xcUlkL3M5VXdTUmdGS2NFTnF6OVpJbHgwdFhWMUtwRGFTVjNuemVTaWRPMXl6NVE3TGhVcUxFQVg3MDkwd2RIR0JOZ05JeC9OY0M1ZFRucGszQzNDYzNrQTI4NysrWm1paU8wQ2lsYUlWYy9XQzM1ckVtWGV6VzZaajcyRUlDYzB3Nitudmo5MHhGMUJFWWk3SG5BckJvcFppaENwa0VueVJqZy9LV000OW42aUZpS1NXZ3JOWlBuRENienZXSm9YTjlvbXRXdGlHY1FaVGcxL3Q0cGpDQ2N3azVPNXM0ZnFPQUdnSEY5SjlNeGg1VVBySE5wMzQ0VXhkRlNhT0I0d0JNZWFIRGlWaFJSR3B5MnBiSE0za1JRNklDckZCRjBobkE2VnVJblRDQ1BjSWVUME1pR0dMbk1PYVZYSHJjRXFNZlgvNUt4QnhHb29wNkFYaWFBQVdzeWVIc0d3MGFMOFRhQTBsVS9hcFBUMU1nbWc3MXdoc055TktkSFFzOG5pWkF4UkE3UUk0eU9Ea1pJekxVbk1Mam1lb0lRcUlReUdLRDZyYUp2aDZQWjBLSTFSbU1IRS9pUUwzLzcya3lCR093NXVoMDI2UGY5K3RwUGd5eFgvdmphVjZNNzlmbGFXYTg4WHVhR2k0QVQxUGpqenlaS0lhYVptcjZ2dy9GSmdRdmdJbkFXQ1VxQ0VrTXhvS0xJVGM5RllHdlI0NHJYZ0RqaWJIZ0V1anZFZVljRkhQR2g3Y3gvK0NJMi81dEpyLzZXU3RoRnNLY0Y0STQ0Z1V3SG9oSmpYcWdGM0p0eW9udjZDUC9aMXRwbnhNQnNPZ04vZHo1bFZuNDRPc3oyZnhNUUNZSFlUWVZpNmV1aUY2eXpBODE1VUpNNnVZWCtpSFRvaHgvZWg1LzhPRWVGaHhhQUF4eFpERHBuaVNNY1VSRnk1M3JwblBQVFRQWjRteElkdHJPV2NOVEY3d0E2b0ZJYXZ6RmdkUjREMWxjNE1LL2ZvbURqeDVneVBDdFlvWWw0ZUpJQ0VJRkhFbHN1UEh2RCtEKzcwNm5PQ2prcHUyY1JUdzF4UXVnbHFTR3I0UWxJU3JBb2NjV2VPc0h0ckhrcmYwQUpMRWdobDBNZnhjY3hNbE9JYnp3UkpiYnJwMUo1KzN0UkVYSXRhV3hnUmRDemZBQ3FCWEdRQnhCY1JCbUhwRHdsZ3Q3T091ajJ3QUZaM0NhdWpOVk1TU0V0Q3Y2b3h1bjRhM1B6K0hwVFRsRUlOT2F2cXdQbE1lTUY0QllNVFlka1F2OU1HTnV3a252N3VXMDkyNm5iVmFFY3dibmhDQVkzVDEyRGx3aUJHRUNDQS9jM3NhZE40emt5WWR6QkJrSU1vbzY0VUlZUFY0QW8wVU1vS25oV3d2THo1ck9CWC81TWkxdE1TREVrU203TW1QSHBmYVBNZW14TlQvK2ozYSsvY1U1YkgvSmttbUJJT01ENVZIaUJUQlNLbjUrY1VBd0ZoYWYzTThmZkdnYmh4NDdTTVh3ZHc1d2EwVVNVNDRoSFAzYkErNjZZUVkvdm5rR3ZWdHNHaWhMT210NHFzWUxvR29rOWZOTGc1QkVNUCt3RXVkOTZpVVduOVFQQ0M2Um9jZlVteVFCYTlOQXViNDM1S3VkQi9DTHU5dUlJOGlXaGVBRDVhcndBdGd2QXNZb1NTU1VCdUVWUjVRNDdhSWVUbjUzSDZCRHVmeXFBNXdhc1RNK2NJRHl4QzlhK01GMU0zbjRSMjJvU3dObFgxSGVMMTRBKzBKTTZsc1grNkYxaHZLT2o3L0VXeTdjVG5yYXZNRWxJNGpzMUFtWDJqL0dwa1ArVTQvaytOcmZ6dVBKaDdLRU9jaGt3YVduQVhwK0h5K0FQVkhaSFZyc2g1WjJ4d2xuYitldEgreGx6dndTYVNGTGFoYmcxZ3FYZ0ZNaENCTEE0T052VGVldXI0N2srY2N5WkhKZ1E0VTU0VUxZRlMrQTRWU1dLQmZUdWhXdk82V2ZpenEyTUd0ZXhmQnJsOW1wRnp0bnBUUmpkTnUxTS9uK2wyY3oyR2ZJdG9JTmZNWm9HRjRBc0RPelV4b1UxTUZybHcvd3RnLzFjUFNKQXdCMXplelVpK0ZMSzdhK0dITDdkVE81NzN2dERQUVljdFBUeC9oQTJRc0FZeUV1cHZuODF5d3VjdDZuWHVMSUZZT0E0aEl6YnBtZGVyRXpZNlJzMnh4eXl4V3orZW0zMnhFRFdWNVJibDRCR0t1NFJDajB3d0d2aW5uVCtUMmM1dDVlYk9oSVlvdkkrR2QyNnNXdUdTTjQ1TjVXYnI1dUpyL2UwSXF4RU9hYXRxTGNmQUtvTEM0dTlxZWJUOTcyb2EyY3RhcW52TnhnY2dhNHRXTDNqTkVqOTA3anByNC9nQmVlQ01tMGxQY2dsQi9USkRTUEFDcHI0d2QzUUxaMStOcjRJa09HYjdVcHpnbW9CTUhHbHZjZzNOVE9QZCtZd1l0UGgrU21OVldnUFBVRlVNbnNWQ3E0eTQvcDQrMnJ0ekgva0NJZ0pJbGdtN1EzU0J4WEZ1b2xSTVdBZTc0eG5lLzk2eHgyYkRXMFRFOWpueW0rdEdMcUNxQ3lLU1VxUWx5Q1E0NHBjUHJGUFN4OVd4NEFjV1FiTHJOVEYzYlpnNUR3dTZkeWZIL3RUQjQ4czUxU1ljcnZRWmlDQWlndlhZZ2pvYkFENXIwbTVqMS90b1hqVCs1bktMUER4RmR3SnlOcC9KTUdBYjk3S3N2Tmw0K20rNDQyZ2d4a1c1TFFZSW9KWVdvSndOaDB4V1JoQjR5YW4zRFN1YjJjZm5FdjA1b2puTE5qV3B2ZkxPeWVNZXErWXhwM1hEK0xKeDdLWVFQSXRLYlpzeWtTS0U0TkFSaVRUdE9EZmRBNnczSHFlM3M0OVgyOXRNMkltZXFablhxeCt4NkU3anZidUhYdExKNTZLRXR1T2dUaGxBaVVHMXNBRlQrL3NBTnNDSzQ3YVFkbnI1bkdxNDRjQkN4eEpON1BIeU54TE9scVYrT0lJNHYzcnBuSlQyNmVRYy92TExucERYOXFSV01Lb0dMNHBVS2EzVG4yVGYyNC9kSnRITEo0RUlDNFpGTlh4eHQremRnNWl5YjA1NGJjK1pVWjNISERiS0xCTkZCdTBNMDRqU2NBWTVWU1FZaUxjTkRDRXFkZTFNTXA3OTRPS0Vsc0VQRUJidDNZYmJQK2t3KzM0djB2eitLWFA1bEdYRXFGQUEwVktEZU9BSVlDM0Q0NGFHSUU2UmR2NCtSMzlRRUp6dGx5aFhPaXI3STUySDB6enBNUDVmakJkYlA0K1grMWxkY1lOY3pTaXNrdkFHUFNEUjJEZmRBMnkzSENXZHQ1OXllM0VtWmpLbjYrRDNBbmhwMFY1WFRWNmM1dW1jRnQxNDNpK2Q1bXl1ZWNsak5HazVmSks0REtwcFRDRGd6Y0VxK2g3ZCtvSWZaQzBwNHc1OWN1S1RjZmQybU8rVisvTzNwL09ETHMzamg0WkNXOXZMU2lzbTV4bWp5Q1dENHBoUXhzSERwQUdldTZ1R29GVHNZMnBUU0pHdDJHbzNkQStWYnJwckYvYmUyMDcvTmtKMmNhNHdtandBcW0xSXE1K1lmdVdMNHBoVDFTeGNhaUowVlpjZkx6MmU1NDRZWjNQdmRkZ2EzbTRrV0tFNE9BUmlyUk1YMFBNMERWVFJ4eG9lM3NmSTl2UUIrNlVLRHNtdWc3SGoyTnkyc1U0ZTVQTmJkZ3JyMG1QaEpFQ2hQckFBcVJaVEJQcGo3cXBoVDM5dkRtOC9mVHBpTmNZa2Rlb3luY2RrOVkvVEl2ZE80L2RxWmJMcXZsVEF6NFFWQkprWUFsYU8rQ3p2U2tlQzRVL3ZJZjNJcjdYTjlnRHRWMlgwenpHUnBDREsrQXFpbVlRUGNLYzJ2N2NaWjJJYmdveVBBRWJUTU1JenRaa2tEVUhxSzRBeE40endURzBtdmlGSS9RUlE0WVJucW5OeERVRXFZOEFLZzBqMmc5d25IeHVMNmU1cjVmMk9SRnhaRkczczhxN054bzFEa2ppa2FYMXhDaFdsRVFGZGRVdkdUQ21zdnlnY1hCTzlwdnRVUVZOSU5PU0R2a2JiMnZqOXV0bjhkVEQyWEpEa0pwZlZuMEVFSVlKSzg3cDQveFB2d1NrbTFMUzhIZC9WSzVGd0VrRGlxQnlDbTIxeG14SlAyUkNlcFRoU041blVxK3gyUVBWWHZQd3g2WDM1TUc3MnZuVzVYUHAzUkpVUlZUVk1TS0loVlZweTVuSE5YREZJcUNLVkNHdURLdnE1YlFXeTZlYjFVRUY1M2Nva0ZoeXJPaFdrYjBVbU1jNEl4Q2FWQ3dvYmJzZ3oyQ1MzVGRaOStxeW9FZ2ZEa0w1OWl5N1BiT1Bqb2c1aC84RHhLa1VQMjVBVVB3ejVSQVk0K1NYbkZZUm1jeTAzKytNa0JKQlFML1d5NFJ4anNoWmIyNnZ6NkpFNDNORTFyZDd6OGZNQ1B1bWF3OVlVUUc1Yk1IYXBobzJ3QmRjSlB2ejJEdTc4K0E0UjlHMzdsYVpKbWh6S3RjT2FxUWVZY2xCNU5PTm0vV3lnSDhDN05aYzVaRUhManRXMDQ5eHREc0o4dnlRakU0ZVBBVmg1ZWZ3aldIa0NpZXg3ZlJOSWpEbk90Y1BacW1IM2dzUGVlN0pTdk1aTnJZOTRyNGNicjRabEhJTWhXSDV3NmwyN0J6TFNBQ1dvYUM1VEhCYXBrZjZwL0FwUUc0TEpydDdOd1NYcGVUenF5MXZ6UzZrejZtZi91M2JONW5nTERuZTNMMHN4SXJoa0F5TFBvbm9zeGg1T29yckhHVUFLamFuKy9BWTR2UFc3L0tVT242RmU3THdSLytjOCtKOWZwOTFzcWhXQnF0UWpHbFFmQzFOTnk5L1YvS0RDUUsvdzVnc0tMRnhzSkk3U2VLSHhqRC9kUHd0dzRkL3N3QmdoaWZmenRSMjRSSWVXQyt6eC9pRDBiUk5PdjFnNC9QVkNISldYeXphVThRT2s1d09FaS81YU1JR1FSTlhaaUV2cVl2d3dHYUpNNTlLcGJXVytBRWhEcDBhRElEWGt3NDZLT1BUWWlPTEEyTjBVVjJaOVRua1hvR2xIeWthbHNpL2c0TVd3NFBoMFZwdmdnVzZDMzczY2RPNDFpMkxtSDVwQVE3bzV1MUp4ZVk0N3RUaDB0TWhvTVNhdG94eDJMTXc1S04wWnQ4NFU4cVNuY245T1M3ZTRUdkJFTnZGM1V6VTliQWswN1dVMVJaZzJ2VFlmUnNzenBLMXh2bUtpYVowKzBWY0FUQVlCUUZyNFZHcTR1SGF2TlVrMmo5U1VTYkl6YkhJSVlFclNhREhxZURNNTdvOFhnS2VwOFFMd05EVmVBSjZteGd2QTA1UjRBWGlhR2k0QVQxUGpCZUJwYXJ3QVBFMU5GNENucWZFQzdEUTFYZ0NlcHNZTHdQUFVlQUY0bWhvdkFFNVQ0d1hnYVdxOEFEeE5qUmVBcDZueEF2QTBOVjRBbnFiR0M4RFQxSGdCZUpvYUx3QlBVek1GVGxzYUI1eEx6K2tSU1FhMW10QVdUMXJ1dmlnTUhhdmY2Q2ZyalROZUFDUEJ1YktCN1hieTlZU2RaQzE3YURQVmlMMHpKZzR2Z0dwSmpWNFozR0c0L2ZwV0hyMHY1T0RGTVdkNGFKQ1o1NUlKRVlGTDRQNWI0ZDd2d0l5NWNOcEY2Y0d6MVhTaDRnQmVBTlZSTWY3Tnp3VDQ0L3Ruc08xRlF4REFZdytHL09UbUhINXlkUzlITElsSWt2b1B2WlhEZDEwQ2wvOFIvUEtuRUdiUzM5OTdDMXp3R1RqOS9lbmZHL21rN1hIQ0R4UFZVREd1VzVlMnN1MEZRL3VjdExsRDJ5d283QkMrYy9VMEFPdzR1QjZWK0dQamJmRExuOENNQTZCbE9reWJBZGtXdU9QZllmdkxxYXRXaDY2S1V3MHZnUDNoWEhvbWYzK1A0YUgxR1ZyYUlZbFNRNHlqdE4vVll3K0dQUDk0QUVicmIzUmxrZDE3QzRUWjlHQmhsNlJIaldkeXNPVzVWQmhwdTZvNlgwdmo0d1ZRTFdFTHRMYnIwQWdNNVV5UWc5dzBwYVZHeDZGWHk0eTVPN05Rd3dsQ2FKNHpycGZTeUhnQjdBOWp5cU5yMXZIbTh3WlovbEthYUxGQmFudzlMNEtLc3dyTW1wZVF4RkpWVThCYWNQb0gwcEcvVkFBYnBqNDltK0h3NDJEUkcxSmgraGhndjNnQlZFUGFuRUo0MC9tRHZQWGlBdXBTUHpzcXdrbm5Gam43b3dPQWpFdm1wZUxidi9wSXVQQ3ZvRzBHOUc2Qi9oNTQ3WExJLzduUEFJMEFud1dxR3BkMktuLy8zL1p4NnZzRytVMTN3S3VQU2pqczJJaTBxMlY1dGhnSHY3dFNoRHZ0ZlhEQ09mQ0xlMUszNTNVbnAzL2ZrMnZrMlNOZUFGVmpBQWVKRXc0Nkl1YWdJNUlXTUVtU3VqM2pYUU9vNUZadW13bHZmTWZPMy9zYXdJandBaGdSQnF4Sk8wR3Fwa1k0a1YwYmpVMUgrMHEyeDFodi9DUEVDMkEwVEtiZ1VnUmtFbDFQZytHSEMwNVQ0d1hnYVdxOEFEeE5qUmVBcDZueEF2QTBOVjRBbnFiR0M4RFQxSGdCZUpvYUx3QlBVK01GNEdscXZBQThUWTBYZ0tlcDRRTHdORFZlQUo2bXhndkEwOVI0QVhpYUdpNEFUMVBqQmVCcGFyd0FQRTJORjRDbnFmRUM0RFExWGdDZXBzYVFublRwNFRRbEJobXYwMXc1bnNtSFFWM2Z4TGVVbW9LVGtLdmxaNXFDOTJlU05PNHdPRzRqdEtTZEZpWUNCVE1GRDZnTHdocTVrTDgvZFVRTk1IRlhvcG9lTXppd1hRREJUUGhVVkR0Nk5vNTl3YUJsNCsvdmhhaFVnNHVhUlBSc1p0eDZLZXdORVRFWVhwcXdHVllWTWkzd3pLYUFaeDVOV3d3bEV6UVIxWXJLbC9yekgyYlR2Z0pqdUxtcWFkK3ZKeDZDemMra0oxQzdCcjQvRlgvN3didlNwaDRUWlh3Q09MZmRvSEl6Q21nZDVDaWlpTm4zajdHS2M4cC8zWmdGSE5ZcTZWMXB2QitYS01ZbS9QSW5HWjc1bFNYWHBpajcrT3ltM04zRjd1TXhRZm4rZkszOFBqTHhuM08wUDBtc0dLTnN1azk1OHVHMHJkUys3ay9scCtab2tycjkvREFnU0xiZ3BCK1IxbkprVWhzaGlFQlVrS3BHTEdQZ2gxNXQ0ZUNqRFc0NmYzQm5RK29HdzFoNCtUbkxkWitaVG5FSHVNemVncjNVM1NzVkRhcUtzUUZoS0NRcWU3ejcxc0NkMThIQzQrR0V0OWY1UTlRUkc0RDJMWERkWDVEZW4zai9qZnhFSU1qVnZ1dWxBc2pUQXFCcmx2NkswQjVKNUJ4U2srS1lrcFNFUTErL2hVT08yVXBjTW9qczVlb2xsWnhxK2lGWG5sZGszcXNUY0RSY25TNUpoSHR1eXZLN3B5eVpyT0xjem00dXV5TUN1ZGJueU9SNkdkd3huNmcwZTgrUEsvOVQ2ZnF5OGoxdzRHdG95UHNUUi9DamI0SUxUMElteXo3dmo2b1FoSTd0VzdQODl3NWZSVnkwMkxBMklsQWNnVEZFeWVtaUlLeFpkZzB0d1I4eEdDV0lqREhsSUVwY0VNNzR5Q2JlNGZGZmorWUZKcVRyZXUyb1RQblZFQUFXaUlGR2QrN3JnUUNPcHpmTjVzbzFiNkMvTDQycnhpSUNSYkVDcWkrZ0hCTUlxQnJaQUt3YSsrVWFwVFFnbkpKL25IZDgvRkdTS0lkTEJHT3J2MkpyRzlQNXFlQ1MvVS9yUXhnRnB6Z0NUSlhOU3V5a1NCK09uaEhkSHlDSmhkY3M2dUdqbDIvZ1gxYWZpS290dXd5amUzL0JFUmhMS2ZxdFhOWDVjbEQrNWUwVTRrR010SXcrS0plMGRWREw1Sml6UHZvRWtNRmF4WWFUbytJeFhoaExPcWhYaXdVN0ZTdGRlMkdrOTRlR1NxbVE1ZkRqWHVhSXBadDU1TWNMeUxRcXFxT0xWVlUxVGJlYmJ5bUkwWHplY3NXRzUxQitSbWFzQlRFRkV5bzJhSjR2MUZOL2JObUR5R2JqTWFkTlJRS0tDWmp3KzBKYUNFTkFVYjBLclVVMTJOdStwMDY0VVk3NlEyaEN4aXFxTnpQNzNpYzFuN2VHcmk2bklBUTl0MUpLWHNhYWNqOVFqMmVLb1NoR0JIVmZrVTRjaXphTEVWQTZWbHF1ZUt5RTZqV0VWdENSUkNtN0lRSzJIc1VMVDlNemttVEs3aWlPMEZvR29vOFFjNmQyWU9oY242VHBsczcxU2VvR2xmNlpZcklGYXd3NkNsOUdCT0tpME4rWHJnRklraW0wdU1jellWVHNxTDgzTS9yMVErcXdSaEQ5djdLMmV3QldHZ0VOb0Z4bTZWZ1pTT2Y2YmJwbTZWVzBoSjlqTUlwaEpEVUJCYkZLc1QvZzIvK3lrRldmZndBYkdrb0ZNeFRFZUR3alJpR1RLL0RnWGEvZ3NRZm5FZVFVZFNOVFFUcjZHNHJ4bzh4dHUxRVZFVmtmdzdCbEQ2b0luK3NRdHQ0eUJ4Yytpc2lzY3NGaFpHOG1vcFFHaFJQLzhBa3UvcnRIOEFVZXo5aFFmbjdYQXY3OXM0dElZcHMyQlIvaGVLb2Frd3NDQnFJUHlEWGRONVFIKzEwRkFGRDVnMTY2dklPVzRIUDBsK0xSVlliTDFlQUREK25qbFVkc0k0NGJ1TExsbVRDTVZmcTNaM2lzKzBCRTBockNTS3ZBcXVub0g3c24yTkY2TkFQeklycTZuRlJXQSszeVdCRHllY1A0cDZlQi9naHJGbE5LQkpHUkc3Q0lFcGNFRjQvNHFSN1BFSlhGY0tPdS9tcE1ZSVdTbmk1WGI3aGI0M2tyWFYxRFhza3VvM3RsV1pKY3NXRzdybDc2TitUc0xVUXVZalNycmxTRklLT1FIY1ZGZXp6RDBLRUJlNFRQMDVqV1RNQkE1RjI1ZXVQZHFZZlR0Y3VJdkVmL3ZxSVNYYlBzY2xxQ1B5MHZraHRKZmQvam1WZ1VSMmdNVG4rRGk1N001c05mNUp0ZFRtUlhKZTE1WlA1bWw1T09Ea04vNjJjb1JKc0lyUjFUYmNEakdWOFVRd0xFeE1uSDVhcWZQOCtpemJLNzRjTmVCSkErc0JPNVlYMEJ4eGs0TFdHTm9MNUM3R2tBVkNPbVpVSWk1Mm01dXZzT1hiVWtyR1I1ZG1lZktjNGhWMmoxMHZQSjJxK1RPTVVoN0huZmtzY3o0VlQ0L2tLMGpwSjdQd3ZhZEtqUXV3ZjJhNGhESXJoazZmbFlleU9KYzZUcldiMElQSk1MMVpoc0VCQWw2K1RLalJmb3NQMTBlM3RLVlVhcytVVVo2ZHBVMGt1V2ZvbHBtWS9SSDBWTTVIRXFIcy91cU1aa2dvQW9lWkhJdlpZRlovZEJKOUs1YjdlOXV2Um0xNlpJVnkwSm1UdnRqeG1JMXBFTFFpQVoxWG9oajZmV1ZFWitwNDhTeTF0a2JYY3ZtemJKL293ZnFoU0FnTEsyTzRiMVRxN2NlQUhGK0lOWVl6SG8yRGJRZUR4alJDblJHZ1pFeVRyNisxNHYvN3BoazNaZ2hoZTc5c1dJL1BoS3BYZ29KZ2lEbTFDRktCbmxrZ21QWjVSVTB2SnRXY05BYVIxWGJyeFFRRFdQbGE3cTE1K05xTUlyb05MVmxXakh5a0N1ZW1BZHhmaE5xRDVDYXlZQUl1OFNlY1lGMVpqUUdnSmpHQ3g5VXE3Y2VBRkFPdktQYlBIbHFETTVRd3ZuVmkxWlFNNytmMEw3WGtvSkpNNVhqVDMxb1RMcXQ0YUd5RzJpRkg1S3J1NitOZDNjZ281bXZjU1lVcG5ERnhicEpVcy9RMkQrQkdzT3BKQW9xUE5DOE5RRXhZRXFvYlU0QmRIL3BPRFd5TnJ1RjNUVmtsRFdka2VqZmVreDUvSlZFZDZUVGoyNitnM3pDSklyTVpJbkVDZ21vT3BuQk0vb1NBM2ZFZG9BS3hDN1g2SDhxVnl4NFE3WWRRQWVMVFVyWmczZlpLQWZXM29pZ2JrTU9KZkFDS1ZFaHduQkY1QTgrMEVURkFpdExSdit3d2lmNTVkYnZ5RS9lS3lvK2J3ZHZxWi9MTlRVR05QWklEK1VndEpMVDFpT3VFNGp2SlBRVW80UkhHbENTV3AwRHFtbjBWRVVVWmYrTHdFWlc1NWZuanlNNmhkaDIxZmxpc2VLVUE1MHE0anZWMHRkUm1QdHdMQXBMenZqZzJWdklMUm40dHhIc0dZK0lwQTRpRjBhMkFpS2l2RnJqSnFKY3YxSVJRakVZQTBZZ1dMaUVMNEZmSk9IV3Y1VDFwZTlpbzZWd2I3VzlJeVd1aHFjZHFRamZFV3hldG1TdWNUbVpFVE9RV1U1aVR1YTBEQWtpTVJuVVpzQ0FjTHk1a1lGbkQ0TFBJN3lIU1Q0amx4eDcrT1ZoNWJTM2RuYnBkUWR6ZWN0aXpiTExrdFNCWFQxMGhNSnpmR0luRUxramlLUXhjUmFxeVBhUFpNUFJVUndianVodlozSVBVZGd2bytWYnJuNHZxMUREeXJiU3oxRy9OMzVYejVUaklxTUFKNHRBQUFBQUVsRlRrU3VRbUNDIiwgInNpemVzIjogIjE5MngxOTIiLCAidHlwZSI6ICJpbWFnZS9wbmcifV19">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Puerta a Puerta">
+<meta name="theme-color" content="#FF6B35">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Puerta a Puerta — Tu pedido, ya mismo.</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/index.css">
+<script src="/env.js"></script>
+</head>
+<body>
+<script>
+// SESSION GUARD: Use Supabase to check the authenticated session and role.
+// Redirect to login if there's no authenticated user.
+(async function(){
+  // Siempre inicializar window.sb primero (incluso en bypass) para que cargarComercios() funcione
+  if (!window.sb) {
+    const _url = window.SUPABASE_URL     || '';
+    const _key = window.SUPABASE_ANON_KEY || '';
+    if (window.supabase?.createClient && _url && _key) {
+      window.sb = window.supabase.createClient(_url, _key);
+    }
+  }
+  // Bypass persistente de desarrollo: saltar verificación de sesión en cada refresh
+  if (localStorage.getItem('pap_bypass_activo') === 'true') { return; }
+  // Compatibilidad: flag de un solo uso seteado por login de prueba
+  if (localStorage.getItem('pap_test_bypass') === '1') { localStorage.removeItem('pap_test_bypass'); localStorage.setItem('pap_bypass_activo','true'); return; }
+  const sb = window.sb;
+  if (!sb) {
+    console.warn('No Supabase client available. Redirecting to login.');
+    window.location.href = 'login-usuario.html';
+    return;
+  }
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || !session.user) {
+      window.location.href = 'login-usuario.html';
+      return;
+    }
+
+    // Persist some basic values for UI usage
+    try { localStorage.setItem('access_token', session.access_token || ''); localStorage.setItem('user_id', session.user?.id || ''); localStorage.setItem('user_email', session.user?.email || ''); } catch(e){}
+
+    const role = session.user?.user_metadata?.role || null;
+    try { localStorage.setItem('role', role || ''); } catch(e){}
+
+    // If the user is a plain 'usuario', show a premium floating card inviting them to
+    // become a cadete. We add a confirmation dialog before performing the role update.
+    if (role === 'usuario') {
+      setTimeout(()=>{
+        const wrapper = document.createElement('div');
+        wrapper.id = 'be-cadete-card';
+        wrapper.style.position = 'fixed';
+        wrapper.style.right = '18px';
+        wrapper.style.bottom = '86px';
+        wrapper.style.zIndex = '1300';
+        wrapper.style.maxWidth = '320px';
+        wrapper.style.width = 'calc(100% - 36px)';
+        wrapper.style.boxShadow = '0 12px 40px rgba(13,13,13,.12)';
+        wrapper.style.borderRadius = '14px';
+        wrapper.style.background = '#FAFAFB';
+        wrapper.style.padding = '14px';
+        wrapper.style.display = 'flex';
+        wrapper.style.gap = '12px';
+        wrapper.style.alignItems = 'center';
+
+        wrapper.innerHTML = `
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 18px rgba(0,0,0,.06);">🛵</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:#0D0D0D;line-height:1;">¿Querés ser Cadete?</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:4px;">Ganá plata repartiendo con Puerta a Puerta</div>
+          </div>
+          <div style="flex-shrink:0;">
+            <button id="be-cadete-btn" style="background:linear-gradient(135deg,#FF6B35,#E55A27);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:800;box-shadow:0 6px 18px rgba(255,107,53,.15);cursor:pointer;">¡Quiero ser Cadete!</button>
+          </div>
+        `;
+
+        document.body.appendChild(wrapper);
+
+        const btn = document.getElementById('be-cadete-btn');
+        btn.addEventListener('click', async function(){
+          // Confirmation dialog before changing role
+          const ok = confirm('¿Estás seguro de que querés registrarte como Cadete en Puerta a Puerta?');
+          if (!ok) return;
+
+          btn.disabled = true; btn.textContent = 'Convirtiendo...';
+          try {
+            const res = await sb.auth.updateUser({ data: { role: 'cadete' } });
+            if (res.error) throw res.error;
+            // Small success feedback then redirect
+            setTimeout(()=> window.location.href = '../cadete/cadete.html', 220);
+          } catch(err) {
+            console.error(err);
+            alert('No se pudo completar la conversión. Intentá de nuevo o contactá soporte.');
+            btn.disabled = false; btn.textContent = '¡Quiero ser Cadete!';
+          }
+        });
+      }, 900);
+    }
+  } catch(e) {
+    console.error('Session check failed', e);
+    window.location.href = 'login-usuario.html';
+  }
+})();
+</script>
+<div class="app">
+<div class="toast" id="toast"><span class="toast-dot"></span><span id="toast-msg"></span></div>
+<div class="rating-screen" id="rating-screen">
+  <div class="rating-card">
+    <div style="text-align:center;font-size:48px;margin-bottom:12px;">⭐</div>
+    <div class="rating-title">¿Cómo estuvo tu pedido?</div>
+    <div class="rating-sub" id="rating-comercio-nombre">Calificá tu experiencia</div>
+    <div class="stars" id="stars-container">
+      <span class="star" onclick="selStar(1)">⭐</span><span class="star" onclick="selStar(2)">⭐</span><span class="star" onclick="selStar(3)">⭐</span><span class="star" onclick="selStar(4)">⭐</span><span class="star" onclick="selStar(5)">⭐</span>
+    </div>
+    <textarea class="rating-comentario" id="rating-comentario" rows="3" placeholder="Contanos tu experiencia (opcional)..."></textarea>
+    <button class="btn-rating" onclick="enviarRating()">Enviar calificación</button>
+    <button class="btn-skip" onclick="cerrarRating()">Ahora no</button>
+  </div>
+</div>
+<div class="devolucion-screen" id="devolucion-screen">
+  <div class="devolucion-card">
+    <div style="font-size:22px;font-weight:800;color:#0D0D0D;margin-bottom:6px;">Reportar un problema</div>
+    <div style="font-size:13px;color:#9DA3AE;margin-bottom:20px;">¿Qué pasó con tu pedido?</div>
+    <div class="dev-opcion" onclick="reportarProblema('no-llegó')"><div class="dev-icono" style="background:#FEE2E2;">❌</div><div><div style="font-size:14px;font-weight:700;">No llegó lo que pedí</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">El producto es diferente a la foto</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('mal-estado')"><div class="dev-icono" style="background:#FEF3C7;">🤢</div><div><div style="font-size:14px;font-weight:700;">Llegó en mal estado</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Frío, roto o en malas condiciones</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('faltó-algo')"><div class="dev-icono" style="background:#DBEAFE;">📦</div><div><div style="font-size:14px;font-weight:700;">Faltó algo en el pedido</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Me enviaron menos productos</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('no-llegó-pedido')"><div class="dev-icono" style="background:#F3F4F6;">🛵</div><div><div style="font-size:14px;font-weight:700;">No recibí el pedido</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">El cadete no llegó nunca</div></div></div>
+    <button onclick="cerrarDevolucion()" style="width:100%;background:transparent;border:1.5px solid #E0E0E0;border-radius:12px;padding:14px;font-size:14px;font-weight:600;color:#9DA3AE;margin-top:16px;cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+<div class="screen" id="s-chat-reporte">
+  <div style="background:#0D0D0D;padding:16px 18px 20px;flex-shrink:0;">
+    <div style="color:#FF6B35;font-size:13px;font-weight:600;margin-bottom:10px;cursor:pointer;" onclick="go('tracking')">← Volver</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-size:18px;font-weight:800;color:#fff;" id="chat-reporte-titulo">Reporte enviado ✅</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;" id="chat-reporte-subtitulo"></div></div>
+      <div style="text-align:center;"><div style="font-size:10px;color:#9DA3AE;margin-bottom:2px;">TIEMPO LÍMITE</div><div id="chat-reporte-countdown" style="font-size:28px;font-weight:900;color:#FF6B35;font-variant-numeric:tabular-nums;">10:00</div></div>
+    </div>
+  </div>
+  <div style="background:#E8F5E9;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;"><span>✅</span><div style="font-size:12px;color:#2E7D32;font-weight:600;">Si no se resuelve en 10 min, tu pedido se anula y recibís el reembolso gratis.</div></div>
+  <div id="chat-reporte-msgs" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-height:200px;"></div>
+  <div style="background:#fff;padding:12px 16px;display:flex;gap:10px;align-items:center;border-top:1px solid #E0E0E0;">
+    <input id="chat-reporte-input" placeholder="Escribí tu mensaje al comercio..." style="flex:1;border:1.5px solid #E0E0E0;border-radius:22px;padding:10px 16px;font-size:13px;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')enviarMsgReporte()"/>
+    <button onclick="enviarMsgReporte()" style="width:40px;height:40px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+<div class="confirmado-screen" id="s-confirmado">
+  <div class="conf-icono" id="conf-icono">⏳</div>
+  <div class="conf-titulo" id="conf-titulo">Pedido enviado</div>
+  <div class="conf-sub" id="conf-sub">Esperando que el comercio confirme tu pedido...<br>Te avisamos en segundos.</div>
+  <div class="conf-num"><div class="conf-num-label">Número de pedido</div><div class="conf-num-val" id="conf-num-val">#0000</div></div>
+  <button class="conf-btn" id="conf-btn" onclick="irAlTracking()" style="display:none;">Ver seguimiento en vivo 🛵</button>
+  <div id="conf-loader" style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
+    <div style="width:8px;height:8px;border-radius:50%;background:#FF6B35;animation:bounce 1.2s infinite;"></div>
+    <div style="width:8px;height:8px;border-radius:50%;background:#FF6B35;animation:bounce 1.2s .2s infinite;"></div>
+    <div style="width:8px;height:8px;border-radius:50%;background:#FF6B35;animation:bounce 1.2s .4s infinite;"></div>
+  </div>
+</div>
+<div class="screen active" id="s-home">
+  <div class="hero">
+    <div class="hero-top">
+      <div class="logo-wrap">
+        <div class="logo-box"><svg width="26" height="26" viewBox="0 0 90 90" fill="none"><path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="12" y="36" width="30" height="46" rx="5" fill="#fff" opacity=".95"/><rect x="48" y="36" width="30" height="46" rx="5" fill="#fff"/><circle cx="36" cy="59" r="4" fill="#FF6B35"/><circle cx="54" cy="59" r="4" fill="#FF6B35"/></svg></div>
+        <div><div class="logo-name">Puerta a Puerta</div><div class="logo-tag">Tu pedido, ya mismo.</div></div>
+      </div>
+      <div class="addr-btn" onclick="pedirUbicacion()"><svg width="11" height="11" viewBox="0 0 16 16" fill="#FF6B35"><path d="M8 1C5.2 1 3 3.2 3 6c0 4 5 9 5 9s5-5 5-9c0-2.8-2.2-5-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z"/></svg><span id="ubicacion-txt">Detectando...</span></div>
+    </div>
+    <div class="search-box" style="position:relative;">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="rgba(255,255,255,.4)" stroke-width="1.8"/><path d="M14 14l3 3" stroke="rgba(255,255,255,.4)" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Buscar restaurante o producto..." id="search-input" oninput="buscarTiempoReal(this.value)" autocomplete="off"/>
+      <div id="search-clear" onclick="limpiarBusqueda()" style="display:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:18px;line-height:1;padding:0 2px;">✕</div>
+    </div>
+    <div id="search-results" style="display:none;position:absolute;left:18px;right:18px;top:100%;z-index:300;background:#fff;border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,.15);overflow:hidden;max-height:320px;overflow-y:auto;"></div>
+  </div>
+  <div style="padding:14px 18px 0;position:relative;">
+    <div style="border-radius:var(--radius-lg);overflow:hidden;position:relative;height:160px;background:#111;" id="hero-banner">
+      <div id="banner-slides" style="display:flex;transition:transform .4s ease;height:100%;">
+        <div style="min-width:100%;position:relative;"><img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=700&q=80" alt="oferta" style="width:100%;height:160px;object-fit:cover;display:block;filter:brightness(.6);"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 100%);"></div><div style="position:absolute;top:8px;left:12px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.06em;">PATROCINADO</div><div style="position:absolute;inset:0;padding:32px 16px 16px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Burger King</div><div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;">2x1 en Whopper<br>solo hoy 🔥</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;width:fit-content;">Ver oferta</div></div></div>
+        <div style="min-width:100%;position:relative;"><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80" alt="oferta2" style="width:100%;height:160px;object-fit:cover;display:block;filter:brightness(.6);"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 100%);"></div><div style="position:absolute;top:8px;left:12px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.06em;">PATROCINADO</div><div style="position:absolute;inset:0;padding:32px 16px 16px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Pizza Hut</div><div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;">Pizza grande<br>+ bebida gratis 🍕</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;width:fit-content;">Ver oferta</div></div></div>
+        <div style="min-width:100%;position:relative;"><img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=700&q=80" alt="oferta3" style="width:100%;height:160px;object-fit:cover;display:block;filter:brightness(.6);"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 100%);"></div><div style="position:absolute;top:8px;left:12px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.06em;">PATROCINADO</div><div style="position:absolute;inset:0;padding:32px 16px 16px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Disco Súper</div><div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;">30% off en<br>productos seleccionados</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;width:fit-content;">Ver oferta</div></div></div>
+      </div>
+      <div style="position:absolute;bottom:10px;right:14px;display:flex;gap:5px;" id="banner-dots"><div style="width:6px;height:6px;border-radius:50%;background:#fff;" class="bdot"></div><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);" class="bdot"></div><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);" class="bdot"></div></div>
+    </div>
+  </div>
+  <div id="ofertas-banner-wrap" style="display:none;padding:16px 0 0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 18px;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:800;color:var(--black);">🔥 Ofertas de hoy</div>
+      <div style="font-size:11px;font-weight:700;color:var(--brand);background:#FFF3E0;padding:3px 10px;border-radius:20px;">En vivo</div>
+    </div>
+    <div style="overflow-x:auto;padding:0 18px 12px;scrollbar-width:none;" id="ofertas-banner">
+      <div id="ofertas-slides" style="display:flex;gap:10px;width:max-content;"></div>
+    </div>
+  </div>
+  <div class="cats-wrap"><div class="cats" id="cats-row">
+      <div class="cat active" onclick="filtrar(this,'todos')">Todos</div>
+      <div class="cat" onclick="filtrar(this,'comida')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path></svg> Restaurantes</div>
+      <div class="cat" onclick="filtrar(this,'supermercado')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> Súper</div>
+      <div class="cat" onclick="filtrar(this,'verduleria')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Verdulería</div>
+      <div class="cat" onclick="filtrar(this,'heladeria')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20m-7-7a7 7 0 1114 0H5z"></path></svg> Heladería</div>
+      <div class="cat" onclick="filtrar(this,'mascotas')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1v12zm11-5.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg> Mascotas</div>
+      <div class="cat" onclick="filtrar(this,'bebidas')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4a2 2 0 012 2v14a2 2 0 01-2 2zm10 0h-4a2 2 0 01-2-2v-5a2 2 0 012-2h4a2 2 0 012 2v5a2 2 0 01-2 2z"></path></svg> Bebidas</div>
+      <div class="cat" onclick="filtrar(this,'carniceria')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9h16M9 4v16"></path></svg> Carnicería</div>
+      <div class="cat" onclick="filtrar(this,'farmacia')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg> Farmacia</div>
+      <div class="cat" onclick="filtrar(this,'panaderia')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Panadería</div>
+    <div class="cat" onclick="filtrar(this,'kiosco')">🏪 Kiosco</div>
+  </div></div>
+  <div style="margin:14px 18px 10px;border-radius:var(--radius-lg);overflow:hidden;position:relative;height:100px;cursor:pointer;"><img src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=700&q=80" alt="Cerca tuyo" style="width:100%;height:100%;object-fit:cover;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(13,13,13,.72) 0%,rgba(13,13,13,.2) 100%);"></div><div style="position:absolute;inset:0;padding:16px 18px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px;">Cerca tuyo</div><div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:500;margin-top:3px;">Comercios disponibles ahora</div></div><div style="position:absolute;right:16px;top:50%;transform:translateY(-50%);"><span style="font-size:12px;font-weight:700;color:var(--brand);background:rgba(0,0,0,.5);padding:5px 12px;border-radius:20px;backdrop-filter:blur(4px);">Ver todos</span></div></div>
+  <div id="comercios-container"><div class="loader">Cargando comercios...</div></div>
+  <div style="height:20px;"></div>
+</div>
+<div class="screen" id="s-detail">
+  <div class="detail-hdr"><div class="back" onclick="go('home')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Volver</div><div class="det-name" id="det-name">Cargando...</div><div class="det-meta" id="det-meta"></div></div>
+  <div id="menu-container"><div class="loader">Cargando menú...</div></div>
+  <div id="ratings-comercio" class="ratings-section" style="display:none;"></div>
+  <div id="cart-float" style="display:none;" class="cart-float" onclick="go('carrito')"><span id="cf-count">Ver carrito</span><span class="cf-total" id="cf-total">$0</span></div>
+</div>
+<div class="screen" id="s-carrito">
+  <div class="cart-hdr"><div class="back" onclick="go('detail')" style="margin-bottom:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Volver al menú</div><div class="det-name">Tu pedido</div><div class="det-meta" id="cart-comercio-name"></div></div>
+  <div id="cart-list"></div>
+  <div class="nota-pedido-sec"><div class="pay-lbl" style="margin-bottom:8px;">Nota para el comercio</div><textarea class="nota-pedido-input" id="nota-pedido" rows="2" placeholder="Ej: sin cebolla, bien cocido, tocar timbre..."></textarea></div>
+  <div class="pay-sec"><div class="pay-lbl">Método de pago</div><div class="pay-opts"><div class="pay-opt sel" onclick="selPay(this,'mercadopago')">MercadoPago</div><div class="pay-opt" onclick="selPay(this,'efectivo')">Efectivo</div><div class="pay-opt" onclick="selPay(this,'transferencia')">Transferencia</div></div></div>
+  <div style="padding:14px 18px;background:var(--white);margin-bottom:10px;border-top:1px solid var(--gray-100);border-bottom:1px solid var(--gray-100);">
+    <div class="pay-lbl" style="margin-bottom:10px;">Dirección de entrega</div>
+    <div id="dir-opciones" style="display:flex;flex-direction:column;gap:8px;">
+      <div id="dir-opt-gps" onclick="selDireccion('gps')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid #FF6B35;background:#FFF8F6;cursor:pointer;"><span style="font-size:20px;">📍</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#0D0D0D;">Mi ubicación actual</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;" id="dir-gps-txt">Detectando...</div></div><div style="width:18px;height:18px;border-radius:50%;border:2px solid #FF6B35;background:#FF6B35;display:flex;align-items:center;justify-content:center;" id="dot-gps"><div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div></div></div>
+      <div id="mapa-wrap" style="border-radius:14px;overflow:hidden;position:relative;height:180px;background:#e8e8e8;display:none;"><div id="mapa-carrito" style="width:100%;height:100%;"></div><div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;pointer-events:none;">Arrastrá el pin para ajustar</div></div>
+      <div id="dir-opt-otras" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div id="dir-opt-nueva" onclick="selDireccion('nueva')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid #E0E0E0;background:#fff;cursor:pointer;"><span style="font-size:20px;">✏️</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#0D0D0D;">Escribir otra dirección</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Ingresá una dirección diferente</div></div><div style="width:18px;height:18px;border-radius:50%;border:2px solid #E0E0E0;background:#fff;" id="dot-nueva"></div></div>
+      <div id="input-dir-nueva" style="display:none;margin-top:8px;position:relative;"><input id="dir-nueva-txt" placeholder="Ej: San Martín 450, La Banda" style="width:100%;border:1.5px solid #E0E0E0;border-radius:10px;padding:12px 14px;font-size:13px;outline:none;font-family:inherit;" oninput="buscarDireccion(this.value)" autocomplete="off"/><div id="sugerencias-dir" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:500;background:#fff;border-radius:0 0 12px 12px;box-shadow:0 8px 24px rgba(0,0,0,.15);overflow:hidden;border:1px solid #E0E0E0;border-top:none;"></div></div>
+    </div>
+  </div>
+  <div class="resumen"><div class="res-row"><span>Subtotal</span><span id="r-sub">$0</span></div><div class="res-row"><span id="r-envio-label">Envío</span><span id="r-envio">$800</span></div><div class="res-total"><span>Total</span><span id="r-total">$0</span></div></div>
+  <button class="confirm-btn" id="btn-confirmar" onclick="confirmarPedido()">Confirmar pedido</button>
+  <div style="height:20px;"></div>
+</div>
+<div class="screen" id="s-tracking">
+  <div class="track-hdr"><div class="back" onclick="go('pedidos')" style="margin-bottom:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Mis pedidos</div><div class="track-title" id="track-title">Pedido confirmado</div><div class="track-sub" id="track-sub">Preparando tu pedido...</div></div>
+  <div class="map-mock"><div class="map-grid"></div><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="1.6" style="position:relative;z-index:1;filter:drop-shadow(0 0 8px rgba(255,107,53,.4));"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="rgba(255,107,53,.15)"/><circle cx="12" cy="9" r="2.5" fill="#FF6B35"/></svg></div>
+  <div class="cadete-card" id="cadete-info" style="display:none;"><div class="cad-av" id="cad-av">MG</div><div><div class="cad-name" id="cad-name">Miguel González</div><div class="cad-sub" id="cad-sub">Tu cadete</div></div><button class="cad-call">Llamar</button></div>
+  <div class="cod-box" id="cod-entrega-box" style="display:none;"><div class="cod-label">Tu código de entrega</div><div class="cod-desc">Dáselo al cadete cuando llegue a tu puerta. Sin este código no puede confirmar la entrega.</div><div class="cod-digits" id="cod-digits"></div><div class="cod-warn">No compartas este código antes de recibir tu pedido</div></div>
+  <div class="tsteps">
+    <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot1" style="background:#FF6B35;"></div><div class="tline" id="line1" style="background:#FF6B35;"></div></div><div><div class="tstep-lbl">Pedido confirmado</div><div class="tstep-time" id="t1"></div></div></div>
+    <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot2" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div><div class="tline" id="line2"></div></div><div><div class="tstep-lbl" id="lbl2" style="color:var(--gray-400);">Preparando tu pedido</div><div class="tstep-time" id="t2"></div></div></div>
+    <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot3" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div><div class="tline" id="line3"></div></div><div><div class="tstep-lbl" id="lbl3" style="color:var(--gray-400);">Cadete en camino</div><div class="tstep-time" id="t3"></div></div></div>
+    <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot4" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div></div><div><div class="tstep-lbl" id="lbl4" style="color:var(--gray-400);">Entregado</div><div class="tstep-time" id="t4"></div></div></div>
+  </div>
+  <div id="btn-devolucion-wrap" style="display:none;padding:14px 18px 4px;"><button onclick="abrirDevolucion()" style="width:100%;background:linear-gradient(135deg,#DC2626,#EF4444);color:#fff;border:none;border-radius:14px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(220,38,38,.35);animation:pulseRed 2s infinite;display:flex;align-items:center;justify-content:center;gap:10px;"><span style="font-size:18px;">⚠️</span><div style="text-align:left;"><div>¿Tuviste un problema con tu pedido?</div><div style="font-size:11px;opacity:.85;margin-top:2px;">Tocá acá — lo resolvemos en 10 min</div></div><span style="font-size:16px;margin-left:auto;">›</span></button></div>
+  <div style="height:20px;"></div>
+</div>
+<div class="screen" id="s-soporte">
+  <div style="background:var(--black);padding:18px 18px 20px;flex-shrink:0;"><div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;">💬 Soporte</div><div style="font-size:13px;color:rgba(255,255,255,.5);">Reportes activos y asistente IA</div></div>
+  <div style="margin:16px 16px 0;background:#fff;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden;"><div style="background:linear-gradient(135deg,#FF6B35,#E55A27);padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="abrirAsistente()"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🤖</div><div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Asistente Puerta a Puerta</div><div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px;">Preguntame cualquier cosa — estoy para ayudarte</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+  <div style="padding:16px 16px 8px;font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-top:8px;">Mis reportes</div>
+  <div id="soporte-list" style="padding:0 16px 16px;"><div style="text-align:center;padding:30px;color:var(--gray-400);">Cargando...</div></div>
+</div>
+<div class="screen" id="s-asistente">
+  <div style="background:var(--black);padding:16px 18px 18px;flex-shrink:0;"><div style="color:#FF6B35;font-size:13px;font-weight:600;margin-bottom:10px;cursor:pointer;" onclick="go('soporte')">← Volver</div><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div><div><div style="font-size:16px;font-weight:800;color:#fff;">Asistente IA</div><div style="font-size:11px;color:rgba(255,255,255,.5);">Puerta a Puerta · Siempre disponible</div></div></div></div>
+  <div id="asistente-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;"></div>
+  <div style="background:#fff;padding:12px 16px;display:flex;gap:10px;align-items:center;border-top:1px solid #E0E0E0;"><input id="asistente-input" placeholder="Escribí tu consulta..." style="flex:1;border:1.5px solid #E0E0E0;border-radius:22px;padding:10px 16px;font-size:13px;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')enviarAsistente()"/><button onclick="enviarAsistente()" id="asistente-btn" style="width:40px;height:40px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+</div>
+<div class="screen" id="s-pedido-detalle">
+  <div class="detail-hdr">
+    <div class="back" onclick="go('pedidos')" style="margin-bottom:10px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Mis pedidos</div>
+    <div class="det-name">Detalle del pedido</div>
+  </div>
+  <div id="pedido-detalle-content" style="padding:14px;"></div>
+</div>
+<div class="screen" id="s-pedidos">
+  <div class="detail-hdr"><div class="det-name" style="padding-top:4px;">Mis pedidos</div></div>
+  <div style="height:14px;"></div>
+  <div id="pedidos-list"><div class="loader">Cargando pedidos...</div></div>
+</div>
+<div class="screen" id="s-perfil">
+  <div class="detail-hdr"><div class="det-name" style="padding-top:4px;">Mi perfil</div></div>
+  <div style="padding:22px 18px;">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:26px;"><div class="perfil-av" id="perfil-av">U</div><div><div style="font-size:17px;font-weight:800;color:var(--black);" id="perfil-nombre">Usuario</div><div style="font-size:12px;color:var(--gray-400);margin-top:3px;font-weight:500;" id="perfil-email"></div><div style="font-size:12px;color:var(--gray-400);margin-top:2px;font-weight:500;" id="perfil-tel"></div></div></div>
+    <div class="perfil-menu"><div class="perfil-item" onclick="abrirPantallaExtra('direcciones')">Mis direcciones <span class="perfil-chevron">›</span></div><div class="perfil-item" onclick="abrirPantallaExtra('pagos')">Métodos de pago <span class="perfil-chevron">›</span></div><div class="perfil-item" onclick="abrirPantallaExtra('notificaciones')">Notificaciones <span class="perfil-chevron">›</span></div><div class="perfil-item" style="color:#D32F2F;" onclick="cerrarSesion()">Cerrar sesión <span class="perfil-chevron" style="color:#D32F2F;">›</span></div></div>
+  </div>
+</div>
+<div id="pantalla-extra" style="display:none;position:fixed;inset:0;z-index:500;background:#F4F5F7;overflow-y:auto;">
+  <div style="background:#0D0D0D;padding:18px 18px 20px;"><div style="display:flex;align-items:center;gap:8px;color:#FF6B35;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px;" onclick="cerrarPantallaExtra()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>Volver</div><div id="extra-titulo" style="font-size:20px;font-weight:800;color:#fff;"></div></div>
+  <div id="extra-contenido" style="padding:16px;"></div>
+</div>
+</div>
+<div class="nav">
+  <div class="nav-i active" id="nav-home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Inicio</span></div>
+  <div class="nav-i" id="nav-pedidos" onclick="go('pedidos')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Pedidos</span></div>
+  <div class="nav-i" id="nav-carrito" onclick="go('carrito')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.95-1.57l1.65-8.42H6"/></svg><span>Carrito</span></div>
+  <div class="nav-i" id="nav-soporte" onclick="go('soporte');cargarChatsReporte();" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span>Soporte</span><div id="nav-soporte-badge" style="display:none;position:absolute;top:0;right:8px;width:8px;height:8px;border-radius:50%;background:#DC2626;"></div></div>
+  <div class="nav-i" id="nav-perfil" onclick="go('perfil')"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></div>
+</div>
+</div>
+<!-- Logger visual de errores JS para debug en mobile -->
+<div id="mobile-debug" style="position:fixed;bottom:80px;left:10px;right:10px;background:rgba(0,0,0,0.88);color:#ff4444;font-size:11px;z-index:9999;max-height:120px;overflow-y:auto;padding:8px 10px;border-radius:8px;font-family:monospace;pointer-events:none;display:none;border:1px solid rgba(255,68,68,.4);"></div>
+<script>
+  window.onerror = function(msg, src, line, col, err) {
+    var dbg = document.getElementById('mobile-debug');
+    if (dbg) {
+      dbg.style.display = 'block';
+      dbg.innerHTML += '❌ ' + msg + ' (L' + line + ')<br>';
+    }
+    return false;
+  };
+  window.addEventListener('unhandledrejection', function(e) {
+    var dbg = document.getElementById('mobile-debug');
+    if (dbg) {
+      dbg.style.display = 'block';
+      dbg.innerHTML += '⚠️ ' + (e.reason?.message || e.reason || 'Promise rejected') + '<br>';
+    }
+  });
+</script>
+<script type="module" src="../assets/js/main.js?v=2.0.0"></script>
+<script src="../assets/js/cliente.js?v=2.0.0"></script>
+  <!-- Footer: industrial / dark, links to other modules -->
+  <!-- Footer de navegación de desarrollo — oculto en la app mobile -->
+  <footer style="display:none;"></footer>
+
+</body>
+</html>
+

@@ -1,0 +1,86 @@
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;-webkit-tap-highlight-color:transparent;}
+body{background:#f5f5f5;}
+.app{max-width:480px;margin:0 auto;background:#fff;min-height:100vh;padding-bottom:80px;}
+.header{background:#111;padding:16px;display:flex;align-items:center;gap:12px;}
+.header-logo{width:40px;height:40px;border-radius:10px;background:#FF6B35;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-info{flex:1;}
+.header-name{font-size:16px;font-weight:700;color:#fff;}
+.header-sub{font-size:11px;color:#aaa;}
+.disp-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border-radius:20px;padding:7px 14px;cursor:pointer;border:none;}
+.disp-btn span{font-size:12px;font-weight:700;color:#fff;}
+.disp-dot{width:10px;height:10px;border-radius:50%;background:#aaa;}
+.disp-dot.on{background:#00E676;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px;}
+.stat{background:#f9f9f9;border-radius:12px;padding:12px 10px;text-align:center;}
+.stat-val{font-size:22px;font-weight:700;color:#111;}
+.stat-lbl{font-size:10px;color:#888;margin-top:2px;}
+.tabs{display:flex;border-bottom:2px solid #f0f0f0;position:sticky;top:0;background:#fff;z-index:50;}
+.tab{flex:1;padding:12px 6px;text-align:center;font-size:12px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
+.tab.active{color:#FF6B35;border-bottom-color:#FF6B35;font-weight:700;}
+.badge-n{background:#FF6B35;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:3px;vertical-align:middle;}
+.sec{display:none;padding:14px;}
+.sec.active{display:block;}
+.viaje-card{border-radius:14px;padding:14px;margin-bottom:12px;border:1.5px solid #f0f0f0;}
+.viaje-card.nuevo{border-color:#FF6B35;background:#FFFAF8;}
+.viaje-card.activo{border-color:#00C853;background:#F0FFF4;}
+.v-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.v-num{font-size:13px;font-weight:700;color:#111;}
+.v-time{font-size:11px;color:#888;margin-top:2px;}
+.v-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.vp-nuevo{background:#FFF3E0;color:#E65100;}
+.vp-camino{background:#E8F5E9;color:#2E7D32;}
+.v-route{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.v-stop{display:flex;gap:10px;align-items:flex-start;}
+.v-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.vd-retiro{background:#FF6B35;}
+.vd-entrega{background:#00C853;}
+.v-line{width:2px;height:14px;background:#eee;margin-left:5px;}
+.v-stop-label{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;}
+.v-stop-addr{font-size:13px;color:#111;margin-top:1px;}
+.v-stop-name{font-size:11px;color:#888;}
+.v-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.v-tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
+.vt-earn{background:#E8F5E9;color:#2E7D32;}
+.vt-dist{background:#E3F2FD;color:#1565C0;}
+.vt-time{background:#FFF3E0;color:#E65100;}
+.v-acts{display:flex;gap:8px;}
+.btn{flex:1;padding:11px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-o{background:#FF6B35;color:#fff;}
+.btn-g{background:#f0f0f0;color:#555;}
+.cod-box{background:#111;border-radius:12px;padding:14px;margin:10px 0;}
+.cod-title{font-size:12px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.cod-desc{font-size:11px;color:#888;margin-bottom:12px;line-height:1.5;}
+.cod-input-row{display:flex;gap:8px;margin-bottom:10px;}
+.cod-digit{flex:1;height:52px;border-radius:10px;border:2px solid #333;background:#1a1a1a;color:#00E676;font-size:24px;font-weight:900;text-align:center;outline:none;}
+.cod-digit:focus{border-color:#FF6B35;}
+.btn-verificar{width:100%;background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;}
+.btn-verificar:disabled{opacity:.4;cursor:not-allowed;}
+.cod-error{font-size:12px;color:#FF5252;text-align:center;margin-top:6px;display:none;}
+.cod-ok{background:#00C853;color:#fff;border-radius:10px;padding:10px;text-align:center;font-size:13px;font-weight:700;display:none;}
+.earn-card{background:#111;border-radius:14px;padding:16px;margin-bottom:12px;color:#fff;}
+.earn-val{font-size:32px;font-weight:900;color:#00E676;margin-bottom:4px;}
+.earn-lbl{font-size:12px;color:#aaa;}
+.earn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.eg{background:#1a1a1a;border-radius:10px;padding:12px;}
+.eg-val{font-size:18px;font-weight:700;color:#fff;}
+.eg-lbl{font-size:11px;color:#888;margin-top:2px;}
+.perf-av{width:60px;height:60px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;}
+.perf-menu{background:#f9f9f9;border-radius:14px;overflow:hidden;}
+.pm-item{padding:14px 16px;border-bottom:1px solid #eee;font-size:13px;font-weight:500;color:#111;display:flex;justify-content:space-between;}
+.pm-item:last-child{border-bottom:none;}
+.empty{text-align:center;padding:50px 20px;color:#aaa;}
+.empty .big{font-size:44px;margin-bottom:10px;}
+.empty p{font-size:13px;line-height:1.7;}
+.nav{display:flex;justify-content:space-around;padding:10px 0 14px;border-top:1px solid #eee;background:#fff;position:fixed;bottom:0;width:100%;max-width:480px;z-index:100;}
+.ni{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.ni svg{width:22px;height:22px;}
+.ni span{font-size:10px;color:#888;}
+.ni.active span{color:#FF6B35;font-weight:700;}
+.ni.active svg{stroke:#FF6B35;}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111;color:#FF6B35;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;display:none;white-space:nowrap;}
+.no-disp{text-align:center;padding:40px 20px;}
+.no-disp .big{font-size:48px;margin-bottom:12px;}
+.no-disp h3{font-size:16px;font-weight:700;color:#111;margin-bottom:8px;}
+.no-disp p{font-size:13px;color:#888;line-height:1.7;margin-bottom:20px;}
+.btn-activar{background:#FF6B35;color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:700;cursor:pointer;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}

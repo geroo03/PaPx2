@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Puerta a Puerta — Pagar</title>
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<link rel="stylesheet" href="../assets/css/pago.css">
+</head>
+<body>
+<div class="container">
+
+  <div class="logo-wrap">
+    <div class="logo-box">
+      <svg width="24" height="24" viewBox="0 0 90 90" fill="none">
+        <path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="12" y="36" width="30" height="46" rx="4" fill="#fff" opacity=".9"/>
+        <rect x="48" y="36" width="30" height="46" rx="4" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="app-name">Puerta a Puerta</div>
+  </div>
+
+  <!-- Estado: cargando -->
+  <div class="card" id="estado-loading">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Preparando tu pago...</div>
+    </div>
+  </div>
+
+  <!-- Estado: resumen + pago -->
+  <div id="estado-pago" style="display:none;">
+    <div class="card">
+      <div class="card-title">Resumen de tu pedido</div>
+      <div id="items-lista"></div>
+      <div class="resumen-total">
+        <span>Total a pagar</span>
+        <span id="total-display">$0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Pagá con MercadoPago</div>
+      <div id="mp-button"></div>
+    </div>
+
+    <button class="btn-back" onclick="window.history.back()">← Volver al carrito</button>
+  </div>
+
+  <!-- Estado: éxito -->
+  <div class="card" id="estado-exito" style="display:none;">
+    <div class="success-box">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">¡Pago exitoso!</div>
+      Tu pedido fue confirmado y el comercio ya está preparándolo.<br/>
+      Podés seguir el estado en tiempo real.
+      <br/>
+      <a class="btn-ver" href="index.html">Ver mis pedidos</a>
+    </div>
+  </div>
+
+  <!-- Estado: error -->
+  <div class="card" id="estado-error" style="display:none;">
+    <div class="error-box">
+      <div style="font-size:32px;margin-bottom:10px;">⚠️</div>
+      <div style="font-weight:700;margin-bottom:6px;">Hubo un problema con el pago</div>
+      <div id="error-msg">Intentá de nuevo o elegí otro método de pago.</div>
+    </div>
+    <button class="btn-back" onclick="window.history.back()" style="margin-top:12px;">← Volver e intentar de nuevo</button>
+  </div>
+
+</div>
+
+<script>
+// Clave pública de MercadoPago (segura para el frontend)
+const MP_PUBLIC_KEY = 'APP_USR-8a54e7e0-e790-45f1-8815-2612c000e0cf';
+
+// URL del backend: usa BACKEND_URL de env.js si está disponible, sino localhost
+const BACKEND_URL = window.BACKEND_URL || 'http://localhost:3000';
+
+// Leer parámetros de retorno de MercadoPago
+const params   = new URLSearchParams(window.location.search);
+const status   = params.get('status') || params.get('collection_status');
+const pedidoId = params.get('pedido_id') || localStorage.getItem('pap_pedido_actual');
+
+// Punto de entrada: manejar retorno de MP o mostrar checkout inicial
+if (status === 'approved') {
+  mostrarExito();
+} else if (status === 'failure' || status === 'rejected') {
+  mostrarError('Tu pago fue rechazado. Intentá con otro medio de pago.');
+} else if (status === 'pending') {
+  mostrarError('Tu pago está pendiente de acreditación. Te avisamos cuando se confirme.');
+} else {
+  iniciarPago();
+}
+
+function mostrarExito() {
+  document.getElementById('estado-loading').style.display = 'none';
+  document.getElementById('estado-exito').style.display  = 'block';
+}
+
+function mostrarError(msg) {
+  document.getElementById('estado-loading').style.display = 'none';
+  document.getElementById('estado-error').style.display   = 'block';
+  if (msg) document.getElementById('error-msg').textContent = msg;
+}
+
+async function iniciarPago() {
+  try {
+    // Leer carrito guardado por confirmarPedido() en cliente.js
+    const pedidoData    = JSON.parse(localStorage.getItem('pap_pedido_pago') || '{}');
+    const items         = pedidoData.items  || [];
+    const total         = pedidoData.total  || 0;
+    const comercioNombre = pedidoData.comercio || 'Comercio';
+
+    // Renderizar resumen del pedido
+    document.getElementById('items-lista').innerHTML =
+      items.map(i =>
+        `<div class="resumen-row">
+           <span>${i.qty || i.quantity || 1}x ${i.nombre || i.title || 'Producto'}</span>
+           <span>$${Number((i.precio || i.unit_price || 0) * (i.qty || i.quantity || 1)).toLocaleString('es-AR')}</span>
+         </div>`
+      ).join('') +
+      `<div class="resumen-row"><span>Envío</span><span>$${Number(pedidoData.envio || 800).toLocaleString('es-AR')}</span></div>`;
+    document.getElementById('total-display').textContent = `$${Number(total).toLocaleString('es-AR')}`;
+
+    // Normalizar items al formato esperado por el backend
+    const itemsNormalizados = items.length
+      ? items.map(i => ({
+          nombre:    String(i.nombre || i.title || 'Producto'),
+          qty:       Number(i.qty || i.quantity || 1),
+          precio:    Number(i.precio || i.unit_price || 0),
+        }))
+      : [{ nombre: `Pedido ${comercioNombre}`, qty: 1, precio: total }];
+
+    // ── Llamar a nuestro backend (Node.js) — no más Supabase Edge Functions ──
+    const resp = await fetch(`${BACKEND_URL}/api/mp/crear-preferencia`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        pedido_id: pedidoId,
+        items:     itemsNormalizados,
+        total:     total,
+      }),
+    });
+
+    if (!resp.ok) {
+      const errBody = await resp.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    // data.preference_id  → ID de la preferencia de MP
+    // data.init_point     → URL de pago directa (fallback si Bricks falla)
+    // data.sandbox_init_point → URL de sandbox para pruebas
+
+    if (!data.preference_id) throw new Error('Respuesta inválida del servidor de pagos');
+
+    // Mostrar el Brick de pago de MercadoPago
+    document.getElementById('estado-loading').style.display = 'none';
+    document.getElementById('estado-pago').style.display    = 'block';
+
+    const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'es-AR' });
+    mp.bricks().create('wallet', 'mp-button', {
+      initialization:  { preferenceId: data.preference_id },
+      customization:   {
+        texts:  { action: 'pay', valueProp: 'smart_option' },
+        visual: { buttonBackground: 'default', borderRadius: '12px' },
+      },
+      callbacks: {
+        onError: (err) => {
+          console.error('[MP Bricks] error:', err);
+          // Fallback: redirigir directo a la URL de pago
+          if (data.init_point) {
+            window.location.href = data.init_point;
+          } else {
+            mostrarError('Error al cargar el botón de pago.');
+          }
+        },
+      },
+    });
+
+  } catch (e) {
+    console.error('[Pago] Error iniciando checkout:', e);
+    mostrarError('No pudimos conectar con el servidor de pagos. Revisá tu conexión e intentá de nuevo.');
+  }
+}
+</script>
+</body>
+</html>

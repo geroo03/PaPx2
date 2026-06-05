@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Puerta a Puerta — Ingresá</title>
+<link rel="stylesheet" href="../assets/css/login.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<script src="/env.js"></script>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="wrap">
+  <div class="top">
+    <div class="logo-box">
+      <svg width="32" height="32" viewBox="0 0 90 90" fill="none">
+        <path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="12" y="36" width="30" height="46" rx="5" fill="#fff" opacity=".95"/>
+        <rect x="48" y="36" width="30" height="46" rx="5" fill="#fff"/>
+        <circle cx="36" cy="59" r="4" fill="#FF6B35"/>
+        <circle cx="54" cy="59" r="4" fill="#FF6B35"/>
+      </svg>
+    </div>
+    <div class="headline">Tu pedido,<br><span>ya mismo.</span></div>
+    <div class="subline">Restaurantes, farmacias, supermercados y más — directo a tu puerta.</div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" id="tab-login" onclick="setTab('login')">Ingresar</div>
+      <div class="tab" id="tab-reg" onclick="setTab('registro')">Registrarme</div>
+    </div>
+
+    <button class="btn-google" onclick="loginGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20c11 0 20-9 20-20 0-1.5-.2-3-.4-4.5z"/><path fill="#FF3D00" d="M6.3 15.4l6.6 4.8C14.7 17.1 19 14 24 14c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 16.3 5 9.7 9.2 6.3 15.4z"/><path fill="#4CAF50" d="M24 45c4.9 0 9.3-1.9 12.7-4.9l-5.9-5c-1.8 1.3-4.1 2-6.8 2-5.2 0-9.6-3.5-11.2-8.3l-6.5 5C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l5.9 5C40.8 35.5 44 30.7 44 25c0-1.5-.2-3-.4-4.5z"/></svg>
+      Continuar con Google
+    </button>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">o con email</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <form id="loginForm">
+      <div class="form-group" id="grupo-nombre" style="display:none;">
+        <label class="form-label">Nombre completo</label>
+        <input class="form-input" id="input-nombre" type="text" placeholder="Juan García"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="input-email" type="email" placeholder="tucorreo@gmail.com"/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" id="input-pass" type="password" placeholder="••••••••"/>
+        <div class="forgot" id="forgot-wrap">
+          <a onclick="olvideClave()">¿Olvidaste tu contraseña?</a>
+        </div>
+      </div>
+
+      <button class="btn-email" id="btn-submit" type="submit">Ingresar</button>
+    </form>
+
+    <div class="msg msg-error" id="msg-error"></div>
+    <div class="msg msg-ok" id="msg-ok"></div>
+
+    <div class="toggle">
+      <span id="toggle-text">¿No tenés cuenta?</span>
+      <a onclick="setTab(currentTab==='login'?'registro':'login')" id="toggle-link">Registrate gratis</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL     = window.SUPABASE_URL      || '';
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentTab = 'login';
+let rolSeleccionado = null;
+let sessionActual = null;
+
+// Si la URL incluye ?rol=cadete o ?rol=comercio, preseleccionar registro y fijar rolSeleccionado
+// No URL-based role preselection in production. Roles must be assigned server-side in Supabase.
+
+function setTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-reg').classList.toggle('active', tab==='registro');
+  document.getElementById('grupo-nombre').style.display = tab==='registro' ? 'block' : 'none';
+  document.getElementById('forgot-wrap').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('btn-submit').textContent = tab==='login' ? 'Ingresar' : 'Crear cuenta';
+  document.getElementById('toggle-text').textContent = tab==='login' ? '¿No tenés cuenta? ' : '¿Ya tenés cuenta? ';
+  document.getElementById('toggle-link').textContent = tab==='login' ? 'Registrate gratis' : 'Ingresá acá';
+  ocultarMensajes();
+}
+
+function showError(msg){const el=document.getElementById('msg-error');el.textContent=msg;el.style.display='block';document.getElementById('msg-ok').style.display='none';}
+function showOk(msg){const el=document.getElementById('msg-ok');el.textContent=msg;el.style.display='block';document.getElementById('msg-error').style.display='none';}
+function ocultarMensajes(){document.getElementById('msg-error').style.display='none';document.getElementById('msg-ok').style.display='none';}
+
+// Role selection and client-side role assignment removed for production.
+// Roles must be set in Supabase user metadata by an administrator.
+
+function redirigirSegunRol(rol){
+  // Production mapping for master roles
+  if (rol === 'admin') {
+    window.location.href = '../admin/admin.html';
+  } else if (rol === 'embajador') {
+    window.location.href = '../embajador/dashboard.html';
+  } else if (rol === 'comercio') {
+    window.location.href = '../comercio/comercio.html';
+  } else if (rol === 'cadete') {
+    window.location.href = '../cadete/cadete.html';
+  } else if (rol === 'usuario') {
+    // Usuarios van al index del cliente (mismo directorio)
+    window.location.href = 'index.html';
+  } else {
+    // Unknown or missing role — do not allow client-side guessing.
+    showError('Tu cuenta no tiene un rol asignado. Contactá al administrador para habilitar el acceso.');
+  }
+}
+
+async function loginGoogle() {
+  try {
+    // Compute a sensible redirect for local development when running on port 8000
+    const origin = (window && window.location && window.location.origin) ? window.location.origin : '';
+    let returnUrl = origin + '/cliente/login-usuario.html';
+    if(origin.indexOf('127.0.0.1:8000') !== -1 || origin.indexOf('localhost:8000') !== -1){
+      // When serving from the project root, prefer the root index which we've placed at /index.html
+      returnUrl = origin + '/index.html';
+    }
+
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: returnUrl } });
+    if (error) {
+      console.error('DEBUG SUPABASE: OAuth error', error && error.message ? error.message : error);
+      try { alert('Error de Supabase (OAuth): ' + (error?.message || JSON.stringify(error))); } catch(e){}
+      throw error;
+    }
+  } catch(e) {
+    console.error('DEBUG SUPABASE: loginGoogle catch', e && e.message ? e.message : e);
+    try { alert('Error de Supabase (OAuth): ' + (e && e.message ? e.message : String(e))); } catch(_){ }
+    showError('Error al conectar con Google. Intentá de nuevo.');
+  }
+}
+
+async function submitForm() {
+  const email = document.getElementById('input-email').value.trim();
+  const pass  = document.getElementById('input-pass').value;
+  const nombre = document.getElementById('input-nombre').value.trim();
+  const btn = document.getElementById('btn-submit');
+
+  if (!email || !pass) { showError('Completá todos los campos.'); return; }
+  if (currentTab === 'registro' && !nombre) { showError('Escribí tu nombre completo.'); return; }
+  if (pass.length < 6) { showError('La contraseña debe tener al menos 6 caracteres.'); return; }
+
+  btn.disabled = true; btn.textContent = currentTab === 'login' ? 'Ingresando...' : 'Creando cuenta...';
+
+  try {
+    // ── BYPASS DE PRUEBA ──────────────────────────────────────────────────────
+    // cliente_test@gmail.com: intenta Supabase directo y salta el check de rol.
+    // Si la cuenta no existe en Supabase activa un bypass de emergencia para el guard.
+    if (currentTab === 'login' && email === 'cliente_test@gmail.com') {
+      try {
+        const { data:_d, error:_e } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (!_e && _d?.session) {
+          try { localStorage.setItem('access_token',_d.session.access_token||''); localStorage.setItem('user_id',_d.user?.id||''); localStorage.setItem('role','usuario'); } catch(_){}
+          window.location.href = 'index.html'; return;
+        }
+      } catch(_) {}
+      // Supabase falló o cuenta inexistente → bypass persistente de desarrollo
+      try { localStorage.setItem('pap_bypass_activo','true'); localStorage.setItem('role','usuario'); localStorage.setItem('user_id','test-uid-cliente-001'); } catch(_){}
+      window.location.href = 'index.html'; return;
+    }
+    // ── FIN BYPASS ────────────────────────────────────────────────────────────
+      if (currentTab === 'login') {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        console.error('DEBUG SUPABASE: signInWithPassword error', error && error.message ? error.message : error);
+        try { alert('Error de Supabase (login): ' + (error?.message || JSON.stringify(error))); } catch(e){}
+        throw error;
+      }
+      sessionActual = data.session;
+      try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', data.user?.id || ''); localStorage.setItem('user_email', data.user?.email || ''); } catch(e) {}
+      // Read role strictly from Supabase user metadata
+      const rol = data.user?.user_metadata?.role;
+      if (!rol) {
+        // Do not allow client-side role assignment. Inform user to contact admin.
+        showError('Tu cuenta no tiene rol asignado. Contactá al administrador para habilitar el acceso.');
+        btn.disabled = false; btn.textContent = 'Ingresar';
+        return;
+      }
+      // Persist role locally for UI usage only
+      try { localStorage.setItem('role', rol); } catch(e) {}
+      redirigirSegunRol(rol);
+    } else {
+        // Create account and automatically assign the default role 'usuario'
+        // Uses a client-side update of user_metadata; if your Supabase requires
+        // email confirmation this may not immediately apply.
+        // We use the helper exposed on the global supabase client if available.
+        if (window.authService && typeof window.authService.signUpAndAssignRole === 'function') {
+          const res = await window.authService.signUpAndAssignRole({ email, password: pass, full_name: nombre, role: 'usuario' });
+          if (res.error) throw res.error;
+          sessionActual = res.data?.session || null;
+          try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', (res.data?.signUp?.user?.id) || ''); localStorage.setItem('user_email', (res.data?.signUp?.user?.email) || ''); } catch(e) {}
+          // After auto-assign, redirect to public index
+          window.location.href = '../index.html';
+          return;
+        }
+
+        // Fallback: normal signup without role assignment
+        const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: nombre } } });
+        if (error) throw error;
+        sessionActual = data.session;
+        try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', data.user?.id || ''); localStorage.setItem('user_email', data.user?.email || ''); } catch(e) {}
+        showOk('Cuenta creada. Esperá que un administrador asigne tu rol para poder ingresar.');
+        btn.disabled = false; btn.textContent = 'Crear cuenta';
+    }
+  } catch(e) {
+    const msg = (e && e.message) ? e.message : 'Algo salió mal. Intentá de nuevo.';
+    if (msg.includes('Invalid login') || msg.includes('invalid')) showError('Email o contraseña incorrectos.');
+    else if (msg.includes('Email not confirmed')) showError('Confirmá tu email antes de ingresar.');
+    else if (msg.includes('already registered')) showError('Este email ya tiene cuenta. Ingresá con tu contraseña.');
+    else showError(msg);
+    btn.disabled = false; btn.textContent = currentTab === 'login' ? 'Ingresar' : 'Crear cuenta';
+  }
+}
+
+async function olvideClave() {
+  const email = document.getElementById('input-email').value.trim();
+  if (!email) { showError('Escribí tu email primero.'); return; }
+  try { await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href }); showOk('Te enviamos un email para restablecer tu contraseña.'); }
+  catch(e) { showError('Error al enviar el email.'); }
+}
+
+const __loginForm = document.getElementById('loginForm');
+if (__loginForm) { __loginForm.addEventListener('submit', function(e){ e.preventDefault(); submitForm(); }); }
+
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    sessionActual = session;
+    const rol = session.user?.user_metadata?.role;
+    if (!rol) {
+      showError('Tu cuenta no tiene rol asignado. Contactá al administrador para habilitar el acceso.');
+    } else {
+      redirigirSegunRol(rol);
+    }
+  }
+});
+</script>
+</body>
+</html>

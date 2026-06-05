@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Puerta a Puerta — Conectando MercadoPago</title>
+<link rel="stylesheet" href="../assets/css/oauth-callback.css">
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg width="32" height="32" viewBox="0 0 90 90" fill="none">
+      <path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="12" y="36" width="30" height="46" rx="4" fill="#fff" opacity=".9"/>
+      <rect x="48" y="36" width="30" height="46" rx="4" fill="#fff"/>
+    </svg>
+  </div>
+  <div id="estado-cargando">
+    <div class="spinner"></div>
+    <div class="title">Conectando MercadoPago</div>
+    <div class="sub">Estamos vinculando tu cuenta. Esto tarda unos segundos...</div>
+  </div>
+  <div id="estado-exito" style="display:none;">
+    <div class="success">✅</div>
+    <div class="title">¡MercadoPago conectado!</div>
+    <div class="sub">Tu cuenta está vinculada. A partir de ahora los pagos se acreditan automáticamente en tu cuenta de MercadoPago.</div>
+    <a class="btn" href="../comercio/comercio.html">Ir a mi panel →</a>
+  </div>
+  <div id="estado-error" style="display:none;">
+    <div class="success">❌</div>
+    <div class="title">Error al conectar</div>
+    <div class="error-box" id="error-msg">Hubo un problema al vincular tu cuenta.</div>
+    <a class="btn" href="../comercio/comercio.html">Volver al panel</a>
+  </div>
+</div>
+
+<script>
+async function procesarOAuth() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state'); // comercio_id
+  const error = params.get('error');
+
+  if (error) {
+    mostrarError('El comercio canceló la conexión con MercadoPago.');
+    return;
+  }
+
+  if (!code) {
+    mostrarError('No se recibió el código de autorización.');
+    return;
+  }
+
+  try {
+    // Llamar a la Supabase Edge Function oauth-token
+    const resp = await fetch('https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/oauth-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.SUPABASE_ANON_KEY || '') },
+      body: JSON.stringify({ code, comercio_id: state })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      throw new Error(data.error || 'Error al obtener el token');
+    }
+
+    // Guardar el access_token del comercio usando un endpoint server-side
+    if (state) {
+      await fetch('https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/save-mp-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.SUPABASE_ANON_KEY || '') },
+        body: JSON.stringify({ comercio_id: state, access_token: data.access_token, user_id: data.user_id })
+      });
+    }
+
+    mostrarExito();
+  } catch(e) {
+    mostrarError(e.message);
+  }
+}
+
+function mostrarExito() {
+  document.getElementById('estado-cargando').style.display = 'none';
+  document.getElementById('estado-exito').style.display = 'block';
+}
+
+function mostrarError(msg) {
+  document.getElementById('estado-cargando').style.display = 'none';
+  document.getElementById('estado-error').style.display = 'block';
+  document.getElementById('error-msg').textContent = msg;
+}
+
+procesarOAuth();
+</script>
+</body>
+</html>

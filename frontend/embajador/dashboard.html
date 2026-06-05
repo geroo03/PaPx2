@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Embajador · Dashboard — Puerta a Puerta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/embajador.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <h1>Embajador</h1>
+      <p class="sub">Panel de gestión · Mis comercios y comisiones</p>
+    </header>
+
+    <main class="content">
+      <section class="kpis">
+        <div class="card kpi" id="k-mis-comercios">
+          <div class="label">Locales Captados</div>
+          <div class="value" id="v-mis-comercios">—</div>
+        </div>
+        <div class="card kpi" id="k-ventas-totales">
+          <div class="label">Ventas Totales</div>
+          <div class="value" id="v-ventas-totales">—</div>
+        </div>
+        <div class="card kpi" id="k-mis-ganancias">
+          <div class="label">Mis Ganancias Acumuladas</div>
+          <div class="value" id="v-mis-ganancias">—</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Alta de Comercio</h2>
+        <form id="form-alta-comercio" class="form">
+          <div class="row"><input id="c-nombre" placeholder="Nombre del local" required></div>
+          <div class="row"><input id="c-whatsapp" placeholder="WhatsApp (sin espacios)" inputmode="tel"></div>
+          <div class="row"><input id="c-direccion" placeholder="Dirección" required></div>
+          <div class="row"><input id="c-rubro" placeholder="Rubro (ej: comida, farmacia)" required></div>
+          <div class="row"><input id="c-email" placeholder="Email del comerciante (opcional)" type="email"></div>
+          <div class="row actions">
+            <button type="submit" id="btn-alta">Registrar Comercio</button>
+            <div class="loader" id="alta-loader" aria-hidden="true" style="display:none"></div>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Mis Comercios Registrados</h2>
+        <div id="lista-comercios" class="list">
+          <div class="empty">Cargando...</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Historial de Cambios</h2>
+        <div id="historial-comercios" class="list">
+          <div class="empty">Cargando historial...</div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <!-- Supabase CDN (provides `window.supabase` when using the ESM build too) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <!-- Main bootstrap: exposes window.supabase/window.sb and wires modular config -->
+  <script type="module" src="/assets/js/main.js"></script>
+  <!-- Embajador module (depends on config/main) -->
+  <script type="module" src="/assets/js/embajador.js"></script>
+</body>
+</html>
