@@ -3,20 +3,27 @@
 
 const webpush = require('web-push');
 
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC || 'BMOSombn5870MeH1ufWwYLEosTFqcDPuD5t-GtpWzQ33C8gEP0D9TC6IXvauq0qxDK13pUmtU0g8m-h25brELSM';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE; // Debes poner esto en tu config de Vercel
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
+const VAPID_CONTACT = process.env.VAPID_CONTACT;
 
-webpush.setVapidDetails(
-  'mailto:gerardoacostafrancario@gmail.com',
-  VAPID_PUBLIC,
-  VAPID_PRIVATE
-);
+if (!VAPID_PUBLIC || !VAPID_PRIVATE || !VAPID_CONTACT) {
+  console.error('[notificaciones] FATAL: VAPID_PUBLIC, VAPID_PRIVATE y VAPID_CONTACT son requeridas.');
+}
+
+if (VAPID_PUBLIC && VAPID_PRIVATE && VAPID_CONTACT) {
+  webpush.setVapidDetails(VAPID_CONTACT, VAPID_PUBLIC, VAPID_PRIVATE);
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE || !VAPID_CONTACT) {
+    return res.status(500).json({ error: 'Configuración VAPID incompleta en el servidor.' });
+  }
 
   if (req.method === 'GET' && req.query.vapidPublic) {
     return res.json({ publicKey: VAPID_PUBLIC });

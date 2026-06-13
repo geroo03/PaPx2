@@ -102,6 +102,24 @@ async function requireAuth(req, res, next) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// UTILIDAD: resolveRol
+// Resuelve el rol del usuario autenticado consultando la tabla 'perfiles'
+// (fuente de verdad del lado del servidor). Cae en user_metadata solo como
+// último recurso, ya que esa metadata puede ser manipulada via Auth API.
+// ═══════════════════════════════════════════════════════════════════════════════
+async function resolveRol(userId, userMetadata = {}) {
+  try {
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('rol')
+      .eq('id', userId)
+      .maybeSingle();
+    if (perfil?.rol) return perfil.rol;
+  } catch { /* fallback */ }
+  return userMetadata?.role ?? userMetadata?.raw_user_meta_data?.role ?? null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 1. AUTENTICACIÓN Y ROLES
 // POST /api/auth/login
 //
@@ -158,14 +176,93 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 1b. ASIGNACIÓN DE ROL DESDE EL CLIENTE
+// POST /api/auth/set-role
+//
+// Permite a un usuario recién registrado solicitar un rol específico.
+// Roles permitidos desde este endpoint: 'comercio' | 'cadete'
+// El rol 'admin' solo se asigna desde el Supabase Dashboard o un trigger SQL.
+//
+// Flujo:
+//   1. Frontend llama a supabase.auth.signUp() → usuario creado sin rol (o con
+//      rol 'usuario' si existe el trigger handle_new_user en la DB).
+//   2. Si el usuario necesita rol 'comercio' o 'cadete', llama a este endpoint
+//      con su Bearer token recién obtenido.
+//   3. El servidor valida el token, verifica que el rol solicitado es legal,
+//      actualiza user_metadata via Admin API y upsert en perfiles.
+//
+// Trigger SQL recomendado para rol por defecto (ver SUPABASE_ROLE_PLAYBOOK.sql):
+//   CREATE OR REPLACE FUNCTION handle_new_user() RETURNS TRIGGER AS $$
+//   BEGIN
+//     INSERT INTO public.perfiles (id, email, rol)
+//     VALUES (NEW.id, NEW.email, 'usuario')
+//     ON CONFLICT (id) DO NOTHING;
+//     RETURN NEW;
+//   END; $$ LANGUAGE plpgsql SECURITY DEFINER;
+//
+// Requiere Bearer token (requireAuth).
+// ═══════════════════════════════════════════════════════════════════════════════
+const ROLES_ASIGNABLES = ['comercio', 'cadete'];
+
+app.post('/api/auth/set-role', requireAuth, async (req, res) => {
+  const { role } = req.body ?? {};
+
+  if (!role || !ROLES_ASIGNABLES.includes(role)) {
+    return res.status(400).json({
+      error: `Rol inválido. Solo se puede solicitar: ${ROLES_ASIGNABLES.join(', ')}`,
+    });
+  }
+
+  // Verificar que el usuario no tenga ya un rol distinto asignado en perfiles.
+  // Un 'comercio' no puede reasignarse a 'cadete' y viceversa sin intervención de admin.
+  const { data: perfilActual } = await supabase
+    .from('perfiles')
+    .select('rol')
+    .eq('id', req.user.id)
+    .maybeSingle();
+
+  if (perfilActual?.rol && perfilActual.rol !== 'usuario' && perfilActual.rol !== role) {
+    return res.status(409).json({
+      error: `Tu cuenta ya tiene el rol '${perfilActual.rol}'. Contactá al administrador para cambiarlo.`,
+    });
+  }
+
+  // Actualizar user_metadata via Admin API (service_role, operación privilegiada)
+  const { error: metaErr } = await supabase.auth.admin.updateUserById(req.user.id, {
+    user_metadata: { ...req.user.user_metadata, role },
+  });
+
+  if (metaErr) {
+    console.error('[set-role] Error actualizando metadata:', metaErr.message);
+    return res.status(500).json({ error: 'No se pudo asignar el rol' });
+  }
+
+  // Upsert en la tabla perfiles (fuente de verdad para consultas RLS)
+  const { error: perfilErr } = await supabase
+    .from('perfiles')
+    .upsert({ id: req.user.id, email: req.user.email, rol: role }, { onConflict: 'id' });
+
+  if (perfilErr) {
+    console.error('[set-role] Error en perfiles:', perfilErr.message);
+    // No es fatal: la metadata ya fue actualizada. El trigger puede encargarse.
+  }
+
+  console.log(`[set-role] Usuario ${req.user.id} → rol '${role}'`);
+  return res.json({ ok: true, rol: role });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // 2. PASARELA DE PAGOS — MercadoPago
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // POST /api/mp/crear-preferencia
 // Crea la preferencia de pago en MP con pedido_id como external_reference.
 // El webhook usa esa referencia para identificar qué pedido actualizar.
-app.post('/api/mp/crear-preferencia', async (req, res) => {
-  const { pedido_id, items, total } = req.body ?? {};
+//
+// Requiere Bearer token del cliente dueño del pedido (requireAuth).
+// Verifica que pedido.cliente_id === req.user.id antes de crear la preferencia.
+app.post('/api/mp/crear-preferencia', requireAuth, async (req, res) => {
+  const { pedido_id, items, total, propina_cadete } = req.body ?? {};
 
   if (!pedido_id || !Array.isArray(items) || items.length === 0 || !total) {
     return res.status(400).json({
@@ -173,16 +270,63 @@ app.post('/api/mp/crear-preferencia', async (req, res) => {
     });
   }
 
+  // 4c: Validar propina — entero no negativo, máximo $10.000
+  const propinaNum = Math.max(0, Math.floor(Number(propina_cadete ?? 0)));
+  if (propinaNum > 10000) {
+    return res.status(400).json({ error: 'La propina no puede superar $10.000' });
+  }
+
+  // Verificar que el pedido existe y pertenece al usuario autenticado
+  const { data: pedido, error: pedidoErr } = await supabase
+    .from('pedidos')
+    .select('id, cliente_id, estado')
+    .eq('id', pedido_id)
+    .single();
+
+  if (pedidoErr || !pedido) {
+    return res.status(404).json({ error: 'Pedido no encontrado' });
+  }
+
+  if (pedido.cliente_id !== req.user.id) {
+    return res.status(403).json({ error: 'Este pedido no te pertenece' });
+  }
+
+  const ESTADOS_PAGABLES = ['nuevo', 'pendiente'];
+  if (!ESTADOS_PAGABLES.includes(pedido.estado)) {
+    return res.status(409).json({
+      error: `El pedido está en estado '${pedido.estado}' y no puede procesarse como pago`,
+    });
+  }
+
   try {
+    // 4c: Construir items para MP — propina se suma como línea separada
+    const mpItems = [
+      ...items.map(item => ({
+        id:          String(item.id || item.nombre),
+        title:       String(item.nombre),
+        quantity:    Number(item.qty ?? item.quantity ?? 1),
+        unit_price:  Number(item.precio ?? item.unit_price ?? 0),
+        currency_id: 'ARS',
+      })),
+      ...(propinaNum > 0 ? [{
+        id:          'propina-cadete',
+        title:       'Propina al repartidor',
+        quantity:    1,
+        unit_price:  propinaNum,
+        currency_id: 'ARS',
+      }] : []),
+    ];
+
+    // Persistir propina en el pedido antes de redirigir al pago
+    if (propinaNum > 0) {
+      await supabase.from('pedidos')
+        .update({ propina_cadete: propinaNum })
+        .eq('id', pedido_id);
+    }
+
     const result = await mpPreference.create({
       body: {
-        items: items.map(item => ({
-          id:          String(item.id || item.nombre),
-          title:       String(item.nombre),
-          quantity:    Number(item.qty ?? item.quantity ?? 1),
-          unit_price:  Number(item.precio ?? item.unit_price ?? 0),
-          currency_id: 'ARS',
-        })),
+        items: mpItems,
         external_reference: pedido_id,
         back_urls: {
           success: `${FRONTEND_URL}/cliente/pago-resultado.html?estado=success&pedido=${pedido_id}`,
@@ -304,7 +448,7 @@ app.post('/api/mp/webhook', async (req, res) => {
 // Requiere Bearer token (requireAuth).
 // ═══════════════════════════════════════════════════════════════════════════════
 app.post('/api/pedidos/cambiar-estado', requireAuth, async (req, res) => {
-  const { pedido_id, nuevo_estado, cadete_id } = req.body ?? {};
+  const { pedido_id, nuevo_estado, cadete_id: cadeteIdBody } = req.body ?? {};
 
   if (!pedido_id || !nuevo_estado) {
     return res.status(400).json({ error: 'Campos requeridos: pedido_id, nuevo_estado' });
@@ -319,10 +463,16 @@ app.post('/api/pedidos/cambiar-estado', requireAuth, async (req, res) => {
     });
   }
 
+  // ── Resolver rol del actor (perfiles es la fuente de verdad) ─────────────
+  const actorRol = await resolveRol(req.user.id, req.user.user_metadata);
+  if (!actorRol) {
+    return res.status(403).json({ error: 'Tu cuenta no tiene un rol asignado' });
+  }
+
   // Leer el pedido completo
   const { data: pedido, error: pedidoErr } = await supabase
     .from('pedidos')
-    .select('id, estado, comercio_id, cliente_id, cadete_id, direccion_entrega')
+    .select('id, estado, comercio_id, cliente_id, cadete_id, direccion_entrega, codigo_retiro, codigo_entrega')
     .eq('id', pedido_id)
     .single();
 
@@ -330,23 +480,171 @@ app.post('/api/pedidos/cambiar-estado', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'Pedido no encontrado' });
   }
 
-  // Actualizar el estado del pedido
+  // ── Matriz de autorización por transición ─────────────────────────────────
+  if (nuevo_estado === 'en_preparacion') {
+    if (actorRol !== 'comercio' && actorRol !== 'admin') {
+      return res.status(403).json({ error: 'Solo el comercio puede aceptar un pedido' });
+    }
+    if (actorRol === 'comercio') {
+      const { data: miComercio } = await supabase
+        .from('comercios')
+        .select('id')
+        .eq('usuario_id', req.user.id)
+        .maybeSingle();
+      if (!miComercio || miComercio.id !== pedido.comercio_id) {
+        return res.status(403).json({ error: 'Este pedido no pertenece a tu comercio' });
+      }
+    }
+
+  } else if (nuevo_estado === 'cadete_asignado') {
+    if (actorRol !== 'cadete' && actorRol !== 'admin') {
+      return res.status(403).json({ error: 'Solo un cadete puede aceptar un viaje' });
+    }
+    // Un cadete solo puede asignarse a sí mismo — nunca a otro cadete
+    if (actorRol === 'cadete' && cadeteIdBody && cadeteIdBody !== req.user.id) {
+      return res.status(403).json({ error: 'No podés asignar otro cadete en tu nombre' });
+    }
+
+  } else if (nuevo_estado === 'en_camino') {
+    if (actorRol !== 'cadete' && actorRol !== 'admin') {
+      return res.status(403).json({ error: 'Solo el cadete asignado puede marcar el pedido en camino' });
+    }
+    if (actorRol === 'cadete' && pedido.cadete_id !== req.user.id) {
+      return res.status(403).json({ error: 'No sos el cadete asignado a este pedido' });
+    }
+
+  } else if (nuevo_estado === 'entregado') {
+    if (actorRol !== 'cadete' && actorRol !== 'admin') {
+      return res.status(403).json({ error: 'Solo el cadete asignado puede marcar el pedido como entregado' });
+    }
+    if (actorRol === 'cadete' && pedido.cadete_id !== req.user.id) {
+      return res.status(403).json({ error: 'No sos el cadete asignado a este pedido' });
+    }
+
+  } else if (nuevo_estado === 'cancelado') {
+    if (actorRol === 'comercio') {
+      const { data: miComercio } = await supabase
+        .from('comercios').select('id').eq('usuario_id', req.user.id).maybeSingle();
+      if (!miComercio || miComercio.id !== pedido.comercio_id) {
+        return res.status(403).json({ error: 'Este pedido no pertenece a tu comercio' });
+      }
+    } else if (actorRol === 'usuario' || actorRol === 'cliente') {
+      if (pedido.cliente_id !== req.user.id) {
+        return res.status(403).json({ error: 'Este pedido no te pertenece' });
+      }
+    } else if (actorRol !== 'admin') {
+      return res.status(403).json({ error: 'No tenés permiso para cancelar este pedido' });
+    }
+  }
+
+  // ── Validar códigos de seguridad (4a) ─────────────────────────────────────
+  // Comparación con timingSafeEqual para evitar timing attacks.
+  // Backward-compat: si el pedido no tiene código (creado antes de Fase 4),
+  // la transición se permite pero se logea advertencia.
+  if (nuevo_estado === 'en_camino' || nuevo_estado === 'entregado') {
+    const campoBody  = nuevo_estado === 'en_camino' ? 'codigo_retiro'  : 'codigo_entrega';
+    const codigoBody = String(req.body?.[campoBody] ?? '').trim();
+    const codigoDb   = String(pedido[nuevo_estado === 'en_camino' ? 'codigo_retiro' : 'codigo_entrega'] ?? '');
+
+    if (codigoDb) {
+      if (!codigoBody) {
+        return res.status(400).json({
+          error: nuevo_estado === 'en_camino'
+            ? 'El código de retiro es requerido para confirmar la recogida'
+            : 'El código de entrega es requerido para confirmar la entrega',
+        });
+      }
+      // Padding a longitud fija garantiza que timingSafeEqual reciba buffers iguales
+      const norm  = s => String(s).padEnd(16, '\0');
+      const bufR  = Buffer.from(norm(codigoBody));
+      const bufE  = Buffer.from(norm(codigoDb));
+      const valid = bufR.length === bufE.length && crypto.timingSafeEqual(bufR, bufE);
+      if (!valid) {
+        return res.status(403).json({
+          error: nuevo_estado === 'en_camino'
+            ? 'Código de retiro incorrecto'
+            : 'Código de entrega incorrecto',
+        });
+      }
+    } else {
+      // Pedido creado antes de Fase 4 — sin código generado
+      console.warn(`[Código] Pedido ${pedido_id} sin código generado — transición sin validación`);
+    }
+  }
+
+  // ── Construir payload de actualización ────────────────────────────────────
+  // cadete_id NUNCA viene del body cuando el actor es un cadete:
+  // se usa req.user.id para evitar que un cadete asigne otro.
   const updatePayload = { estado: nuevo_estado };
-  if (nuevo_estado === 'cadete_asignado' && cadete_id) {
-    updatePayload.cadete_id = cadete_id;
+
+  // 4a: Generar códigos de seguridad cuando el comercio acepta el pedido.
+  // crypto.randomInt es criptográficamente seguro (CSPRNG de Node).
+  // Rango 1000-9999 → siempre 4 dígitos, sin necesidad de padding.
+  if (nuevo_estado === 'en_preparacion') {
+    updatePayload.codigo_retiro  = String(crypto.randomInt(1000, 10000));
+    updatePayload.codigo_entrega = String(crypto.randomInt(1000, 10000));
   }
 
-  const { error: updateErr } = await supabase
-    .from('pedidos')
-    .update(updatePayload)
-    .eq('id', pedido_id);
-
-  if (updateErr) {
-    console.error('[cambiar-estado] Error:', updateErr.message);
-    return res.status(500).json({ error: 'No se pudo actualizar el estado del pedido' });
+  if (nuevo_estado === 'cadete_asignado') {
+    updatePayload.cadete_id = actorRol === 'admin'
+      ? (cadeteIdBody ?? req.user.id)
+      : req.user.id;
   }
 
-  console.log(`[Pedido ${pedido_id}] ${pedido.estado} → ${nuevo_estado}`);
+  // ── UPDATE atómico — la condición varía por estado ───────────────────────
+  if (nuevo_estado === 'cadete_asignado') {
+    // Anti-colisión: solo actualiza si cadete_id sigue siendo NULL.
+    // Si dos cadetes llegan al mismo tiempo, solo el primero en escribir gana.
+    const { data: rowsActualizados, error: updateErr } = await supabase
+      .from('pedidos')
+      .update(updatePayload)
+      .eq('id', pedido_id)
+      .is('cadete_id', null)
+      .select('id');
+
+    if (updateErr) {
+      console.error('[cambiar-estado] Error:', updateErr.message);
+      return res.status(500).json({ error: 'No se pudo actualizar el estado del pedido' });
+    }
+
+    if (!rowsActualizados?.length) {
+      return res.status(409).json({ error: 'Este viaje ya fue tomado por otro cadete' });
+    }
+
+    // 4b: Persistir distancia_estimada y pago_cadete como campos estáticos.
+    // Se copian de la oferta aceptada — no pueden ser alterados desde el cliente.
+    try {
+      const { data: ofertaAceptada } = await supabase
+        .from('ofertas_cadetes')
+        .select('distancia_km, ganancia_estimada')
+        .eq('pedido_id', pedido_id)
+        .eq('cadete_id', req.user.id)
+        .maybeSingle();
+
+      if (ofertaAceptada?.distancia_km != null) {
+        await supabase.from('pedidos').update({
+          distancia_estimada: ofertaAceptada.distancia_km,
+          pago_cadete:        ofertaAceptada.ganancia_estimada
+                              ?? calcularGanancia(ofertaAceptada.distancia_km),
+        }).eq('id', pedido_id);
+      }
+    } catch (e) {
+      console.warn('[4b] No se pudo persistir distancia/ganancia:', e?.message);
+    }
+
+  } else {
+    const { error: updateErr } = await supabase
+      .from('pedidos')
+      .update(updatePayload)
+      .eq('id', pedido_id);
+
+    if (updateErr) {
+      console.error('[cambiar-estado] Error:', updateErr.message);
+      return res.status(500).json({ error: 'No se pudo actualizar el estado del pedido' });
+    }
+  }
+
+  console.log(`[Pedido ${pedido_id}] ${pedido.estado} → ${nuevo_estado} | actor: ${actorRol}:${req.user.id}`);
 
   // ── Lógica de asignación automática de cadetes ────────────────────────────
   if (nuevo_estado === 'en_preparacion') {
@@ -435,21 +733,23 @@ app.post('/api/pedidos/cambiar-estado', requireAuth, async (req, res) => {
   }
 
   // ── Cadete acepta la oferta → rechazar las otras del mismo pedido ─────────
-  if (nuevo_estado === 'cadete_asignado' && cadete_id) {
+  // cadeteIdAsignado es el valor real que quedó en la DB (req.user.id para cadetes).
+  const cadeteIdAsignado = updatePayload.cadete_id ?? null;
+  if (nuevo_estado === 'cadete_asignado' && cadeteIdAsignado) {
     try {
       await supabase
         .from('ofertas_cadetes')
         .update({ estado: 'aceptada' })
         .eq('pedido_id', pedido_id)
-        .eq('cadete_id', cadete_id);
+        .eq('cadete_id', cadeteIdAsignado);
 
       await supabase
         .from('ofertas_cadetes')
         .update({ estado: 'rechazada' })
         .eq('pedido_id', pedido_id)
-        .neq('cadete_id', cadete_id);
+        .neq('cadete_id', cadeteIdAsignado);
 
-      console.log(`[Pedido ${pedido_id}] Cadete ${cadete_id} asignado — otras ofertas rechazadas`);
+      console.log(`[Pedido ${pedido_id}] Cadete ${cadeteIdAsignado} asignado — otras ofertas rechazadas`);
     } catch (err) {
       console.error('[cadete_asignado] Error gestionando ofertas:', err?.message ?? err);
     }
@@ -504,8 +804,11 @@ app.post('/api/cadete/actualizar-ubicacion', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Coordenadas fuera de rango válido' });
   }
 
-  const rol = req.user.user_metadata?.role ?? req.user.raw_user_meta_data?.role ?? null;
-  if (rol !== 'cadete') {
+  // Rol resuelto desde perfiles (consistente con el resto del backend).
+  // Nota: este endpoint se llama cada 5-10 s; el costo extra de la query a
+  // perfiles es aceptable porque el token JWT puede tener metadata desactualizada.
+  const rolCadete = await resolveRol(req.user.id, req.user.user_metadata);
+  if (rolCadete !== 'cadete') {
     return res.status(403).json({ error: 'Solo cadetes pueden actualizar su ubicación' });
   }
 
@@ -528,38 +831,65 @@ app.post('/api/cadete/actualizar-ubicacion', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Error guardando ubicación GPS' });
   }
 
-  // Procesar transiciones de estado opcionales
+  // ── Procesar transiciones de estado opcionales ────────────────────────────
   if (pedido_id && accion) {
-    const MAPA_ACCION = {
-      aceptar_viaje:  'cadete_asignado',
-      retirar_pedido: 'en_camino',
-    };
-    const nuevoEstado = MAPA_ACCION[accion];
 
-    if (nuevoEstado) {
-      const payload = { estado: nuevoEstado };
-      if (accion === 'aceptar_viaje') payload.cadete_id = cadeteId;
-
-      const { error: stateErr } = await supabase
+    if (accion === 'aceptar_viaje') {
+      // Anti-colisión: UPDATE solo si cadete_id IS NULL.
+      // Si otro cadete llegó primero, el UPDATE afecta 0 filas → 409.
+      const { data: rowsAsignados, error: stateErr } = await supabase
         .from('pedidos')
-        .update(payload)
-        .eq('id', pedido_id);
+        .update({ estado: 'cadete_asignado', cadete_id: cadeteId })
+        .eq('id', pedido_id)
+        .is('cadete_id', null)
+        .select('id');
 
       if (stateErr) {
-        console.error(`[GPS→Estado] Error cambiando a ${nuevoEstado}:`, stateErr.message);
-        return res.json({ ok: true, gps: 'actualizado', advertencia: stateErr.message });
+        console.error('[GPS→aceptar_viaje] Error:', stateErr.message);
+        return res.status(500).json({ error: 'Error al asignar el pedido' });
       }
 
-      // Cerrar ofertas al aceptar el viaje
-      if (accion === 'aceptar_viaje') {
-        await supabase.from('ofertas_cadetes').update({ estado: 'aceptada' })
-          .eq('pedido_id', pedido_id).eq('cadete_id', cadeteId);
-        await supabase.from('ofertas_cadetes').update({ estado: 'rechazada' })
-          .eq('pedido_id', pedido_id).neq('cadete_id', cadeteId);
+      if (!rowsAsignados?.length) {
+        return res.status(409).json({
+          ok:      true,
+          gps:     'actualizado',
+          error:   'viaje_ya_tomado',
+          mensaje: 'Este viaje ya fue tomado por otro cadete',
+        });
       }
 
-      console.log(`[GPS] cadete:${cadeteId} | accion:${accion} | pedido ${pedido_id} → ${nuevoEstado}`);
-      return res.json({ ok: true, gps: 'actualizado', estado: nuevoEstado });
+      // Cerrar las demás ofertas del mismo pedido
+      await supabase.from('ofertas_cadetes')
+        .update({ estado: 'aceptada' })
+        .eq('pedido_id', pedido_id).eq('cadete_id', cadeteId);
+      await supabase.from('ofertas_cadetes')
+        .update({ estado: 'rechazada' })
+        .eq('pedido_id', pedido_id).neq('cadete_id', cadeteId);
+
+      console.log(`[GPS] cadete:${cadeteId} | aceptar_viaje | pedido ${pedido_id} → cadete_asignado`);
+      return res.json({ ok: true, gps: 'actualizado', estado: 'cadete_asignado' });
+    }
+
+    if (accion === 'retirar_pedido') {
+      // Solo el cadete asignado puede retirar: verificar ownership en la query.
+      const { data: rowsRetirados, error: stateErr } = await supabase
+        .from('pedidos')
+        .update({ estado: 'en_camino' })
+        .eq('id', pedido_id)
+        .eq('cadete_id', cadeteId)
+        .select('id');
+
+      if (stateErr) {
+        console.error('[GPS→retirar_pedido] Error:', stateErr.message);
+        return res.status(500).json({ error: 'Error al retirar el pedido' });
+      }
+
+      if (!rowsRetirados?.length) {
+        return res.status(403).json({ error: 'No sos el cadete asignado a este pedido' });
+      }
+
+      console.log(`[GPS] cadete:${cadeteId} | retirar_pedido | pedido ${pedido_id} → en_camino`);
+      return res.json({ ok: true, gps: 'actualizado', estado: 'en_camino' });
     }
   }
 
@@ -698,6 +1028,88 @@ app.post('/api/pedidos/valorar', requireAuth, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// 6. DETALLE DE PEDIDO CON IDENTIDAD DEL CADETE (4d)
+// GET /api/pedidos/:id
+//
+// Devuelve el pedido completo + perfil del cadete asignado (LEFT JOIN manual).
+// Si cadete_id es null el campo cadete_perfil viene null — nunca rompe.
+//
+// Visibilidad de códigos de seguridad:
+//   cliente  → recibe codigo_entrega  (lo muestra al cadete al entregar)
+//   comercio → recibe codigo_retiro   (lo dice al cadete al retirar)
+//   cadete   → no recibe ninguno      (los tipea tras recibirlos verbalmente)
+//   admin    → recibe ambos
+//
+// Requiere Bearer token (requireAuth).
+// ═══════════════════════════════════════════════════════════════════════════════
+app.get('/api/pedidos/:id', requireAuth, async (req, res) => {
+  const pedidoId = req.params.id;
+  if (!pedidoId) return res.status(400).json({ error: 'pedido_id requerido' });
+
+  const actorRol = await resolveRol(req.user.id, req.user.user_metadata);
+
+  const { data: pedido, error: pedidoErr } = await supabase
+    .from('pedidos')
+    .select(
+      'id, numero, estado, total, subtotal, costo_envio, metodo_pago, ' +
+      'direccion_entrega, created_at, notas, ' +
+      'cliente_id, comercio_id, cadete_id, ' +
+      'distancia_estimada, pago_cadete, propina_cadete, ' +
+      'codigo_retiro, codigo_entrega, ' +
+      'comercios ( nombre, direccion, telefono, imagen_url, lat, lng )'
+    )
+    .eq('id', pedidoId)
+    .single();
+
+  if (pedidoErr || !pedido) {
+    return res.status(404).json({ error: 'Pedido no encontrado' });
+  }
+
+  // ── Autorización ───────────────────────────────────────────────────────────
+  const esCliente = pedido.cliente_id === req.user.id;
+  const esCadete  = pedido.cadete_id  === req.user.id;
+  const esAdmin   = actorRol === 'admin';
+
+  let esComercio = false;
+  if (actorRol === 'comercio') {
+    const { data: miComercio } = await supabase
+      .from('comercios').select('id').eq('usuario_id', req.user.id).maybeSingle();
+    esComercio = miComercio?.id === pedido.comercio_id;
+  }
+
+  if (!esCliente && !esCadete && !esComercio && !esAdmin) {
+    return res.status(403).json({ error: 'No tenés permiso para ver este pedido' });
+  }
+
+  // ── Perfil del cadete asignado (LEFT JOIN manual) ──────────────────────────
+  // Se usa LEFT JOIN manual en lugar de embedded select para no depender de
+  // que exista una FK nombrada entre pedidos.cadete_id y perfiles.id.
+  let cadetePerfil = null;
+  if (pedido.cadete_id) {
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('id, nombre, apellido, avatar_url, vehiculo, color')
+      .eq('id', pedido.cadete_id)
+      .maybeSingle();
+    cadetePerfil = perfil ?? null;
+  }
+
+  // ── Filtrar códigos según el rol del solicitante ───────────────────────────
+  const respuesta = { ...pedido, cadete_perfil: cadetePerfil };
+
+  if (!esAdmin) {
+    // Cliente solo ve codigo_entrega — lo muestra al cadete al recibir
+    if (esCliente)  delete respuesta.codigo_retiro;
+    // Comercio solo ve codigo_retiro — se lo dice al cadete al retirar
+    if (esComercio) delete respuesta.codigo_entrega;
+    // Cadete no ve ninguno — los recibe verbalmente y los tipea en la app
+    if (esCadete)   { delete respuesta.codigo_retiro; delete respuesta.codigo_entrega; }
+  }
+
+  return res.json(respuesta);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ═══════════════════════════════════════════════════════════════════════════════
 app.get('/health', (_req, res) => {
@@ -718,6 +1130,7 @@ app.listen(PORT, () => {
   console.log('║  POST /api/pedidos/cambiar-estado  [auth]    ║');
   console.log('║  POST /api/cadete/actualizar-ubicacion [auth]║');
   console.log('║  POST /api/pedidos/valorar         [auth]    ║');
+  console.log('║  GET  /api/pedidos/:id             [auth]    ║');
   console.log('║  GET  /health                                ║');
   console.log('╚══════════════════════════════════════════════╝\n');
 });

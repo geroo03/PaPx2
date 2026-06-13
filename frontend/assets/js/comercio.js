@@ -20,14 +20,14 @@ const RECARGO_DIV = 1 + RECARGO; // 1.15
 const MOCK = {
 
   comercio: {
-    id:                    'comercio_habibi_123',
-    nombre:                'Comercio Habibi — Demo',
+    id:                    'mock-cid-comercio-001',
+    nombre:                'Comercio Demo',
     categoria:             'comida',
     descripcion:           'Panel de demostración con datos simulados',
-    direccion:             'Av. Belgrano 234, Santiago del Estero',
-    telefono:              '3854123456',
-    email:                 'habibi11@gmail.com',
-    usuario_id:            'user_habibi_001',
+    direccion:             'Av. de Prueba 234, Ciudad',
+    telefono:              '3800000000',
+    email:                 'comercio-demo@example.com',
+    usuario_id:            'mock-uid-comercio-001',
     abierto_ahora:         true,
     estado_registro:       'activo',
     tipo_delivery_defecto: 'app',
@@ -43,30 +43,30 @@ const MOCK = {
   },
 
   categorias: [
-    { id: 'cat-001', comercio_id: 'comercio_habibi_123', nombre: 'Pizzas Tradicionales', orden: 0 },
-    { id: 'cat-002', comercio_id: 'comercio_habibi_123', nombre: 'Bebidas',              orden: 1 },
-    { id: 'cat-003', comercio_id: 'comercio_habibi_123', nombre: 'Postres',              orden: 2 },
+    { id: 'cat-001', comercio_id: 'mock-cid-comercio-001', nombre: 'Pizzas Tradicionales', orden: 0 },
+    { id: 'cat-002', comercio_id: 'mock-cid-comercio-001', nombre: 'Bebidas',              orden: 1 },
+    { id: 'cat-003', comercio_id: 'mock-cid-comercio-001', nombre: 'Postres',              orden: 2 },
   ],
 
   productos: [
     // PRODUCTO DESTACADO: base $1.000 → cliente paga $1.150
     {
-      id: 'prod-001', comercio_id: 'comercio_habibi_123', categoria_id: 'cat-001',
+      id: 'prod-001', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-001',
       nombre: 'Pizza Muzza', descripcion: 'Salsa de tomate, mozzarella, aceitunas negras',
       precio_base: 1000, disponible: true, imagen_url: null, orden: 0,
     },
     {
-      id: 'prod-002', comercio_id: 'comercio_habibi_123', categoria_id: 'cat-001',
+      id: 'prod-002', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-001',
       nombre: 'Pizza Calabresa', descripcion: 'Mozzarella, longaniza ahumada, morrón rojo',
       precio_base: 1200, disponible: true, imagen_url: null, orden: 1,
     },
     {
-      id: 'prod-003', comercio_id: 'comercio_habibi_123', categoria_id: 'cat-002',
+      id: 'prod-003', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-002',
       nombre: 'Coca-Cola 1.5L', descripcion: 'Refresco en botella',
       precio_base: 600, disponible: true, imagen_url: null, orden: 0,
     },
     {
-      id: 'prod-004', comercio_id: 'comercio_habibi_123', categoria_id: 'cat-003',
+      id: 'prod-004', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-003',
       nombre: 'Tiramisú casero', descripcion: 'Con mascarpone y café espresso',
       precio_base: 800, disponible: false, imagen_url: null, orden: 0,
     },
@@ -75,19 +75,19 @@ const MOCK = {
   // RESEÑAS con puntaje_comercio y puntaje_cadete (columnas reales del schema CSV)
   ratings: [
     {
-      id: 'rat-001', pedido_id: 'ped-003', comercio_id: 'comercio_habibi_123',
+      id: 'rat-001', pedido_id: 'ped-003', comercio_id: 'mock-cid-comercio-001',
       puntaje_comercio: 5, puntaje_cadete: 4,
       comentario: 'Excelente pizza, llegó caliente y perfectamente empaquetada.',
       created_at: new Date(Date.now() - 2.5 * 3_600_000).toISOString(),
     },
     {
-      id: 'rat-002', pedido_id: 'ped-004', comercio_id: 'comercio_habibi_123',
+      id: 'rat-002', pedido_id: 'ped-004', comercio_id: 'mock-cid-comercio-001',
       puntaje_comercio: 4, puntaje_cadete: 5,
       comentario: 'Muy rica la muzza. El cadete fue muy puntual.',
       created_at: new Date(Date.now() - 5 * 3_600_000).toISOString(),
     },
     {
-      id: 'rat-003', pedido_id: 'ped-005', comercio_id: 'comercio_habibi_123',
+      id: 'rat-003', pedido_id: 'ped-005', comercio_id: 'mock-cid-comercio-001',
       puntaje_comercio: 5, puntaje_cadete: null,
       comentario: null,
       created_at: new Date(Date.now() - 25 * 3_600_000).toISOString(),
@@ -103,7 +103,7 @@ const MOCK = {
   // ingreso_comercio  = $800
   promociones: [
     {
-      id: 'promo-001', comercio_id: 'comercio_habibi_123', producto_id: 'prod-001',
+      id: 'promo-001', comercio_id: 'mock-cid-comercio-001', producto_id: 'prod-001',
       tipo: 'descuento_porcentaje', valor: 20,
       descripcion: 'Descuento especial fin de semana — Pizza Muzza',
       activa: true,
@@ -137,8 +137,8 @@ document.addEventListener('DOMContentLoaded', init);
 async function init() {
   // Modo mock O frontend estático sin Supabase disponible: usar datos simulados, sin redirigir.
   if (USE_MOCK || !sb || !sb.auth) {
-    S.uid      = sessionStorage.getItem('pap_uid') || 'user_habibi_001';
-    S.cid      = sessionStorage.getItem('pap_cid') || 'comercio_habibi_123';
+    S.uid      = sessionStorage.getItem('pap_uid') || 'mock-uid-comercio-001';
+    S.cid      = sessionStorage.getItem('pap_cid') || 'mock-cid-comercio-001';
     S.comercio = MOCK.comercio;
     applyComercioToUI(MOCK.comercio);
     bindAllEvents();
@@ -380,10 +380,20 @@ async function loadPedidos() {
   const desde = new Date(); desde.setDate(desde.getDate() - pedidosDias);
   const [{ data: peds, error: pErr }, { data: advs }] = await Promise.all([
     sb.from('pedidos')
-      .select('id,comercio_id,cadete_id,cliente_id,estado,productos,total,direccion_entrega,created_at')
+      .select('id,numero,comercio_id,cadete_id,cliente_id,estado,productos,total,direccion_entrega,created_at,codigo_retiro,propina_cadete,distancia_estimada,pago_cadete')
       .eq('comercio_id', S.cid).gte('created_at', desde.toISOString()).order('created_at', { ascending: false }),
     sb.from('advertencias_comercio').select('id,pedido_id,motivo,created_at').eq('comercio_id', String(S.cid)),
   ]);
+
+  // 4d: Cargar perfiles de cadetes asignados (batch seguro, gracefully degrades si RLS no lo permite aún)
+  S.cadetesMap = {};
+  try {
+    const cadeteIds = [...new Set((peds||[]).filter(p=>p.cadete_id).map(p=>p.cadete_id))];
+    if (cadeteIds.length) {
+      const { data: perfs } = await sb.from('perfiles').select('id,nombre,apellido,vehiculo,color,avatar_url').in('id', cadeteIds);
+      (perfs||[]).forEach(pf => { S.cadetesMap[pf.id] = pf; });
+    }
+  } catch { /* RLS puede no permitirlo todavía — se muestra sin info de cadete */ }
   hideLoading('pedidos-loading'); showTableBody('tabla-pedidos');
   if (pErr) { showToast('Error al cargar pedidos', 'error'); return; }
   // Normalizo a forma interna para que los renders funcionen igual que en mock
@@ -395,11 +405,11 @@ async function loadPedidos() {
   S.advertencias = advs || [];
   const advMap = {};
   S.advertencias.forEach(a => { if (!advMap[a.pedido_id]) advMap[a.pedido_id] = []; advMap[a.pedido_id].push(a); });
-  renderPedidosTable(S.pedidos, advMap);
+  renderPedidosTable(S.pedidos, advMap, S.cadetesMap || {});
   updateNavBadge();
 }
 
-function renderPedidosTable(pedidos, advMap = {}) {
+function renderPedidosTable(pedidos, advMap = {}, cadetesMap = {}) {
   const tbody = g('tbody-pedidos'); const empty = g('pedidos-empty');
   if (!tbody) return;
   if (!pedidos.length) { tbody.innerHTML = ''; empty?.classList.remove('hidden'); return; }
@@ -412,12 +422,14 @@ function renderPedidosTable(pedidos, advMap = {}) {
     const fechaStr  = fecha.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
     const horaStr   = fecha.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
     const numRef    = p.numero ? `#${p.numero}` : `#${p.id.slice(0,6).toUpperCase()}`;
+    const cadetePerfil = p.cadete_id ? (cadetesMap[p.cadete_id] || null) : null;
     return `
       <tr class="pedido-row" data-pedido-id="${p.id}" data-action="toggle-row" data-id="${p.id}">
         <td><span class="badge badge-${p.estado}">${estadoLabel(p.estado)}</span></td>
         <td>
           <div class="pedido-num">${numRef}</div>
           <div class="pedido-fecha">${fechaStr}, ${horaStr}</div>
+          ${cadetePerfil ? `<div style="font-size:11px;color:#666;margin-top:2px;">🛵 ${esc([cadetePerfil.nombre,cadetePerfil.apellido].filter(Boolean).join(' ')||'Cadete asignado')}</div>` : ''}
         </td>
         <td>${advsCount > 0
           ? `<span class="badge badge-cancelado" title="${(advMap[p.id]||[]).map(a=>a.motivo).join(', ')}">${advsCount} aviso${advsCount>1?'s':''}</span>`
@@ -429,7 +441,7 @@ function renderPedidosTable(pedidos, advMap = {}) {
         <td>${accionesPedido(p)}</td>
       </tr>
       <tr class="hidden" id="detail-${p.id}">
-        <td colspan="6"><div class="row-detail-content">${detallePedido(p, advMap[p.id]||[])}</div></td>
+        <td colspan="6"><div class="row-detail-content">${detallePedido(p, advMap[p.id]||[], cadetesMap)}</div></td>
       </tr>`;
   }).join('');
 }
@@ -449,7 +461,7 @@ function accionesPedido(p) {
   return '';
 }
 
-function detallePedido(p, advs) {
+function detallePedido(p, advs, cadetesMap = {}) {
   // Soporta tanto mock (p.items) como real (p.productos normalizado a p.items en loadPedidos)
   const items = Array.isArray(p.items) ? p.items
               : Array.isArray(p.productos) ? p.productos
@@ -465,6 +477,35 @@ function detallePedido(p, advs) {
   const advsHTML = advs.length
     ? `<div style="margin-top:8px;padding:8px;background:var(--color-warning-bg);border-radius:6px;font-size:13px"><strong>Avisos:</strong> ${advs.map(a=>esc(a.motivo)).join(' · ')}</div>`
     : '';
+
+  // 4d: Bloque de identidad del cadete
+  const cadetePerfil = p.cadete_id ? (cadetesMap[p.cadete_id] || null) : null;
+  const cadeteHTML = p.cadete_id ? `
+    <div style="margin-top:10px;padding:10px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">
+      <div style="font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Repartidor asignado</div>
+      ${cadetePerfil ? `
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${cadetePerfil.avatar_url
+            ? `<img src="${esc(cadetePerfil.avatar_url)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" />`
+            : `<div style="width:36px;height:36px;border-radius:50%;background:#0369a1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">${esc((cadetePerfil.nombre||'C').charAt(0).toUpperCase())}</div>`}
+          <div>
+            <div style="font-size:13px;font-weight:700;">${esc([cadetePerfil.nombre,cadetePerfil.apellido].filter(Boolean).join(' ')||'—')}</div>
+            ${cadetePerfil.vehiculo ? `<div style="font-size:11px;color:#666;">🛵 ${esc([cadetePerfil.vehiculo,cadetePerfil.color].filter(Boolean).join(' · '))}</div>` : ''}
+          </div>
+        </div>` : `<div style="font-size:12px;color:#666;">ID: ${p.cadete_id.slice(0,8)}…</div>`}
+      ${p.codigo_retiro ? `
+        <div style="margin-top:8px;padding:8px 12px;background:#fff;border-radius:6px;border:1px dashed #f59e0b;">
+          <div style="font-size:11px;color:#92400e;font-weight:700;">🔐 Código de Retiro (decíselo al cadete)</div>
+          <div style="font-size:22px;font-weight:800;letter-spacing:8px;color:#92400e;margin-top:4px;">${esc(p.codigo_retiro)}</div>
+        </div>` : ''}
+      ${p.distancia_estimada ? `<div style="font-size:11px;color:#666;margin-top:6px;">📍 Distancia: ${p.distancia_estimada} km · Ganancia cadete: ${p.pago_cadete ? formatARS(p.pago_cadete) : '—'}</div>` : ''}
+    </div>` : '';
+
+  // 4c: Propina
+  const propinaHTML = p.propina_cadete > 0
+    ? `<span>🙏 Propina cadete: ${formatARS(p.propina_cadete)}</span>`
+    : '';
+
   return `<div class="pedido-detail">
     <div class="detail-items">${filas}</div>
     <div class="detail-meta">
@@ -472,8 +513,9 @@ function detallePedido(p, advs) {
       ${p.metodo_pago   ? `<span>Pago: ${esc(p.metodo_pago)}</span>` : ''}
       ${p.direccion_entrega ? `<span>Dir: ${esc(p.direccion_entrega)}</span>` : ''}
       ${p.costo_envio   ? `<span>Envío: ${formatARS(p.costo_envio)}</span>` : ''}
+      ${propinaHTML}
       <span><strong>Total: ${formatARS(p.total ?? p.subtotal ?? 0)}</strong></span>
-    </div>${advsHTML}</div>`;
+    </div>${cadeteHTML}${advsHTML}</div>`;
 }
 
 function togglePedidoRow(id) { g('detail-' + id)?.classList.toggle('hidden'); }
@@ -682,7 +724,7 @@ async function saveProducto() {
       showToast('Producto actualizado ✓');
     } else {
       const newProd = {
-        id: 'prod-' + Date.now(), comercio_id: 'comercio_habibi_123', categoria_id: catId,
+        id: 'prod-' + Date.now(), comercio_id: 'mock-cid-comercio-001', categoria_id: catId,
         nombre, descripcion: desc, precio_base: precioRaw, disponible: true, imagen_url: null, orden: MOCK.productos.length,
       };
       MOCK.productos.push(newProd);
@@ -722,7 +764,7 @@ async function saveCategoria() {
   if (!nombre) { showToast('Ingresá un nombre', 'warning'); return; }
   if (USE_MOCK) {
     await md(300);
-    MOCK.categorias.push({ id: 'cat-' + Date.now(), comercio_id: 'comercio_habibi_123', nombre, orden: MOCK.categorias.length });
+    MOCK.categorias.push({ id: 'cat-' + Date.now(), comercio_id: 'mock-cid-comercio-001', nombre, orden: MOCK.categorias.length });
     S.categorias = MOCK.categorias;
     showToast('Sección "' + nombre + '" creada ✓');
     closeModalCategoria(); renderCategorias(); return;

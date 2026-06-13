@@ -1,6 +1,7 @@
 // ICONS se expone como global por main.js (módulo). Se actualiza en el evento 'load'.
 var ICONS = {};
 let currentScreen='home',currentComercio=null,payMethod='mercadopago',currentPedido=window.state ? window.state.currentPedido : null,trackInterval=null,allComercios=[];
+let propinaSeleccionada=0;
 
 function go(screen){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -172,21 +173,28 @@ async function obtenerDireccionDesdePin(lat,lng){try{const res=await fetch(`http
 function getDireccionEntrega(){if(dirEntregaSeleccionada==='gps')return ubicacionActual||'Ubicación actual';if(dirEntregaSeleccionada==='nueva'){const txt=document.getElementById('dir-nueva-txt')?.value.trim();return txt||'Dirección no especificada';}const idx=parseInt(dirEntregaSeleccionada.replace('saved-',''));const dirs=JSON.parse(localStorage.getItem('pap_direcciones')||'[]');return dirs[idx]?`${dirs[idx].nombre}: ${dirs[idx].dir}`:ubicacionActual;}
 async function actualizarDirGPS(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(async(pos)=>{const lat=pos.coords.latitude;const lng=pos.coords.longitude;const dir=await obtenerDireccionDesdePin(lat,lng);const gpsTxt=document.getElementById('dir-gps-txt');if(gpsTxt)gpsTxt.textContent=dir;ubicacionActual=dir;localStorage.setItem('pap_ubicacion',dir);cargarMapaCarrito(lat,lng);},()=>{},{enableHighAccuracy:true,maximumAge:0});}
 
-function renderCarrito(){const items=Object.entries(window.state?window.state.cart:{}).filter(([,i])=>i.qty>0);if(!items.length){document.getElementById('cart-list').innerHTML='<div class="empty"><div class="big">🛒</div><p>Tu carrito está vacío.<br>Elegí algo rico.</p></div>';document.getElementById('r-sub').textContent='$0';document.getElementById('r-total').textContent='$800';document.getElementById('btn-confirmar').disabled=true;return;}document.getElementById('btn-confirmar').disabled=false;let sub=0;document.getElementById('cart-list').innerHTML='<div class="section-card">'+items.map(([id,item])=>{sub+=item.precio*item.qty;return`<div class="cart-item"><div><div class="ci-name">${item.nombre}</div><div class="ci-sub">$${item.precio.toLocaleString('es-AR')} c/u</div></div><div class="qty-row"><button class="qty-btn" onclick="cambiarQty('${id}',-1)">−</button><span class="qty-n">${item.qty}</span><button class="qty-btn" onclick="cambiarQty('${id}',1)">+</button><span style="font-size:14px;font-weight:700;color:var(--black);min-width:62px;text-align:right;">$${(item.precio*item.qty).toLocaleString('es-AR')}</span></div></div>`;}).join('')+'</div>';const envio=800;document.getElementById('r-sub').textContent=`$${sub.toLocaleString('es-AR')}`;document.getElementById('r-envio').textContent=`$${envio.toLocaleString('es-AR')}`;document.getElementById('r-total').textContent=`$${(sub+envio).toLocaleString('es-AR')}`;}
+function renderCarrito(){const items=Object.entries(window.state?window.state.cart:{}).filter(([,i])=>i.qty>0);if(!items.length){document.getElementById('cart-list').innerHTML='<div class="empty"><div class="big">🛒</div><p>Tu carrito está vacío.<br>Elegí algo rico.</p></div>';document.getElementById('r-sub').textContent='$0';document.getElementById('r-total').textContent='$800';document.getElementById('btn-confirmar').disabled=true;return;}document.getElementById('btn-confirmar').disabled=false;let sub=0;document.getElementById('cart-list').innerHTML='<div class="section-card">'+items.map(([id,item])=>{sub+=item.precio*item.qty;return`<div class="cart-item"><div><div class="ci-name">${item.nombre}</div><div class="ci-sub">$${item.precio.toLocaleString('es-AR')} c/u</div></div><div class="qty-row"><button class="qty-btn" onclick="cambiarQty('${id}',-1)">−</button><span class="qty-n">${item.qty}</span><button class="qty-btn" onclick="cambiarQty('${id}',1)">+</button><span style="font-size:14px;font-weight:700;color:var(--black);min-width:62px;text-align:right;">$${(item.precio*item.qty).toLocaleString('es-AR')}</span></div></div>`;}).join('')+'</div>';const envio=800;document.getElementById('r-sub').textContent=`$${sub.toLocaleString('es-AR')}`;document.getElementById('r-envio').textContent=`$${envio.toLocaleString('es-AR')}`;
+  // 4c: Inyectar selector de propina si el contenedor existe en el HTML
+  const tipSec=document.getElementById('tip-section');
+  if(tipSec){tipSec.style.display='block';tipSec.innerHTML=`<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin:10px 0 8px;">Propina al repartidor (opcional)</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${[0,200,500,1000].map(amt=>`<button id="tip-btn-${amt}" onclick="selPropina(${amt})" style="padding:8px 14px;border-radius:20px;border:1.5px solid ${propinaSeleccionada===amt?'#FF6B35':'#E0E0E0'};background:${propinaSeleccionada===amt?'#FFF3EE':'#fff'};color:${propinaSeleccionada===amt?'#FF6B35':'#666'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">${amt===0?'Sin propina':'$'+amt.toLocaleString('es-AR')}</button>`).join('')}</div>`;}
+  document.getElementById('r-total').textContent=`$${(sub+envio+propinaSeleccionada).toLocaleString('es-AR')}`;}
+
+function selPropina(amt){propinaSeleccionada=amt;const envio=800;const items=Object.values(window.state?window.state.cart:{}).filter(i=>i.qty>0);const sub=items.reduce((s,i)=>s+i.precio*i.qty,0);document.getElementById('r-total').textContent=`$${(sub+envio+propinaSeleccionada).toLocaleString('es-AR')}`;[0,200,500,1000].forEach(a=>{const btn=document.getElementById(`tip-btn-${a}`);if(!btn)return;const sel=a===amt;btn.style.borderColor=sel?'#FF6B35':'#E0E0E0';btn.style.background=sel?'#FFF3EE':'#fff';btn.style.color=sel?'#FF6B35':'#666';});}
+
 function cambiarQty(id,delta){if(!window.state.cart[id])return;window.state.cart[id].qty=Math.max(0,window.state.cart[id].qty+delta);if(window.state.cart[id].qty===0)delete window.state.cart[id]; window.state.saveCart();renderCarrito();actualizarCartFloat();}
 
 async function confirmarPedido(){
   const items=Object.values(window.state.cart).filter(i=>i.qty>0);if(!items.length){showToast('Agregá productos primero');return;}
   const btn=document.getElementById('btn-confirmar');btn.disabled=true;btn.textContent='Procesando...';
-  const sub=items.reduce((s,i)=>s+i.precio*i.qty,0);const total=sub+800;const nota=document.getElementById('nota-pedido')?.value?.trim()||'';
+  const sub=items.reduce((s,i)=>s+i.precio*i.qty,0);const total=sub+800+propinaSeleccionada;const nota=document.getElementById('nota-pedido')?.value?.trim()||'';
   let userId=null;try{const{data:{session}}=await sb.auth.getSession();userId=session?.user?.id;}catch{}
   const comercioId=currentComercio?.id;
   const _UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if(!comercioId||!_UUID_RE.test(comercioId)){showToast('⚠️ Recargá la página y volvé a intentar el pedido.',5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
   // Solo columnas que existen en public.pedidos: cliente_id, comercio_id, productos, total, estado, direccion_entrega
-  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega()};
+  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0};
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('❌ Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);}else{console.log('✅ Pedido guardado:',data);}currentPedido=data||{...pedido,numero:Math.floor(Math.random()*9000)+1000};}catch(e){console.error('❌ Excepción:',e);currentPedido={...pedido,numero:Math.floor(Math.random()*9000)+1000};}
-  const itemsParaPago=[...items];window.state.cart={};actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';
+  const itemsParaPago=[...items];window.state.cart={};actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
   // Escuchar cuando el comercio acepta el pedido
   if(currentPedido?.id){
@@ -210,8 +218,32 @@ async function confirmarPedido(){
     },5000);
   }
 
-  if(payMethod==='mercadopago'){const cartSub=itemsParaPago.reduce((s,i)=>s+i.precio*i.qty,0);localStorage.setItem('pap_pedido_pago',JSON.stringify({items:itemsParaPago.map(i=>({nombre:i.nombre,qty:i.qty,precio:i.precio,quantity:i.qty,unit_price:i.precio,title:i.nombre})),total:cartSub+800,envio:800,comercio:currentComercio?.nombre||'Comercio'}));localStorage.setItem('pap_pedido_actual',currentPedido?.id||'');window.location.href='pago.html';return;}
+  if(payMethod==='mercadopago'){const cartSub=itemsParaPago.reduce((s,i)=>s+i.precio*i.qty,0);localStorage.setItem('pap_pedido_pago',JSON.stringify({items:itemsParaPago.map(i=>({nombre:i.nombre,qty:i.qty,precio:i.precio,quantity:i.qty,unit_price:i.precio,title:i.nombre})),total:cartSub+800+propinaSeleccionada,propina_cadete:propinaSeleccionada||0,envio:800,comercio:currentComercio?.nombre||'Comercio'}));localStorage.setItem('pap_pedido_actual',currentPedido?.id||'');window.location.href='pago.html';return;}
   mostrarConfirmado(currentPedido?.numero||Math.floor(Math.random()*9000)+1000);
+}
+
+// 4d: Fetch pedido con perfil del cadete desde el backend (GET /api/pedidos/:id)
+async function fetchPedidoConCadete(pedidoId){
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session?.access_token)return null;
+    const base=window.BACKEND_URL||'';
+    const r=await fetch(`${base}/api/pedidos/${pedidoId}`,{headers:{'Authorization':`Bearer ${session.access_token}`}});
+    if(!r.ok)return null;
+    return await r.json();
+  }catch{return null;}
+}
+
+// 4d: Poblar card de cadete en el tracking view con datos del perfil
+function poblarCadeteCard(pedido){
+  if(!pedido||!pedido.cadete_perfil)return;
+  const p=pedido.cadete_perfil;
+  const cadNombre=document.getElementById('cad-nombre');
+  const cadSub=document.getElementById('cad-sub');
+  const cadAvatar=document.getElementById('cad-avatar');
+  if(cadNombre){const nombre=[p.nombre,p.apellido].filter(Boolean).join(' ');cadNombre.textContent=nombre||'Tu repartidor';}
+  if(cadSub&&!cadSub.textContent.includes('km')){const veh=[p.vehiculo,p.color].filter(Boolean).join(' · ');if(veh)cadSub.textContent=veh;}
+  if(cadAvatar&&p.avatar_url){cadAvatar.src=p.avatar_url;cadAvatar.style.display='block';}
 }
 
 function iniciarTracking(){
@@ -241,10 +273,11 @@ function iniciarTracking(){
   document.getElementById('track-sub').textContent='Esperando que el comercio acepte...';
   activarDot(1);
 
-  // Código de entrega determinístico (no cambia entre renders)
-  const generarCodigo=id=>{
-    const seed=(id||'demo').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-    return String((seed*7+1337)%9000+1000);
+  // 4a: Código de entrega leído del servidor — nunca generado en cliente
+  const mostrarCodigoEntrega=codigo=>{
+    if(!codigo)return;
+    document.getElementById('cod-entrega-box').style.display='block';
+    document.getElementById('cod-digits').innerHTML=String(codigo).split('').map(d=>`<div class="cod-digit">${d}</div>`).join('');
   };
 
   // ── Haversine: distancia en km entre dos coordenadas GPS ──────────────────
@@ -265,14 +298,20 @@ function iniciarTracking(){
       activarDot(2);
       document.getElementById('track-sub').textContent='Cadete asignado — va a buscar tu pedido 🏍️';
       document.getElementById('cadete-info').style.display='flex';
+      // 4d: Cargar identidad del cadete
+      if(pedidoId){fetchPedidoConCadete(pedidoId).then(poblarCadeteCard).catch(()=>{});}
     }
     if(estado==='en_camino'){
       activarDot(2);activarDot(3);
       document.getElementById('track-sub').textContent='Tu cadete está en camino ⚡';
       document.getElementById('cadete-info').style.display='flex';
-      const cod=generarCodigo(pedidoId);
-      document.getElementById('cod-entrega-box').style.display='block';
-      document.getElementById('cod-digits').innerHTML=cod.split('').map(d=>`<div class="cod-digit">${d}</div>`).join('');
+      // 4a+4d: Leer código de entrega e identidad del cadete desde el servidor
+      if(pedidoId){
+        fetchPedidoConCadete(pedidoId).then(p=>{
+          if(p?.codigo_entrega) mostrarCodigoEntrega(p.codigo_entrega);
+          poblarCadeteCard(p);
+        }).catch(()=>{});
+      }
     }
     if(estado==='entregado'){
       activarDot(2);activarDot(3);activarDot(4);

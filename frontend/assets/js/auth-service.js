@@ -22,33 +22,79 @@ export async function signUp({ email, password, options }){
   return await sbClient.auth.signUp({ email, password, options });
 }
 
-// Sign up and (client-side) assign a default role to the newly-created user.
-// Note: this updates the authenticated user's user_metadata from the client.
-// It attempts to sign the user in after signup (if a session isn't already provided)
-// so updateUser can run. If your Supabase project requires email confirmations
-// this flow may need an Edge Function to set roles server-side instead.
+// Sign up y asignación de rol delegada al backend.
+//
+// SEGURIDAD: auth.updateUser({ data: { role } }) fue eliminado intencionalmente.
+// Llamarlo desde el cliente permite que cualquier usuario se auto-asigne 'admin'.
+// El rol se asigna ahora exclusivamente en el servidor via POST /api/auth/set-role.
+//
+// Flujo:
+//   1. signUp → crea la cuenta (el trigger DB asigna 'usuario' por defecto).
+//   2. Si role !== 'usuario', llama al backend con el Bearer token de la sesión.
+//   3. El backend valida el rol, actualiza user_metadata via Admin API y upsert perfiles.
 export async function signUpAndAssignRole({ email, password, full_name, role = 'usuario' }){
   if(!sbClient) initAuthClient();
-  // create account
-  const signUpRes = await sbClient.auth.signUp({ email, password, options: { data: { full_name } } });
+
+  // Paso 1: crear la cuenta sin metadata de rol (el trigger DB se encarga del default)
+  const signUpRes = await sbClient.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name } },
+  });
   if (signUpRes.error) return signUpRes;
 
-  // If signUp returned a session, use it. Otherwise try to sign in to obtain a session.
-  let session = signUpRes.data?.session || null;
+  // Roles que no requieren llamada al backend (el trigger DB los asigna por defecto)
+  if (role === 'usuario') {
+    return { data: { signUp: signUpRes.data, session: signUpRes.data?.session ?? null }, error: null };
+  }
+
+  // Paso 2: obtener sesión para poder autenticarse contra el backend
+  let session = signUpRes.data?.session ?? null;
   if (!session) {
     const signInRes = await sbClient.auth.signInWithPassword({ email, password });
     if (signInRes.error) {
-      // Return signUp result and the signIn error so caller can decide.
       return { data: { signUp: signUpRes.data, session: null }, error: signInRes.error };
     }
-    session = signInRes.data?.session || null;
+    session = signInRes.data?.session ?? null;
   }
 
-  // With a valid session, update the user's metadata to set the role.
+  if (!session?.access_token) {
+    return { data: { signUp: signUpRes.data, session: null }, error: null };
+  }
+
+  // Paso 3: delegar la asignación de rol al backend
   try {
-    const updateRes = await sbClient.auth.updateUser({ data: { role } });
-    return { data: { signUp: signUpRes.data, session, update: updateRes.data }, error: updateRes.error || null };
+    const backendUrl = (typeof window !== 'undefined' && window.BACKEND_URL)
+      ? window.BACKEND_URL
+      : '';
+
+    if (!backendUrl) {
+      console.warn('[auth-service] BACKEND_URL no definido — rol no asignado. Definilo en env.js.');
+      return { data: { signUp: signUpRes.data, session }, error: null };
+    }
+
+    const roleRes = await fetch(`${backendUrl}/api/auth/set-role`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ role }),
+    });
+
+    if (!roleRes.ok) {
+      const errBody = await roleRes.json().catch(() => ({}));
+      console.error('[auth-service] set-role falló:', errBody.error ?? roleRes.status);
+      return {
+        data:  { signUp: signUpRes.data, session },
+        error: { message: errBody.error ?? 'No se pudo asignar el rol en el servidor' },
+      };
+    }
+
+    return { data: { signUp: signUpRes.data, session }, error: null };
+
   } catch (err) {
+    console.error('[auth-service] Error llamando set-role:', err?.message ?? err);
     return { data: { signUp: signUpRes.data, session }, error: err };
   }
 }

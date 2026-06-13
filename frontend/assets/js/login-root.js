@@ -63,16 +63,6 @@ async function submitForm(){
   const pass  = passEl ? passEl.value : '';
   const nombre = nombreEl ? nombreEl.value.trim() : '';
 
-  // Emergency bypass for commerce login (admin request)
-  // Adapted to use local variable `pass` instead of `password` to avoid runtime errors
-  if (email === 'habibi11@gmail.com' && pass === '220623') {
-    console.log('Bypass de emergencia activado para Comercio');
-    try{ localStorage.setItem('selectedRole', 'comercio'); }catch(e){}
-    // Redirect to the commerce panel using an absolute path to avoid relative-path loops
-    window.location.href = '/comercio/comercio.html';
-    return;
-  }
-
   if(!email || !pass){ showError('Completá todos los campos.'); return; }
   if(currentTab === 'registro' && !nombre){ showError('Escribí tu nombre completo.'); return; }
   if(pass.length < 6){ showError('La contraseña debe tener al menos 6 caracteres.'); return; }

@@ -42,34 +42,31 @@ export const supabase = _resolveClient();
 // Fuente de verdad única cuando USE_MOCK = true.
 // Todos los módulos importan y mutan este objeto — los cambios son visibles
 // de inmediato en toda la app sin recargar ni copiar datos entre módulos.
+//
+// IMPORTANTE: Este objeto NO debe contener credenciales reales.
+// Para desarrollo local con USE_MOCK = true, usá las credenciales genéricas
+// de abajo o creá un usuario de prueba en tu proyecto Supabase de staging.
 export const MOCK_DATABASE = {
 
   // ── USUARIOS ────────────────────────────────────────────────────────────────
   // Roles soportados: 'comercio' | 'admin' | 'cadete' | 'usuario'
+  // Credenciales de demo — NUNCA usar emails o passwords reales aquí.
   usuarios: [
     {
-      email:  'habibi11@gmail.com',
-      pass:   '220623',
+      email:  'comercio-demo@example.com',
+      pass:   'demo-comercio-2024',
       rol:    'comercio',
-      uid:    'user_habibi_001',
-      cid:    'comercio_habibi_123',
-      nombre: 'Comercio Habibi — Demo',
+      uid:    'mock-uid-comercio-001',
+      cid:    'mock-cid-comercio-001',
+      nombre: 'Comercio Demo',
     },
     {
-      email:  'fabricarol@gmail.com',
-      pass:   'petecof123',
+      email:  'admin-demo@example.com',
+      pass:   'demo-admin-2024',
       rol:    'admin',
-      uid:    'admin_fabri_999',
+      uid:    'mock-uid-admin-001',
       cid:    null,
-      nombre: 'Fabricio Admin',
-    },
-    {
-      email:  'gerardoacostafrancario@gmail.com',
-      pass:   'gerardo123',
-      rol:    'admin',
-      uid:    'admin_gerardo_777',
-      cid:    null,
-      nombre: 'Gerardo Admin',
+      nombre: 'Admin Demo',
     },
   ],
 

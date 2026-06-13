@@ -1,16 +1,25 @@
 // API/notificar-pedido.js — Notifica al comercio cuando llega un pedido nuevo
 const webpush = require('web-push');
 
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC || 'BMOSombn5870MeH1ufWwYLEosTFqcDPuD5t-GtpWzQ33C8gEP0D9TC6IXvauq0qxDK13pUmtU0g8m-h25brELSM';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE || 'Ku_iBASeFbbHqNH_iJGJtIgU3Qx6_UaM5cgjLvTlFt4';
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://fmqlpgerqdiplnvjjarl.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || '';
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
+const VAPID_CONTACT = process.env.VAPID_CONTACT;
+const SUPABASE_URL  = process.env.SUPABASE_URL;
+const SUPABASE_KEY  = process.env.SUPABASE_KEY;
 
-webpush.setVapidDetails(
-  'mailto:gerardoacostafrancario@gmail.com',
-  VAPID_PUBLIC,
-  VAPID_PRIVATE
-);
+if (!VAPID_PUBLIC || !VAPID_PRIVATE || !VAPID_CONTACT) {
+  console.error('[notificar-pedido] FATAL: VAPID_PUBLIC, VAPID_PRIVATE y VAPID_CONTACT son requeridas.');
+  // No lanzamos process.exit porque es una serverless function —
+  // el error se propaga al handler para devolver 500 al caller.
+}
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('[notificar-pedido] FATAL: SUPABASE_URL y SUPABASE_KEY son requeridas.');
+}
+
+if (VAPID_PUBLIC && VAPID_PRIVATE && VAPID_CONTACT) {
+  webpush.setVapidDetails(VAPID_CONTACT, VAPID_PUBLIC, VAPID_PRIVATE);
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,6 +27,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE || !VAPID_CONTACT || !SUPABASE_URL || !SUPABASE_KEY) {
+    return res.status(500).json({ error: 'Configuración de notificaciones incompleta en el servidor.' });
+  }
 
   try {
     const { record } = req.body;

@@ -44,23 +44,32 @@ try {
 
 // ─── COMPLETÁ ESTA SECCIÓN SI env.js NO FUNCIONA ─────────────────────────────
 // O si necesitás la service_role key para admin operations
-if (!SUPABASE_URL)      SUPABASE_URL      = 'https://TU-PROYECTO.supabase.co';
-if (!SUPABASE_ANON_KEY) SUPABASE_ANON_KEY = 'TU_ANON_KEY_AQUI';
+if (!SUPABASE_URL)      SUPABASE_URL      = process.env.SUPABASE_URL      || '';
+if (!SUPABASE_ANON_KEY) SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('❌ SUPABASE_URL y SUPABASE_ANON_KEY son requeridas.');
+  console.error('   Definílas en backend/.env o en un archivo env.js local (no lo commitees).');
+  process.exit(1);
+}
 
 // SERVICE_ROLE_KEY: obtenerla de Supabase Dashboard → Settings → API → service_role
 // Esta key permite crear usuarios SIN confirmación de email y hacer inserts directos.
+// NUNCA commitear este valor — leerlo siempre desde process.env.
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── 2. DATOS DEL USUARIO DE PRUEBA ──────────────────────────────────────────
+// Usar variables de entorno o valores genéricos que NO correspondan a usuarios reales.
+// Ejemplo de variables: TEST_EMAIL, TEST_PASSWORD, TEST_NOMBRE en tu .env local.
 const TEST = {
-  email:      'habibi11@gmail.com',
-  password:   '220623',
-  nombre:     'Comercio Habibi',
+  email:      process.env.TEST_EMAIL    || 'test-comercio@example.com',
+  password:   process.env.TEST_PASSWORD || 'test-password-local-2024',
+  nombre:     process.env.TEST_NOMBRE   || 'Comercio de Prueba',
   categoria:  'comida',
-  direccion:  'Av. Belgrano 123, Santiago del Estero',
-  ciudad:     'Santiago del Estero',
-  telefono:   '3854000000',
+  direccion:  'Av. de Prueba 123, Ciudad',
+  ciudad:     'Ciudad de Prueba',
+  telefono:   '3800000000',
 };
 // ─────────────────────────────────────────────────────────────────────────────
 

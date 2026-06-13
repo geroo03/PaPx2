@@ -73,12 +73,8 @@
   </div>
 
   <script type="module">
-  // Ensure runtime env (env.js) is loaded before importing config
-  const _env_s = document.createElement('script'); _env_s.src = '/env.js'; document.head.appendChild(_env_s);
-  // Use the shared supabase client from assets/js/config.js
-  import { supabase as sb } from 'assets/js/config.js';
+  import { supabase as sb } from '/assets/js/config.js';
 
-  const ADMIN_EMAIL = 'gerardoacostafrancario@gmail.com';
   let role = 'comercio';
 
   function setRole(r) {
@@ -97,16 +93,20 @@
     const pass = document.getElementById('input-pass').value;
     const btn = document.getElementById('btn-login');
     if (!email || !pass) { showError('Completá todos los campos.'); return; }
-    if (role === 'admin' && email !== ADMIN_EMAIL) { showError('No tenés permisos de administrador.'); return; }
     btn.disabled = true; btn.textContent = 'Ingresando...';
     try {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-      if (error) { console.error('DEBUG SUPABASE: comercio signInWithPassword error', error && error.message ? error.message : error); try { alert('Error de Supabase (login comercio): ' + (error?.message || JSON.stringify(error))); } catch (e) { } throw error; }
+      if (error) throw error;
+      const sessionRole = data?.user?.user_metadata?.role || null;
+      if (role === 'admin' && sessionRole !== 'admin') {
+        await sb.auth.signOut();
+        throw new Error('No tenés permisos de administrador.');
+      }
       showSuccess('✅ Ingreso exitoso. Redirigiendo...');
       setTimeout(() => {
-        if (role === 'admin') window.location.href = 'admin.html';
-        else if (role === 'cadete') window.location.href = 'cadete.html';
-        else if (role === 'usuario') window.location.href = 'cliente/index.html';
+        if (sessionRole === 'admin') window.location.href = 'admin.html';
+        else if (sessionRole === 'cadete') window.location.href = 'cadete.html';
+        else if (sessionRole === 'usuario') window.location.href = 'cliente/index.html';
         else window.location.href = 'comercio.html';
       }, 1000);
     } catch (e) {
@@ -119,7 +119,15 @@
     }
   }
 
-  function irARegistro() { window.location.href = role === 'cadete' ? 'cadete/registro-cadete.html' : 'registro-comercio.html'; }
+  function irARegistro() {
+    gotoRegister(role);
+  }
+
+  function gotoRegister(r) {
+    if (r === 'cadete')  window.location.href = 'cadete/registro-cadete.html';
+    else if (r === 'usuario') window.location.href = 'registro-cliente.html';
+    else window.location.href = 'registro-comercio.html';
+  }
 
   async function olvideClave() { const email = document.getElementById('input-user').value.trim(); if (!email) { showError('Escribí tu email primero.'); return; } try { await sb.auth.resetPasswordForEmail(email); showSuccess('Te enviamos un email para restablecer tu contraseña.'); } catch (e) { console.error('DEBUG SUPABASE: resetPasswordForEmail', e); try { alert('Error de Supabase (reset): ' + (e && e.message ? e.message : String(e))); } catch (_) { } showError('Error al enviar el email. Verificá la dirección.'); } }
 
@@ -127,6 +135,13 @@
 
   // Session check (defensive)
   try { if (sb && sb.auth && typeof sb.auth.getSession === 'function') { sb.auth.getSession().then(({ data: { session } }) => { if (!session) return; const r = session.user?.user_metadata?.role || null; if (!r) return; if (r === 'admin') window.location.href = 'admin.html'; else if (r === 'cadete') window.location.href = 'cadete.html'; else if (r === 'usuario') window.location.href = 'cliente/index.html'; else window.location.href = 'comercio.html'; }); } } catch (e) { console.warn('session check failed', e); }
+
+  // Expose to global scope — required for inline onclick handlers in module scripts
+  window.setRole      = setRole;
+  window.login        = login;
+  window.irARegistro  = irARegistro;
+  window.gotoRegister = gotoRegister;
+  window.olvideClave  = olvideClave;
   </script>
 
 </body>

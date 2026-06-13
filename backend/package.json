@@ -1,24 +1,24 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "main": "server.js",
+  "name": "puertaapuerta-backend",
+  "version": "2.0.0",
+  "description": "API REST del proyecto Puerta a Puerta — stack Node.js + Express + Supabase",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node src/server.js",
+    "dev":   "node --watch src/server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
+    "cors":        "^2.8.6",
+    "dotenv":      "^17.4.2",
+    "express":     "^5.2.1",
     "mercadopago": "^3.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

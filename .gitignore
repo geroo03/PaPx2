@@ -1,40 +1,58 @@
+# ── Dependencias ──────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Entorno y secretos ────────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
-.DS_Store
-node_modules/
+*.env
+*.secret
+secrets/
+service-account.json
+credentials.json
+# Credenciales del cliente: env.js se genera desde env.js.template
+frontend/env.js
+env.js
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
 dist/
 build/
-*.log
+netlify_build/
+*.zip
+
+# ── Assets que no pertenecen al código fuente ─────────────────────────────────
+frontend/assets/comercio-capturas/
+
+# ── Archivos de prueba descartables ───────────────────────────────────────────
+test_agente_claude/
+
+# ── Criptografía / certificados ───────────────────────────────────────────────
 *.key
 *.pem
 *.crt
 *.p12
 *.jks
-secrets/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log
+.pnpm-debug.log*
+
+# ── Coverage ──────────────────────────────────────────────────────────────────
+coverage/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
-*.env
-*.secret
-coverage/
-coverage/
-npm-debug.log
-yarn-error.log
-npm-debug.log*
-.pnpm-debug.log*
-# Local VSCode settings
-.vscode/
-# Mac
+
+# ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
-# Windows
 Thumbs.db
-# Ignore compiled python files
+
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
-# Ignore service account / keys
-service-account.json
-# Ignore any files named credentials
-credentials.json
-# Optional: ignore the .vercel directory (local CLI state)
+
+# ── Deploy ────────────────────────────────────────────────────────────────────
 .vercel
-env.js
