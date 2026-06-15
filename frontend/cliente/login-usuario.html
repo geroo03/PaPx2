@@ -187,14 +187,8 @@ async function submitForm() {
       }
       sessionActual = data.session;
       try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', data.user?.id || ''); localStorage.setItem('user_email', data.user?.email || ''); } catch(e) {}
-      // Read role strictly from Supabase user metadata
-      const rol = data.user?.user_metadata?.role;
-      if (!rol) {
-        // Do not allow client-side role assignment. Inform user to contact admin.
-        showError('Tu cuenta no tiene rol asignado. Contactá al administrador para habilitar el acceso.');
-        btn.disabled = false; btn.textContent = 'Ingresar';
-        return;
-      }
+      // Leer rol desde user_metadata; fallback a 'usuario' en esta página de clientes
+      const rol = data.user?.user_metadata?.role || 'usuario';
       // Persist role locally for UI usage only
       try { localStorage.setItem('role', rol); } catch(e) {}
       redirigirSegunRol(rol);
@@ -213,13 +207,21 @@ async function submitForm() {
           return;
         }
 
-        // Fallback: normal signup without role assignment
-        const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: nombre } } });
+        // Fallback: signup con rol 'usuario' en user_metadata para acceso inmediato
+        const { data, error } = await sb.auth.signUp({
+          email, password: pass,
+          options: { data: { full_name: nombre, role: 'usuario' } },
+        });
         if (error) throw error;
         sessionActual = data.session;
         try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', data.user?.id || ''); localStorage.setItem('user_email', data.user?.email || ''); } catch(e) {}
-        showOk('Cuenta creada. Esperá que un administrador asigne tu rol para poder ingresar.');
-        btn.disabled = false; btn.textContent = 'Crear cuenta';
+        if (data.session) {
+          showOk('Cuenta creada. Ingresando...');
+          setTimeout(() => { window.location.href = 'index.html'; }, 800);
+        } else {
+          showOk('Cuenta creada. Revisá tu email para confirmar tu cuenta antes de ingresar.');
+          btn.disabled = false; btn.textContent = 'Crear cuenta';
+        }
     }
   } catch(e) {
     const msg = (e && e.message) ? e.message : 'Algo salió mal. Intentá de nuevo.';
@@ -244,12 +246,8 @@ if (__loginForm) { __loginForm.addEventListener('submit', function(e){ e.prevent
 sb.auth.getSession().then(({ data: { session } }) => {
   if (session) {
     sessionActual = session;
-    const rol = session.user?.user_metadata?.role;
-    if (!rol) {
-      showError('Tu cuenta no tiene rol asignado. Contactá al administrador para habilitar el acceso.');
-    } else {
-      redirigirSegunRol(rol);
-    }
+    const rol = session.user?.user_metadata?.role || 'usuario';
+    redirigirSegunRol(rol);
   }
 });
 </script>

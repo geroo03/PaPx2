@@ -550,6 +550,27 @@ async function aceptarPedido(id) {
   }
   const { error } = await sb.from('pedidos').update({ estado: 'preparando' }).eq('id', id).eq('comercio_id', S.cid);
   if (error) { showToast('Error al aceptar: ' + error.message, 'error'); return; }
+
+  // Difundir oferta a cadetes cercanos (fire & forget — no bloquea la UI)
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.access_token) {
+      const base = (typeof window !== 'undefined' && window.BACKEND_URL) ? window.BACKEND_URL : '';
+      fetch(`${base}/api/pedidos/difundir`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body:    JSON.stringify({ pedidoId: id, comercioId: S.cid }),
+      })
+        .then(r => r.json())
+        .then(json => {
+          if (json.difundido > 0) showToast(`📍 Buscando cadetes — ${json.difundido} notificado(s)`, 'info');
+        })
+        .catch(e => console.warn('[PaP] No se pudo difundir a cadetes:', e.message));
+    }
+  } catch (e) {
+    console.warn('[PaP] Error al obtener sesión para difundir:', e.message);
+  }
+
   showToast('Pedido enviado a cocina ✓'); loadPedidos();
 }
 
@@ -733,7 +754,29 @@ async function saveProducto() {
     S.productos = MOCK.productos;
     closeAllModals(); selectCategoria(catSelId); return;
   }
-  const payload = { nombre, descripcion: desc, precio_base: precioRaw, categoria_id: catId, comercio_id: S.cid, disponible: true };
+  // Subir imagen a Supabase Storage si el usuario seleccionó una
+  let imagen_url = null;
+  const imgFile = g('input-imagen')?.files[0];
+  if (imgFile) {
+    const ext  = imgFile.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `${S.cid}/${Date.now()}.${ext}`;
+    showToast('Subiendo imagen...', 'info');
+    const { error: uploadErr } = await sb.storage
+      .from('productos')
+      .upload(path, imgFile, { upsert: true, contentType: imgFile.type });
+    if (uploadErr) {
+      showToast('Error al subir imagen: ' + uploadErr.message, 'error');
+      return;
+    }
+    const { data: urlData } = sb.storage.from('productos').getPublicUrl(path);
+    imagen_url = urlData?.publicUrl ?? null;
+  }
+
+  const payload = {
+    nombre, descripcion: desc, precio_base: precioRaw,
+    categoria_id: catId, comercio_id: S.cid, disponible: true,
+    ...(imagen_url ? { imagen_url } : {}),
+  };
   const { error } = editId
     ? await sb.from('productos').update(payload).eq('id', editId)
     : await sb.from('productos').insert(payload);

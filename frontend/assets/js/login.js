@@ -129,10 +129,11 @@ async function handleLogin() {
 // Embajador: redirige a su dashboard. Sus comercios asociados pueden tener campos NULL.
 async function redirectPorRol(userId, silencioso = false) {
   // 1️⃣ Consultar tabla 'perfiles' — fuente de verdad para el rol
+  // usuario_id es el FK a auth.users; 'id' en perfiles es un UUID random (nueva schema)
   const { data: perfil, error: perfErr } = await sb
     .from('perfiles')
     .select('rol')
-    .eq('id', userId)   // perfiles.id = auth.users.id (PK)
+    .eq('usuario_id', userId)
     .single();
 
   let rol = perfil?.rol ?? null;
@@ -243,7 +244,7 @@ function bindRegisterMenu() {
     btn.addEventListener('click', () => {
       const tipo = btn.dataset.register;
       if (tipo === 'comercio') location.href = '/comercio/registro-comercio.html';
-      else if (tipo === 'cadete')  location.href = '/cadete/cadete.html';
+      else if (tipo === 'cadete')  location.href = '/cadete/registro-cadete.html';
       else                          location.href = '/cliente/login-usuario.html?tab=registro';
     });
   });

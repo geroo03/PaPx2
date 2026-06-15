@@ -127,6 +127,7 @@ async function cargarOfertas() {
     const { data } = await sb
       .from('ofertas_cadetes')
       .select(`
+        id,
         pedido_id,
         comercio_nombre,
         comercio_direccion,
@@ -147,7 +148,8 @@ async function cargarOfertas() {
 
     ofertasPendientes = (data ?? []).map(o => ({
       ...o,
-      id:           o.pedido_id,
+      ofertaId:     o.id,        // PK de ofertas_cadetes — necesario para /api/pedidos/aceptar
+      id:           o.pedido_id, // alias legacy para referencias de UI
       ...(o.pedidos ?? {}),
       comercio_lat: o.comercio_lat,
       comercio_lng: o.comercio_lng,
@@ -458,10 +460,10 @@ async function aceptarViaje(pedidoId) {
   if (btn) { btn.disabled = true; btn.textContent = 'Aceptando...'; }
 
   try {
-    await apiPost('/api/pedidos/cambiar-estado', {
-      pedido_id:    pedidoId,
-      nuevo_estado: 'cadete_asignado',
-      // cadete_id NO se envía — el backend usa req.user.id (Fase 2)
+    await apiPost('/api/pedidos/aceptar', {
+      pedidoId:  pedidoId,
+      cadeteId:  cadeteUserId,
+      ofertaId:  oferta.ofertaId,
     });
 
     activeTrip      = { ...oferta, id: pedidoId };

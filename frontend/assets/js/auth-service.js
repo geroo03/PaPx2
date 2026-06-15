@@ -35,15 +35,18 @@ export async function signUp({ email, password, options }){
 export async function signUpAndAssignRole({ email, password, full_name, role = 'usuario' }){
   if(!sbClient) initAuthClient();
 
-  // Paso 1: crear la cuenta sin metadata de rol (el trigger DB se encarga del default)
+  // Paso 1: crear la cuenta e incluir el rol inicial en user_metadata.
+  // Esto NO es auth.updateUser (que permitiría cambiar el rol post-registro);
+  // es el metadata inicial de la cuenta, establecido una sola vez al crearla.
+  // El backend todavía lo confirma vía /api/auth/set-role para roles no-usuario.
   const signUpRes = await sbClient.auth.signUp({
     email,
     password,
-    options: { data: { full_name } },
+    options: { data: { full_name, role } },
   });
   if (signUpRes.error) return signUpRes;
 
-  // Roles que no requieren llamada al backend (el trigger DB los asigna por defecto)
+  // Para 'usuario' el rol ya está en user_metadata desde el signUp — acceso inmediato.
   if (role === 'usuario') {
     return { data: { signUp: signUpRes.data, session: signUpRes.data?.session ?? null }, error: null };
   }
@@ -133,6 +136,17 @@ export async function resetPasswordForEmail(email, opts){
 
 export async function signOut(){ if(!sbClient) initAuthClient(); return await sbClient.auth.signOut(); }
 
+// Cierra la sesión, limpia el storage y redirige al login.
+// Usar esta función en todos los botones de "Cerrar sesión" para garantizar
+// una ruta de salida consistente sin importar desde qué página se llame.
+export async function logout(redirectTo = '/login.html') {
+  if (!sbClient) initAuthClient();
+  try { await sbClient.auth.signOut(); } catch (_) {}
+  try { localStorage.clear(); } catch (_) {}
+  try { sessionStorage.clear(); } catch (_) {}
+  if (typeof window !== 'undefined') window.location.href = redirectTo;
+}
+
 // verifyUserRole reads the role strictly from the Supabase session metadata
 export function verifyUserRole(session){
   return session?.user?.user_metadata?.role || null;
@@ -148,5 +162,6 @@ if (typeof window !== 'undefined') {
   window.authService.signUpAndAssignRole = signUpAndAssignRole;
   window.authService.getSession = getSession;
   window.authService.signOut = signOut;
+  window.authService.logout = logout;
   window.authService.verifyUserRole = verifyUserRole;
 }

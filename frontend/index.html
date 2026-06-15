@@ -1,88 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-		<title>Puerta a Puerta — Ingresá</title>
-		<script src="/env.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
-		<script>
-			// Inicializa window.sb para login-root.js (UMD ya cargó window.supabase = { createClient })
-			(function(){
-				if (!window.sb && window.supabase && window.supabase.createClient) {
-					var url = window.SUPABASE_URL    || '';
-					var key = window.SUPABASE_ANON_KEY || '';
-					if (url && key) window.sb = window.supabase.createClient(url, key);
-				}
-			})();
-		</script>
-		<link rel="stylesheet" href="assets/css/login.css">
-	</head>
-	<body>
-
-		<div class="bg"></div>
-
-		<div class="wrap">
-			<div class="top">
-				<div class="logo-box">
-					<svg width="32" height="32" viewBox="0 0 90 90" fill="none">
-						<path d="M10 36 L45 18 L80 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-						<rect x="12" y="36" width="30" height="46" rx="5" fill="#fff" opacity=".95"/>
-						<rect x="48" y="36" width="30" height="46" rx="5" fill="#fff"/>
-						<circle cx="36" cy="59" r="4" fill="#FF6B35"/>
-						<circle cx="54" cy="59" r="4" fill="#FF6B35"/>
-					</svg>
-				</div>
-				<div class="headline">Tu pedido,<br><span>ya mismo.</span></div>
-				<div class="subline">Restaurantes, farmacias, supermercados y más — directo a tu puerta.</div>
-			</div>
-
-			<div class="card">
-				<div class="tabs">
-					<div class="tab active" id="tab-login" onclick="setTab('login')">Ingresar</div>
-					<div class="tab" id="tab-reg" onclick="setTab('registro')">Registrarme</div>
-				</div>
-
-				<button class="btn-google" onclick="loginGoogle()">Continuar con Google</button>
-
-				<div class="divider">
-					<div class="divider-line"></div>
-					<div class="divider-text">o con email</div>
-					<div class="divider-line"></div>
-				</div>
-
-				<form id="loginForm">
-					<div class="form-group" id="grupo-nombre" style="display:none;">
-						<label class="form-label">Nombre completo</label>
-						<input class="form-input" id="input-nombre" type="text" placeholder="Juan García"/>
-					</div>
-
-					<div class="form-group">
-						<label class="form-label">Email</label>
-						<input class="form-input" id="input-email" type="email" placeholder="tucorreo@gmail.com"/>
-					</div>
-
-					<div class="form-group">
-						<label class="form-label">Contraseña</label>
-						<input class="form-input" id="input-pass" type="password" placeholder="••••••••"/>
-						<div class="forgot" id="forgot-wrap">
-							<a onclick="olvideClave()">¿Olvidaste tu contraseña?</a>
-						</div>
-					</div>
-
-					<button class="btn-email" id="btn-submit" type="submit">Ingresar</button>
-				</form>
-
-				<div class="msg msg-error" id="msg-error" style="display:none;"></div>
-				<div class="msg msg-ok" id="msg-ok" style="display:none;"></div>
-
-				<div class="toggle">
-					<span id="toggle-text">¿No tenés cuenta?</span>
-					<a onclick="setTab(currentTab==='login'?'registro':'login')" id="toggle-link">Registrate gratis</a>
-				</div>
-			</div>
-		</div>
-
-		<script type="module" src="assets/js/login-root.js"></script>
-	</body>
+<head>
+  <meta charset="UTF-8">
+  <title>Puerta a Puerta</title>
+  <script>
+    // Preserva query params y hash (tokens OAuth de Supabase viajan en el hash)
+    window.location.replace('/login.html' + window.location.search + window.location.hash);
+  </script>
+</head>
+<body></body>
 </html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Puerta a Puerta — Registrarme como Cadete</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/env.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px 48px;
+    }
+    .container { width: 100%; max-width: 480px; }
+
+    .header-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .logo-box {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: #FF6B35; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; box-shadow: 0 3px 12px rgba(255,107,53,.35);
+    }
+    .app-name { font-size: 18px; font-weight: 800; color: #fff; }
+    .app-tag  { font-size: 12px; color: #888; margin-top: 1px; }
+
+    .card {
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 28px 24px 32px;
+      border: 1px solid #2a2a2a;
+    }
+    .card-title { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .card-sub   { font-size: 13px; color: #888; margin-bottom: 24px; line-height: 1.5; }
+
+    .sec-label {
+      font-size: 11px; font-weight: 700; color: #666;
+      text-transform: uppercase; letter-spacing: .06em;
+      margin: 20px 0 12px;
+    }
+    .sec-label:first-of-type { margin-top: 0; }
+
+    .fg { margin-bottom: 14px; }
+    .fl { display: block; font-size: 12px; font-weight: 600; color: #999; margin-bottom: 5px; }
+    .fl span { color: #FF6B35; }
+    .fi {
+      width: 100%;
+      border: 1.5px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #fff;
+      background: #111;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .fi:focus { border-color: #FF6B35; }
+    .fi::placeholder { color: #444; }
+
+    .fr { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 440px) { .fr { grid-template-columns: 1fr; } }
+
+    .pass-wrap { position: relative; }
+    .toggle-pass-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: transparent; border: none; cursor: pointer; color: #666;
+      display: flex; align-items: center; padding: 0;
+    }
+
+    .beneficios-box {
+      background: #111; border: 1px solid #2a2a2a; border-radius: 12px;
+      padding: 14px 16px; font-size: 13px; color: #aaa; line-height: 1.6;
+      margin: 20px 0 16px;
+    }
+    .beneficios-box strong { color: #FF6B35; }
+
+    .btn-reg {
+      width: 100%; background: #FF6B35; color: #fff; border: none;
+      border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 700;
+      font-family: inherit; cursor: pointer; transition: opacity .15s, transform .1s;
+    }
+    .btn-reg:hover  { opacity: .9; }
+    .btn-reg:active { transform: scale(.98); }
+    .btn-reg:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-back {
+      width: 100%; background: transparent; color: #666; border: none;
+      padding: 12px; font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; margin-top: 8px;
+    }
+    .btn-back:hover { color: #aaa; }
+
+    .error-msg {
+      background: #2a1010; color: #ff6b6b; border-radius: 10px;
+      padding: 10px 14px; font-size: 13px; font-weight: 600;
+      margin-top: 12px; display: none;
+    }
+
+    .success-card {
+      display: none; text-align: center; background: #1a1a1a;
+      border-radius: 20px; padding: 48px 24px; border: 1px solid #2a2a2a;
+    }
+    .success-icon  { font-size: 52px; margin-bottom: 20px; }
+    .success-title { font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 10px; }
+    .success-sub   { font-size: 14px; color: #888; line-height: 1.6; margin-bottom: 28px; }
+    .btn-ir {
+      display: inline-block; background: #FF6B35; color: #fff; border-radius: 12px;
+      padding: 14px 32px; font-size: 15px; font-weight: 700; text-decoration: none;
+      transition: opacity .15s;
+    }
+    .btn-ir:hover { opacity: .9; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header-wrap">
+    <div class="logo-box">
+      <svg width="24" height="24" viewBox="0 0 90 90" fill="none">
+        <path d="M10 36L45 18L80 36" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="12" y="36" width="30" height="46" rx="5" fill="#fff" opacity=".95"/>
+        <rect x="48" y="36" width="30" height="46" rx="5" fill="#fff"/>
+        <circle cx="36" cy="59" r="4" fill="#FF6B35"/>
+        <circle cx="54" cy="59" r="4" fill="#FF6B35"/>
+      </svg>
+    </div>
+    <div>
+      <div class="app-name">Puerta a Puerta</div>
+      <div class="app-tag">Registrarme como Cadete</div>
+    </div>
+  </div>
+
+  <div class="card" id="form-card">
+    <div class="card-title">Empezá a repartir</div>
+    <div class="card-sub">Creá tu cuenta de cadete y empezá a recibir viajes.</div>
+
+    <div class="sec-label">Tus datos</div>
+
+    <div class="fg">
+      <label class="fl" for="r-nombre">Nombre completo <span>*</span></label>
+      <input class="fi" id="r-nombre" type="text" placeholder="Ej: Juan García" autocomplete="name">
+    </div>
+
+    <div class="fr">
+      <div class="fg">
+        <label class="fl" for="r-vehiculo">Vehículo</label>
+        <input class="fi" id="r-vehiculo" type="text" placeholder="Ej: Moto">
+      </div>
+      <div class="fg">
+        <label class="fl" for="r-color">Color</label>
+        <input class="fi" id="r-color" type="text" placeholder="Ej: Rojo">
+      </div>
+    </div>
+
+    <div class="sec-label">Cuenta de acceso</div>
+
+    <div class="fg">
+      <label class="fl" for="r-email">Email <span>*</span></label>
+      <input class="fi" id="r-email" type="email" placeholder="tucorreo@gmail.com" autocomplete="email">
+    </div>
+
+    <div class="fr">
+      <div class="fg">
+        <label class="fl" for="r-pass">Contraseña <span>*</span></label>
+        <div class="pass-wrap">
+          <input class="fi" id="r-pass" type="password" placeholder="Mín. 6 caracteres" autocomplete="new-password" style="padding-right:40px">
+          <button class="toggle-pass-btn" id="toggle-r-pass" type="button" aria-label="Mostrar contraseña">
+            <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
+              <path d="M17.94 17.94A10.07 10.07 0 0112 20c-6 0-10-8-10-8a18.45 18.45 0 015.06-5.94"/>
+              <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl" for="r-pass2">Repetir <span>*</span></label>
+        <div class="pass-wrap">
+          <input class="fi" id="r-pass2" type="password" placeholder="Repetir" autocomplete="new-password" style="padding-right:40px">
+          <button class="toggle-pass-btn" id="toggle-r-pass2" type="button" aria-label="Mostrar contraseña">
+            <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
+              <path d="M17.94 17.94A10.07 10.07 0 0112 20c-6 0-10-8-10-8a18.45 18.45 0 015.06-5.94"/>
+              <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="beneficios-box">
+      <strong>Acceso inmediato.</strong> Creá tu cuenta y empezá a aceptar viajes ahora mismo.
+      Completá tus datos de vehículo desde tu perfil cuando quieras.
+    </div>
+
+    <button class="btn-reg" id="btn-reg">Crear mi cuenta</button>
+    <div class="error-msg" id="err"></div>
+    <button class="btn-back" id="btn-back">← Ya tengo cuenta, ingresar</button>
+  </div>
+
+  <div class="success-card" id="success-card">
+    <div class="success-icon">🚀</div>
+    <div class="success-title">¡Bienvenido al equipo!</div>
+    <div class="success-sub">
+      Tu cuenta de cadete está lista.<br>
+      Ya podés aceptar viajes desde tu panel.
+    </div>
+    <a class="btn-ir" href="cadete.html">Ir a mi panel →</a>
+  </div>
+
+</div>
+
+<script type="module">
+import { supabase as sb } from '../assets/js/config.js';
+
+const el  = id => document.getElementById(id);
+
+function showErr(msg) {
+  const e = el('err');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.display = 'block';
+  e.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideErr() { const e = el('err'); if (e) e.style.display = 'none'; }
+
+function setBtnLoading(loading) {
+  const btn = el('btn-reg');
+  if (!btn) return;
+  btn.disabled    = loading;
+  btn.textContent = loading ? 'Registrando...' : 'Crear mi cuenta';
+}
+
+function bindPassToggle(btnId, inputId) {
+  const btn = el(btnId); const inp = el(inputId);
+  if (!btn || !inp) return;
+  const eyeO = btn.querySelector('.eye-open');
+  const eyeC = btn.querySelector('.eye-closed');
+  btn.addEventListener('click', () => {
+    const isPass = inp.type === 'password';
+    inp.type = isPass ? 'text' : 'password';
+    if (eyeO) eyeO.style.display = isPass ? 'none'  : 'block';
+    if (eyeC) eyeC.style.display = isPass ? 'block' : 'none';
+    inp.focus();
+  });
+}
+bindPassToggle('toggle-r-pass',  'r-pass');
+bindPassToggle('toggle-r-pass2', 'r-pass2');
+
+el('btn-back')?.addEventListener('click', () => { window.location.href = '/login.html'; });
+
+el('btn-reg')?.addEventListener('click', registrar);
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) registrar(); });
+
+async function registrar() {
+  const nombre   = (el('r-nombre')?.value  || '').trim();
+  const vehiculo = (el('r-vehiculo')?.value || '').trim();
+  const color    = (el('r-color')?.value   || '').trim();
+  const email    = (el('r-email')?.value   || '').trim();
+  const pass     = (el('r-pass')?.value    || '');
+  const pass2    = (el('r-pass2')?.value   || '');
+
+  if (!nombre)         { showErr('El nombre completo es obligatorio.'); return; }
+  if (!email)          { showErr('El email es obligatorio.'); return; }
+  if (pass.length < 6) { showErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }
+
+  hideErr();
+  setBtnLoading(true);
+
+  try {
+    // 1. Crear cuenta con role: 'cadete' en user_metadata inicial
+    const { data: authData, error: authErr } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: { role: 'cadete', full_name: nombre },
+      },
+    });
+
+    if (authErr) {
+      if (authErr.message.includes('already registered') || authErr.message.includes('already exists')) {
+        showErr('Este email ya tiene una cuenta registrada. Ingresá con tus credenciales.');
+      } else {
+        showErr('Error al crear la cuenta: ' + authErr.message);
+      }
+      setBtnLoading(false);
+      return;
+    }
+
+    const userId = authData.user?.id;
+    if (!userId) {
+      showErr('No se pudo obtener el ID de usuario. Intentá de nuevo.');
+      setBtnLoading(false);
+      return;
+    }
+
+    // 2. Upsert en 'perfiles' (fuente de verdad para login.js)
+    await sb.from('perfiles').upsert(
+      { id: userId, rol: 'cadete', email },
+      { onConflict: 'id', ignoreDuplicates: false }
+    );
+
+    // 3. Upsert en 'cadetes' con datos básicos disponibles en el registro
+    await sb.from('cadetes').upsert(
+      { auth_uid: userId, email, nombre, vehiculo: vehiculo || null, color: color || null },
+      { onConflict: 'auth_uid', ignoreDuplicates: false }
+    );
+
+    // 4. Persistir sesión en sessionStorage para el guard del dashboard
+    try {
+      sessionStorage.setItem('pap_rol', 'cadete');
+      sessionStorage.setItem('pap_uid', userId);
+    } catch (_) {}
+
+    // 5. Mostrar éxito
+    el('form-card').style.display    = 'none';
+    el('success-card').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    showErr('Error inesperado: ' + (err.message || 'Intentá de nuevo.'));
+    console.error('[Registro Cadete]', err);
+  } finally {
+    setBtnLoading(false);
+  }
+}
+</script>
+
+</body>
+</html>

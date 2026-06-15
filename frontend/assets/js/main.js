@@ -23,19 +23,19 @@ window.state = state; // EXPOSE STATE GLOBALLY FOR LEGACY SCRIPTS
 // NO INTENTAMOS ROMPER TODO AÚN, solo lo enlazamos al nuevo estado modular
 // ==========================================
 
-// Helper: build a resilient absolute URL from a project-relative path
+// Helper: build a resilient absolute URL from a project-relative path.
+// Siempre resuelve desde el origen del servidor (raíz), NO desde el directorio
+// de la página actual. Esto evita que páginas en subdirectorios (/admin/, /cadete/)
+// generen rutas incorrectas como /admin/cliente/index.html.
 export function buildUrl(relativePath){
-  // Normalize
   if(!relativePath) relativePath = '';
   if(relativePath.startsWith('/')) relativePath = relativePath.slice(1);
 
-  // If the request is for root or plain 'index.html', redirect to cliente/index.html
   if(relativePath === '' || relativePath === '.' || relativePath.toLowerCase() === 'index.html'){
     relativePath = 'cliente/index.html';
   }
 
-  const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
-  return new URL(relativePath, base).toString();
+  return window.location.origin + '/' + relativePath;
 }
 window.buildUrl = buildUrl;
 

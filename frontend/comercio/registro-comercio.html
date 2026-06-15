@@ -386,10 +386,10 @@
   <!-- Estado de éxito (oculto hasta registrar) -->
   <div class="success-card" id="success-card">
     <div class="success-icon">🎉</div>
-    <div class="success-title">¡Tu comercio está registrado!</div>
+    <div class="success-title">¡Tu comercio está listo!</div>
     <div class="success-sub">
-      Tu cuenta fue creada y está pendiente de activación.<br>
-      Ya podés ingresar a tu panel para cargar tu menú.
+      Tu cuenta fue creada y activada.<br>
+      Ya podés ingresar a tu panel y empezar a recibir pedidos.
     </div>
     <a class="btn-ir" href="comercio.html">Ir a mi panel →</a>
   </div>
@@ -538,9 +538,9 @@ async function registrar() {
         telefono:              tel,
         email:                 email,
         usuario_id:            userId,
-        estado_registro:       'pendiente',    // admin activa luego
+        estado_registro:       'activo',
         tipo_delivery_defecto: 'app',
-        activo:                false,
+        activo:                true,
         abierto_ahora:         false,
         deuda:                 0,
         rating:                0,

@@ -6,10 +6,15 @@
  * escrituras del servidor.
  *
  * Esquema de DB relevante:
- *   profiles        → id (PK), role           ← tabla nativa de Supabase Auth
+ *   perfiles        → id (PK = auth.uid), rol, nombre, apellido, vehiculo, color
  *   pedidos         → id, cliente_id, cadete_id, estado, codigo_retiro,
  *                     codigo_entrega, distancia_estimada, pago_cadete
- *   ofertas_cadetes → id, pedido_id, cadete_id, distancia_estimada, pago_cadete
+ *   ofertas_cadetes → id, pedido_id, cadete_id, comercio_nombre, comercio_lat,
+ *                     comercio_lng, cliente_direccion, distancia_km,
+ *                     ganancia_estimada, distancia_estimada, pago_cadete, estado
+ *   comercios       → id, nombre, direccion, lat, lng
+ *   cadetes         → auth_uid, disponible, activo
+ *   ubicacion_cadetes → cadete_id, latitud, longitud, ultima_actualizacion
  */
 
 import crypto from 'node:crypto';
@@ -158,5 +163,442 @@ export async function aceptarPedido(req, res) {
     // Captura errores de red, timeouts, etc.
     console.error('[aceptarPedido] Excepción no controlada:', err?.message ?? err);
     return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+// ─── Helpers privados ──────────────────────────────────────────────────────────
+
+// Comparación de códigos en tiempo constante (previene timing attacks).
+// Ambos strings se normalizan a 4 chars para que los buffers tengan igual longitud.
+function codigosIguales(a, b) {
+  try {
+    const ba = Buffer.from(String(a ?? '').slice(0, 4).padEnd(4, '\0'));
+    const bb = Buffer.from(String(b ?? '').slice(0, 4).padEnd(4, '\0'));
+    return crypto.timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
+
+// ─── cambiarEstadoPedido ───────────────────────────────────────────────────────
+
+/**
+ * POST /api/pedidos/cambiar-estado
+ *
+ * El cadete confirma el retiro del comercio (→ en_camino) o la entrega al
+ * cliente (→ entregado). Ambas transiciones requieren validar el código de 4
+ * dígitos correspondiente con comparación en tiempo constante.
+ *
+ * Body: { pedido_id, nuevo_estado, codigo_retiro?, codigo_entrega? }
+ */
+export async function cambiarEstadoPedido(req, res) {
+  const { pedido_id, nuevo_estado, codigo_retiro, codigo_entrega } = req.body ?? {};
+
+  if (!pedido_id || !nuevo_estado) {
+    return res.status(400).json({ error: 'Faltan campos: pedido_id, nuevo_estado.' });
+  }
+
+  const estadosPermitidos = ['en_camino', 'entregado'];
+  if (!estadosPermitidos.includes(nuevo_estado)) {
+    return res.status(400).json({
+      error: `Estado '${nuevo_estado}' no soportado en esta ruta. Usá: ${estadosPermitidos.join(', ')}.`,
+    });
+  }
+
+  if (!supabaseAdmin) {
+    console.error('[cambiarEstadoPedido] supabaseAdmin no inicializado.');
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    // ── PASO 1: Leer el pedido actual ──────────────────────────────────────────
+    const { data: pedido, error: fetchErr } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, cadete_id, estado, codigo_retiro, codigo_entrega')
+      .eq('id', pedido_id)
+      .single();
+
+    if (fetchErr || !pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+
+    // ── PASO 2: Verificar que quien pide el cambio es el cadete asignado ───────
+    if (pedido.cadete_id !== req.user.id) {
+      return res.status(403).json({
+        error: 'Solo el repartidor asignado puede actualizar el estado de este pedido.',
+      });
+    }
+
+    // ── PASO 3: Validar el código correspondiente ──────────────────────────────
+    if (nuevo_estado === 'en_camino') {
+      if (!pedido.codigo_retiro) {
+        return res.status(400).json({ error: 'Este pedido no tiene código de retiro generado.' });
+      }
+      if (!codigosIguales(codigo_retiro, pedido.codigo_retiro)) {
+        return res.status(403).json({
+          error: 'Código de retiro incorrecto.',
+          code:  'CODIGO_INCORRECTO',
+        });
+      }
+    }
+
+    if (nuevo_estado === 'entregado') {
+      if (!pedido.codigo_entrega) {
+        return res.status(400).json({ error: 'Este pedido no tiene código de entrega generado.' });
+      }
+      if (!codigosIguales(codigo_entrega, pedido.codigo_entrega)) {
+        return res.status(403).json({
+          error: 'Código de entrega incorrecto.',
+          code:  'CODIGO_INCORRECTO',
+        });
+      }
+    }
+
+    // ── PASO 4: Actualizar estado ──────────────────────────────────────────────
+    // La doble condición (.eq cadete_id) actúa como segundo candado de seguridad.
+    const { data: updated, error: updateErr } = await supabaseAdmin
+      .from('pedidos')
+      .update({ estado: nuevo_estado })
+      .eq('id', pedido_id)
+      .eq('cadete_id', req.user.id)
+      .select('id, estado');
+
+    if (updateErr) {
+      console.error('[cambiarEstadoPedido] Error al actualizar:', updateErr.message);
+      return res.status(500).json({ error: 'Error al actualizar el pedido.' });
+    }
+
+    return res.status(200).json({ ok: true, pedido: updated[0] });
+
+  } catch (err) {
+    console.error('[cambiarEstadoPedido] Excepción:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+// ─── getPedidoConCadete ────────────────────────────────────────────────────────
+
+/**
+ * GET /api/pedidos/:id
+ *
+ * Devuelve el pedido con el perfil del cadete asignado.
+ * Solo lo puede consultar un participante del pedido (cliente, cadete, comercio).
+ *
+ * El código de entrega solo se expone al cliente y únicamente cuando el
+ * pedido está en estado 'en_camino' (el cadete ya retiró el pedido).
+ */
+export async function getPedidoConCadete(req, res) {
+  const { id: pedidoId } = req.params;
+
+  if (!supabaseAdmin) {
+    console.error('[getPedidoConCadete] supabaseAdmin no inicializado.');
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    // ── PASO 1: Leer pedido ────────────────────────────────────────────────────
+    const { data: pedido, error } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, estado, cadete_id, cliente_id, comercio_id, codigo_entrega')
+      .eq('id', pedidoId)
+      .single();
+
+    if (error || !pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+
+    // ── PASO 2: Verificar que el solicitante es participante ───────────────────
+    const userId = req.user.id;
+    const esParticipante =
+      userId === pedido.cliente_id  ||
+      userId === pedido.cadete_id   ||
+      userId === pedido.comercio_id;
+
+    if (!esParticipante) {
+      return res.status(403).json({ error: 'Sin acceso a este pedido.' });
+    }
+
+    // ── PASO 3: Leer perfil del cadete (tabla perfiles, no profiles) ───────────
+    let cadete_perfil = null;
+    if (pedido.cadete_id) {
+      const { data: perfil } = await supabaseAdmin
+        .from('perfiles')
+        .select('usuario_id, nombre, apellido, vehiculo, color, avatar_url')
+        .eq('usuario_id', pedido.cadete_id)
+        .single();
+      cadete_perfil = perfil ?? null;
+    }
+
+    // ── PASO 4: Armar respuesta con visibilidad controlada ────────────────────
+    const response = {
+      id:           pedido.id,
+      estado:       pedido.estado,
+      cadete_perfil,
+    };
+
+    // El código de entrega solo lo ve el cliente y solo cuando el cadete ya retiró
+    if (userId === pedido.cliente_id && pedido.estado === 'en_camino') {
+      response.codigo_entrega = pedido.codigo_entrega;
+    }
+
+    return res.status(200).json(response);
+
+  } catch (err) {
+    console.error('[getPedidoConCadete] Excepción:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+// ─── difundirPedido ────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/pedidos/difundir
+ *
+ * Cuando el comercio acepta un pedido (estado → 'preparando'), este endpoint:
+ *   1. Lee las coordenadas del comercio (comercios.lat / comercios.lng)
+ *   2. Busca cadetes con disponible=true y GPS activo en los últimos 15 minutos
+ *   3. Calcula distancia Haversine y filtra dentro del radio de 10 km
+ *   4. Inserta filas en ofertas_cadetes para los N más cercanos
+ *   5. El Realtime del cadete detecta el INSERT y muestra la oferta
+ *
+ * Body: { pedidoId: string, comercioId: string }
+ * El comercio debe estar lat/lng configurados; sin coordenadas no hay difusión.
+ */
+export async function difundirPedido(req, res) {
+  const { pedidoId, comercioId } = req.body ?? {};
+
+  if (!pedidoId || !comercioId) {
+    return res.status(400).json({ error: 'Faltan campos: pedidoId, comercioId.' });
+  }
+
+  if (!supabaseAdmin) {
+    console.error('[difundirPedido] supabaseAdmin no inicializado.');
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    // ── PASO 1: Coordenadas del comercio ──────────────────────────────────────
+    const { data: comercio, error: comErr } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nombre, direccion, lat, lng')
+      .eq('id', comercioId)
+      .single();
+
+    if (comErr || !comercio) {
+      return res.status(404).json({ error: 'Comercio no encontrado.' });
+    }
+
+    const comLat = Number(comercio.lat ?? 0);
+    const comLng = Number(comercio.lng ?? 0);
+
+    if (!comLat || !comLng) {
+      return res.status(200).json({
+        ok: true, difundido: 0,
+        mensaje: 'El comercio no tiene coordenadas GPS. Configurarlas en el perfil del comercio.',
+      });
+    }
+
+    // ── PASO 2: Dirección de entrega del pedido ───────────────────────────────
+    const { data: pedido, error: pedErr } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, direccion_entrega')
+      .eq('id', pedidoId)
+      .single();
+
+    if (pedErr || !pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+
+    // ── PASO 3: Posiciones GPS recientes (últimos 15 min) ─────────────────────
+    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: posiciones } = await supabaseAdmin
+      .from('ubicacion_cadetes')
+      .select('cadete_id, latitud, longitud')
+      .gte('ultima_actualizacion', cutoff);
+
+    if (!posiciones?.length) {
+      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes con GPS activo.' });
+    }
+
+    // ── PASO 4: Filtrar por cadetes disponibles ───────────────────────────────
+    const posMap = Object.fromEntries(posiciones.map(p => [p.cadete_id, p]));
+
+    const { data: cadetesDisp } = await supabaseAdmin
+      .from('cadetes')
+      .select('auth_uid, nombre')
+      .eq('disponible', true)
+      .eq('activo', true)
+      .in('auth_uid', Object.keys(posMap));
+
+    if (!cadetesDisp?.length) {
+      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes disponibles en la zona.' });
+    }
+
+    // ── PASO 5: Haversine — ordenar por cercanía ──────────────────────────────
+    function haversineKm(lat1, lng1, lat2, lng2) {
+      const R    = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a    =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    const RADIO_MAX_KM  = 10;
+    const MAX_OFERTAS   = 5;
+    const TARIFA_BASE   = 600;
+    const TARIFA_POR_KM = 250;
+
+    const candidatos = cadetesDisp
+      .map(c => {
+        const pos = posMap[c.auth_uid];
+        return {
+          ...c,
+          distancia_km: haversineKm(
+            Number(pos.latitud), Number(pos.longitud),
+            comLat, comLng,
+          ),
+        };
+      })
+      .filter(c => c.distancia_km <= RADIO_MAX_KM)
+      .sort((a, b) => a.distancia_km - b.distancia_km)
+      .slice(0, MAX_OFERTAS);
+
+    if (!candidatos.length) {
+      return res.status(200).json({
+        ok: true, difundido: 0,
+        mensaje: `Sin cadetes dentro del radio de ${RADIO_MAX_KM} km.`,
+      });
+    }
+
+    // ── PASO 6: Insertar ofertas ──────────────────────────────────────────────
+    // distancia_estimada y pago_cadete se graban aquí para que sean inmutables
+    // desde el cliente (el cadete solo las lee, no las puede modificar).
+    const ofertas = candidatos.map(c => {
+      const dist     = Math.round(c.distancia_km * 10) / 10;
+      const ganancia = Math.round((TARIFA_BASE + dist * TARIFA_POR_KM) / 50) * 50;
+      return {
+        pedido_id:          pedidoId,
+        cadete_id:          c.auth_uid,
+        comercio_nombre:    comercio.nombre,
+        comercio_direccion: comercio.direccion || '',
+        comercio_lat:       comLat,
+        comercio_lng:       comLng,
+        cliente_direccion:  pedido.direccion_entrega || '',
+        distancia_km:       dist,
+        ganancia_estimada:  ganancia,
+        distancia_estimada: dist,
+        pago_cadete:        ganancia,
+        estado:             'pendiente',
+      };
+    });
+
+    const { error: insertErr } = await supabaseAdmin
+      .from('ofertas_cadetes')
+      .insert(ofertas);
+
+    if (insertErr) {
+      console.error('[difundirPedido] Error al insertar ofertas:', insertErr.message);
+      return res.status(500).json({ error: 'Error al crear ofertas para cadetes.' });
+    }
+
+    return res.status(200).json({ ok: true, difundido: ofertas.length });
+
+  } catch (err) {
+    console.error('[difundirPedido] Excepción:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+// ─── valorarPedido ────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/pedidos/valorar
+ *
+ * El cliente valora al comercio o al cadete después de la entrega.
+ *   tipo: 'comercio' → inserta en tabla ratings
+ *   tipo: 'cadete'   → inserta en tabla resenas
+ *
+ * Body: { pedido_id, tipo: 'comercio'|'cadete', estrellas: 1-5, comentario? }
+ */
+export async function valorarPedido(req, res) {
+  const { pedido_id, tipo, estrellas, comentario } = req.body ?? {};
+  const clienteId = req.user.id;
+
+  if (!pedido_id || !tipo || estrellas == null) {
+    return res.status(400).json({ error: 'Campos requeridos: pedido_id, tipo, estrellas' });
+  }
+  if (!['comercio', 'cadete'].includes(tipo)) {
+    return res.status(400).json({ error: 'tipo debe ser "comercio" o "cadete"' });
+  }
+  const estrellasNum = Number(estrellas);
+  if (!Number.isInteger(estrellasNum) || estrellasNum < 1 || estrellasNum > 5) {
+    return res.status(400).json({ error: 'estrellas debe ser un entero entre 1 y 5' });
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    const { data: pedido, error: pedidoErr } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, estado, comercio_id, cadete_id, cliente_id')
+      .eq('id', pedido_id)
+      .single();
+
+    if (pedidoErr || !pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado' });
+    }
+
+    if (pedido.cliente_id !== clienteId) {
+      return res.status(403).json({ error: 'No podés valorar un pedido que no es tuyo' });
+    }
+
+    if (tipo === 'comercio') {
+      if (!pedido.comercio_id) {
+        return res.status(400).json({ error: 'El pedido no tiene comercio asignado' });
+      }
+      const { error } = await supabaseAdmin.from('ratings').insert({
+        pedido_id,
+        comercio_id: pedido.comercio_id,
+        usuario_id:  clienteId,
+        rating:      estrellasNum,
+        comentario:  comentario?.trim() ?? null,
+      });
+      if (error) {
+        if (error.code === '23505') {
+          return res.status(409).json({ error: 'Ya valoraste este comercio para este pedido' });
+        }
+        throw error;
+      }
+
+    } else {
+      if (!pedido.cadete_id) {
+        return res.status(400).json({ error: 'El pedido no tiene cadete asignado' });
+      }
+      const { error } = await supabaseAdmin.from('resenas').insert({
+        pedido_id,
+        cadete_id:  pedido.cadete_id,
+        cliente_id: clienteId,
+        rating:     estrellasNum,
+        comentario: comentario?.trim() ?? null,
+      });
+      if (error) {
+        if (error.code === '23505') {
+          return res.status(409).json({ error: 'Ya valoraste al cadete para este pedido' });
+        }
+        throw error;
+      }
+    }
+
+    console.log(`[Valoración] tipo:${tipo} | ${estrellasNum}★ | pedido ${pedido_id}`);
+    return res.json({ ok: true, tipo, estrellas: estrellasNum });
+
+  } catch (err) {
+    console.error('[valorarPedido] Error:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error guardando la valoración.' });
   }
 }

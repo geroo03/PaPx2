@@ -83,18 +83,33 @@ async function submitForm(){
       try{ localStorage.setItem('role', rol); }catch(e){}
       redirigirSegunRol(rol);
     } else {
+      // selectedRole: 'cliente'|'comercio'|'cadete'. 'cliente' → 'usuario' (nombre interno)
+      const roleToAssign = (selectedRole === 'cliente' || !selectedRole) ? 'usuario' : selectedRole;
+      const dashboards = { usuario: '/cliente/index.html', comercio: '/comercio/comercio.html', cadete: '/cadete/cadete.html' };
+      const redirect = dashboards[roleToAssign] || '/cliente/index.html';
+
       if(window.authService && typeof window.authService.signUpAndAssignRole === 'function'){
-        const res = await window.authService.signUpAndAssignRole({ email, password: pass, full_name: nombre, role: 'usuario' });
+        const res = await window.authService.signUpAndAssignRole({ email, password: pass, full_name: nombre, role: roleToAssign });
         if(res.error) throw res.error;
         sessionActual = res.data?.session || null;
-        window.location.href = '/index.html';
+        if(sessionActual){
+          window.location.href = redirect;
+        } else {
+          showOk('Cuenta creada. Revisá tu email para confirmar antes de ingresar.');
+          if(btn){ btn.disabled = false; btn.textContent = 'Crear cuenta'; }
+        }
         return;
       }
-      const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: nombre } } });
+      // Fallback: signUp directo con rol en metadata (acceso inmediato sin backend)
+      const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: nombre, role: roleToAssign } } });
       if(error) throw error;
       sessionActual = data?.session || null;
-      showOk('Cuenta creada. Esperá que un administrador asigne tu rol para poder ingresar.');
-      if(btn){ btn.disabled = false; btn.textContent = 'Crear cuenta'; }
+      if(sessionActual){
+        window.location.href = redirect;
+      } else {
+        showOk('Cuenta creada. Revisá tu email para confirmar antes de ingresar.');
+        if(btn){ btn.disabled = false; btn.textContent = 'Crear cuenta'; }
+      }
     }
   }catch(e){
     const msg = (e && e.message) ? e.message : 'Algo salió mal. Intentá de nuevo.';
