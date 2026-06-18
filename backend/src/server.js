@@ -12,10 +12,11 @@ import 'dotenv/config';   // Carga .env antes de cualquier otro módulo
 import express from 'express';
 import cors    from 'cors';
 
-import pedidoRoutes from './routes/pedidoRoutes.js';
-import authRoutes   from './routes/authRoutes.js';
-import mpRoutes     from './routes/mpRoutes.js';
-import cadeteRoutes from './routes/cadeteRoutes.js';
+import pedidoRoutes   from './routes/pedidoRoutes.js';
+import authRoutes     from './routes/authRoutes.js';
+import mpRoutes       from './routes/mpRoutes.js';
+import cadeteRoutes   from './routes/cadeteRoutes.js';
+import embajadorRoutes from './routes/embajadorRoutes.js';
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
@@ -56,6 +57,9 @@ app.use('/api/mp', mpRoutes);
 
 // Cadete GPS: /api/cadete/actualizar-ubicacion
 app.use('/api/cadete', cadeteRoutes);
+
+// Embajador: dashboard, agregar-comercio, solicitar-retiro, confirmar-pago
+app.use('/api/embajadores', embajadorRoutes);
 
 // ─── Endpoint de diagnóstico ──────────────────────────────────────────────────
 // Útil para health-checks de Railway / Render / EC2 y para depuración rápida.

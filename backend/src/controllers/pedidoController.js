@@ -18,7 +18,8 @@
  */
 
 import crypto from 'node:crypto';
-import { supabaseAdmin } from '../lib/supabaseClient.js';
+import { supabaseAdmin }            from '../lib/supabaseClient.js';
+import { registrarComisionSiAplica } from './embajadorController.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -214,7 +215,7 @@ export async function cambiarEstadoPedido(req, res) {
     // ── PASO 1: Leer el pedido actual ──────────────────────────────────────────
     const { data: pedido, error: fetchErr } = await supabaseAdmin
       .from('pedidos')
-      .select('id, cadete_id, estado, codigo_retiro, codigo_entrega')
+      .select('id, cadete_id, comercio_id, estado, subtotal, total, codigo_retiro, codigo_entrega')
       .eq('id', pedido_id)
       .single();
 
@@ -266,6 +267,14 @@ export async function cambiarEstadoPedido(req, res) {
     if (updateErr) {
       console.error('[cambiarEstadoPedido] Error al actualizar:', updateErr.message);
       return res.status(500).json({ error: 'Error al actualizar el pedido.' });
+    }
+
+    // Cuando el pedido se entrega, disparar el cálculo de comisión del embajador.
+    // Fire-and-forget: nunca bloquea ni falla la respuesta principal.
+    if (nuevo_estado === 'entregado' && pedido.comercio_id) {
+      const montoBase = Number(pedido.subtotal ?? pedido.total ?? 0);
+      registrarComisionSiAplica(pedido_id, pedido.comercio_id, montoBase)
+        .catch(e => console.error('[Comision] hook fallo silenciosamente:', e?.message));
     }
 
     return res.status(200).json({ ok: true, pedido: updated[0] });
@@ -425,7 +434,7 @@ export async function difundirPedido(req, res) {
 
     const { data: cadetesDisp } = await supabaseAdmin
       .from('cadetes')
-      .select('auth_uid, nombre')
+      .select('auth_uid, nombre, vehiculo')
       .eq('disponible', true)
       .eq('activo', true)
       .in('auth_uid', Object.keys(posMap));
@@ -448,14 +457,17 @@ export async function difundirPedido(req, res) {
 
     const RADIO_MAX_KM  = 10;
     const MAX_OFERTAS   = 5;
-    const TARIFA_BASE   = 600;
     const TARIFA_POR_KM = 250;
+    const TARIFA_BASE_VEHICULO = { moto: 1800, bici: 1200 };
 
     const candidatos = cadetesDisp
       .map(c => {
         const pos = posMap[c.auth_uid];
+        const veh = (c.vehiculo ?? '').toLowerCase();
+        const base = TARIFA_BASE_VEHICULO[veh] ?? TARIFA_BASE_VEHICULO.bici;
         return {
           ...c,
+          tarifa_base: base,
           distancia_km: haversineKm(
             Number(pos.latitud), Number(pos.longitud),
             comLat, comLng,
@@ -473,12 +485,9 @@ export async function difundirPedido(req, res) {
       });
     }
 
-    // ── PASO 6: Insertar ofertas ──────────────────────────────────────────────
-    // distancia_estimada y pago_cadete se graban aquí para que sean inmutables
-    // desde el cliente (el cadete solo las lee, no las puede modificar).
     const ofertas = candidatos.map(c => {
       const dist     = Math.round(c.distancia_km * 10) / 10;
-      const ganancia = Math.round((TARIFA_BASE + dist * TARIFA_POR_KM) / 50) * 50;
+      const ganancia = Math.round((c.tarifa_base + dist * TARIFA_POR_KM) / 50) * 50;
       return {
         pedido_id:          pedidoId,
         cadete_id:          c.auth_uid,

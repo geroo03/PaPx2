@@ -3,6 +3,50 @@ var ICONS = {};
 let currentScreen='home',currentComercio=null,payMethod='mercadopago',currentPedido=window.state ? window.state.currentPedido : null,trackInterval=null,allComercios=[];
 let propinaSeleccionada=0;
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEAFLET — mapa de tracking en tiempo real del cadete
+// ═══════════════════════════════════════════════════════════════════════════════
+let _trkMap=null,_trkCadeteMarker=null,_trkClienteMarker=null;
+
+function initTrackingMap(cLat,cLng){
+  const el=document.getElementById('map-tracking');
+  if(!el||!window.L) return;
+
+  // Destruir mapa anterior si existe (ej: vuelve a abrir tracking)
+  if(_trkMap){try{_trkMap.remove();}catch{}_trkMap=null;_trkCadeteMarker=null;_trkClienteMarker=null;}
+
+  const center=(cLat&&cLng)?[cLat,cLng]:[-27.7951,-64.2615];
+
+  _trkMap=L.map(el,{center,zoom:15,zoomControl:false,attributionControl:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(_trkMap);
+
+  if(cLat&&cLng){
+    _trkClienteMarker=L.marker(center,{
+      icon:L.divIcon({className:'',html:'<div style="width:14px;height:14px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>',iconSize:[20,20],iconAnchor:[10,10]})
+    }).addTo(_trkMap).bindTooltip('Vos',{permanent:true,direction:'bottom',offset:[0,10],className:'leaflet-tooltip-custom'});
+  }
+}
+
+function moverCadeteEnMapa(lat,lng){
+  if(!_trkMap||!window.L) return;
+  const pos=[Number(lat),Number(lng)];
+
+  if(!_trkCadeteMarker){
+    _trkCadeteMarker=L.marker(pos,{
+      icon:L.divIcon({className:'',html:'<div style="font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">🛵</div>',iconSize:[32,32],iconAnchor:[16,16]})
+    }).addTo(_trkMap).bindTooltip('Tu cadete',{permanent:true,direction:'top',offset:[0,-14],className:'leaflet-tooltip-custom'});
+  }else{
+    _trkCadeteMarker.setLatLng(pos);
+  }
+
+  // Ajustar vista para que se vean ambos marcadores con 20% de margen
+  if(_trkClienteMarker){
+    _trkMap.fitBounds(L.latLngBounds([_trkClienteMarker.getLatLng(),pos]).pad(0.2),{maxZoom:16,animate:true,duration:1});
+  }else{
+    _trkMap.setView(pos,15,{animate:true,duration:1});
+  }
+}
+
 function go(screen){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+screen).classList.add('active');
@@ -344,13 +388,19 @@ function iniciarTracking(){
       })
     .subscribe();
 
-  // ── Obtener posición GPS del cliente (para calcular ETA real) ────────────
+  // ── Obtener posición GPS del cliente (para calcular ETA real + mapa) ─────
   let clienteLat=null,clienteLng=null;
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(
-      pos=>{clienteLat=pos.coords.latitude;clienteLng=pos.coords.longitude;},
-      ()=>{}  // silencioso si el usuario deniega
+      pos=>{
+        clienteLat=pos.coords.latitude;
+        clienteLng=pos.coords.longitude;
+        initTrackingMap(clienteLat,clienteLng);
+      },
+      ()=>{ initTrackingMap(null,null); }
     );
+  }else{
+    initTrackingMap(null,null);
   }
 
   // ── Suscripción 2: GPS del cadete en tiempo real (ubicacion_cadetes) ─────
@@ -361,6 +411,9 @@ function iniciarTracking(){
         const{lat,lng}=payload.new||{};
         if(lat==null||lng==null)return;
         console.log(`[Tracking] GPS cadete: ${lat}, ${lng}`);
+
+        // Mover marcador del cadete en el mapa Leaflet
+        moverCadeteEnMapa(lat,lng);
 
         // Mostrar tarjeta del cadete si estaba oculta
         document.getElementById('cadete-info').style.display='flex';

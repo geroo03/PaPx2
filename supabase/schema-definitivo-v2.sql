@@ -198,11 +198,19 @@ CREATE TABLE IF NOT EXISTS public.cadetes (
 
 -- Columnas que pueden faltar (ya tiene lat/lng/disponible/activo según CSV)
 -- auth_uid: agregar simple primero, luego constraints por separado
-ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS auth_uid          uuid;
-ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS fecha_nacimiento  date;
-ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS color             text;
-ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS antecedentes      bool DEFAULT false;
-ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS antecedentes_path text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS auth_uid             uuid;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS fecha_nacimiento     date;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS color                text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS antecedentes         bool DEFAULT false;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS antecedentes_path    text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS cvu                  text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS foto_dni_url         text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS seguro_url           text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS carnet_url           text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS onboarding_completo  bool DEFAULT false;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS cobro_frecuencia     text DEFAULT 'semanal';
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS codigo_referido      text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS referido_por         text;
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS zona              text;
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS updated_at        timestamptz DEFAULT now();
 

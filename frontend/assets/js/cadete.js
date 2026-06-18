@@ -6,6 +6,8 @@ import { ICONS } from './icons.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 let disp          = true;
 let ofertasPendientes = [];   // ofertas_cadetes con estado 'pendiente'
+const OFERTA_TIMEOUT_MS = 20000;
+const _ofertaTimers = new Map(); // pedido_id → timeoutId
 let activeTrip    = null;     // oferta activa completa
 let activeTripState = 0;
 let kmChannel     = null;     // canal Realtime para live KM
@@ -57,6 +59,56 @@ async function apiPost(path, body) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// GPS REPORTER — envía la posición del cadete al backend cada ~10 segundos
+// El cliente la ve en tiempo real vía Supabase Realtime (tabla ubicacion_cadetes)
+// ═══════════════════════════════════════════════════════════════════════════════
+let gpsWatchId   = null;
+let gpsLastSent  = 0;
+const GPS_SEND_INTERVAL = 10000; // ms entre envíos al backend
+
+function iniciarReporteGPS() {
+  if (gpsWatchId !== null) return;
+  if (!navigator.geolocation) {
+    console.warn('[GPS] Geolocalización no disponible en este navegador');
+    return;
+  }
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    async (pos) => {
+      const now = Date.now();
+      if (now - gpsLastSent < GPS_SEND_INTERVAL) return;
+      gpsLastSent = now;
+
+      const pedidoId = activeTrip?.id ?? activeTrip?.pedido_id ?? null;
+
+      try {
+        await apiPost('/api/cadete/actualizar-ubicacion', {
+          lat:       pos.coords.latitude,
+          lng:       pos.coords.longitude,
+          pedido_id: pedidoId,
+        });
+      } catch (err) {
+        // Silencioso: si falla un envío, el siguiente lo reintenta
+        console.warn('[GPS] Error reportando ubicación:', err.message);
+      }
+    },
+    (err) => {
+      console.warn('[GPS] Error de geolocalización:', err.message);
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+  );
+  console.log('[GPS] Reporte de ubicación iniciado');
+}
+
+function detenerReporteGPS() {
+  if (gpsWatchId !== null) {
+    navigator.geolocation.clearWatch(gpsWatchId);
+    gpsWatchId = null;
+    console.log('[GPS] Reporte de ubicación detenido');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
 function toast(m, d = 2500) {
@@ -90,6 +142,11 @@ function togDisp() {
   document.getElementById('disp-dot').className = 'disp-dot' + (disp ? ' on' : '');
   document.getElementById('disp-lbl').textContent = disp ? 'Disponible' : 'Inactivo';
   toast(disp ? '✅ Estás disponible' : '⏸️ Pausaste los viajes');
+
+  // GPS: activar cuando disponible, pausar cuando inactivo
+  if (disp) iniciarReporteGPS();
+  else      detenerReporteGPS();
+
   renderViajes();
 }
 
@@ -146,14 +203,19 @@ async function cargarOfertas() {
       .eq('estado', 'pendiente')
       .order('distancia_km', { ascending: true });
 
-    ofertasPendientes = (data ?? []).map(o => ({
-      ...o,
-      ofertaId:     o.id,        // PK de ofertas_cadetes — necesario para /api/pedidos/aceptar
-      id:           o.pedido_id, // alias legacy para referencias de UI
-      ...(o.pedidos ?? {}),
-      comercio_lat: o.comercio_lat,
-      comercio_lng: o.comercio_lng,
-    }));
+    const prevMap = new Map(ofertasPendientes.map(o => [o.pedido_id, o]));
+    ofertasPendientes = (data ?? []).map(o => {
+      const prev = prevMap.get(o.pedido_id);
+      return {
+        ...o,
+        ofertaId:     o.id,
+        id:           o.pedido_id,
+        ...(o.pedidos ?? {}),
+        comercio_lat: o.comercio_lat,
+        comercio_lng: o.comercio_lng,
+        _shownAt:     prev?._shownAt ?? Date.now(),
+      };
+    });
   } catch {
     ofertasPendientes = [];
   }
@@ -200,40 +262,68 @@ function renderViajes() {
     return;
   }
 
+  // Limpiar timers de ofertas que ya no existen
+  const currentIds = new Set(ofertasPendientes.map(o => o.pedido_id));
+  for (const [pid, tid] of _ofertaTimers) {
+    if (!currentIds.has(pid)) { clearTimeout(tid); _ofertaTimers.delete(pid); }
+  }
+
   container.innerHTML = ofertasPendientes.map(o => {
     const hr  = new Date(o.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
     const gan = o.ganancia_estimada ?? calcularGananciaLocal(o.distancia_km ?? 0);
+    const elapsed = Date.now() - (o._shownAt ?? Date.now());
+    const remaining = Math.max(0, OFERTA_TIMEOUT_MS - elapsed);
+    const remainingSec = (remaining / 1000).toFixed(1);
     return `
-      <div class="viaje-card oferta" style="background:#0F1720;padding:14px;border-radius:12px;color:#fff;margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div>
-            <div style="font-size:14px;font-weight:800;">${o.comercio_nombre ?? o.comercios?.nombre ?? 'Comercio'}</div>
-            <div style="font-size:12px;color:#9CA3AF;margin-top:3px;">${o.comercio_direccion ?? o.comercios?.direccion ?? ''}</div>
+      <div class="viaje-card oferta" style="background:#0F1720;padding:0;border-radius:12px;color:#fff;margin-bottom:12px;overflow:hidden;position:relative;">
+        <div id="bar-${o.pedido_id}" style="
+          height:3px;width:100%;background:linear-gradient(90deg,#FF6B35,#E55A27);
+          animation:ofertaCountdown ${remainingSec}s linear forwards;
+        "></div>
+        <div style="padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+            <div>
+              <div style="font-size:14px;font-weight:800;">${o.comercio_nombre ?? o.comercios?.nombre ?? 'Comercio'}</div>
+              <div style="font-size:12px;color:#9CA3AF;margin-top:3px;">${o.comercio_direccion ?? o.comercios?.direccion ?? ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:13px;color:#FF6B35;font-weight:700;">$${Number(gan).toLocaleString('es-AR')}</div>
+              <div style="font-size:11px;color:#6B7280;margin-top:2px;">${o.distancia_km ?? '—'} km · ${hr}</div>
+            </div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:13px;color:#FF6B35;font-weight:700;">$${Number(gan).toLocaleString('es-AR')}</div>
-            <div style="font-size:11px;color:#6B7280;margin-top:2px;">${o.distancia_km ?? '—'} km · ${hr}</div>
+          <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px;">
+            ${ICONS.pin ?? '📍'} Entregás en: ${o.cliente_direccion ?? o.direccion_entrega ?? '—'}
           </div>
-        </div>
-        <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px;">
-          ${ICONS.pin ?? '📍'} Entregás en: ${o.cliente_direccion ?? o.direccion_entrega ?? '—'}
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button
-            id="btn-rechazar-${o.pedido_id}"
-            onclick="rechazarOferta('${o.pedido_id}')"
-            style="flex:1;padding:13px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#9CA3AF;font-weight:700;">
-            Rechazar
-          </button>
-          <button
-            id="btn-aceptar-${o.pedido_id}"
-            onclick="aceptarViaje('${o.pedido_id}')"
-            style="flex:2;padding:13px;border-radius:10px;background:linear-gradient(135deg,#FF6B35,#E55A27);color:#fff;border:none;font-weight:800;">
-            ✅ Aceptar viaje · $${Number(gan).toLocaleString('es-AR')}
-          </button>
+          <div style="display:flex;gap:10px;">
+            <button
+              id="btn-rechazar-${o.pedido_id}"
+              onclick="rechazarOferta('${o.pedido_id}')"
+              style="flex:1;padding:13px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#9CA3AF;font-weight:700;">
+              Rechazar
+            </button>
+            <button
+              id="btn-aceptar-${o.pedido_id}"
+              onclick="aceptarViaje('${o.pedido_id}')"
+              style="flex:2;padding:13px;border-radius:10px;background:linear-gradient(135deg,#FF6B35,#E55A27);color:#fff;border:none;font-weight:800;">
+              ✅ Aceptar viaje · $${Number(gan).toLocaleString('es-AR')}
+            </button>
+          </div>
         </div>
       </div>`;
   }).join('');
+
+  // Programar auto-rechazo para cada oferta
+  ofertasPendientes.forEach(o => {
+    if (_ofertaTimers.has(o.pedido_id)) return;
+    const elapsed = Date.now() - (o._shownAt ?? Date.now());
+    const remaining = Math.max(0, OFERTA_TIMEOUT_MS - elapsed);
+    if (remaining <= 0) { rechazarOferta(o.pedido_id); return; }
+    _ofertaTimers.set(o.pedido_id, setTimeout(() => {
+      _ofertaTimers.delete(o.pedido_id);
+      rechazarOferta(o.pedido_id);
+      toast('⏱ Oferta expirada — esperando nuevos viajes');
+    }, remaining));
+  });
 }
 
 function renderTripActivo(container) {
@@ -408,6 +498,29 @@ function renderTripActivo(container) {
                  border:1px solid rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-weight:700;">
           ${ICONS.pin ?? '📍'} Ver ruta de Entrega
         </a>
+
+        <!-- No-show: cliente no aparece -->
+        <div id="noshow-wrap" style="margin-top:12px;">
+          <button onclick="iniciarTimerNoShow()"
+            style="width:100%;padding:12px;border-radius:10px;background:transparent;
+                   border:1px solid rgba(220,38,38,0.3);color:#F87171;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">
+            ⏱ El cliente no aparece
+          </button>
+        </div>
+        <div id="noshow-timer" style="display:none;margin-top:12px;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:#F87171;">Esperando al cliente...</div>
+            <div id="noshow-countdown" style="font-size:20px;font-weight:900;color:#F87171;font-variant-numeric:tabular-nums;">10:00</div>
+          </div>
+          <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+            <div id="noshow-bar" style="height:100%;width:100%;background:linear-gradient(90deg,#EF4444,#DC2626);border-radius:4px;transition:width 0.5s linear;"></div>
+          </div>
+          <button id="noshow-cancel-btn" onclick="cancelarPorNoShow()" disabled
+            style="width:100%;margin-top:12px;padding:12px;border-radius:10px;background:#DC2626;color:#fff;border:none;
+                   font-weight:800;cursor:pointer;font-family:inherit;font-size:14px;opacity:0.4;">
+            Cancelar entrega (habilitado en 0:00)
+          </button>
+        </div>
       </div>`;
 
     document.body.insertAdjacentHTML('beforeend', alertBtnHtml);
@@ -460,6 +573,9 @@ async function aceptarViaje(pedidoId) {
   if (btn) { btn.disabled = true; btn.textContent = 'Aceptando...'; }
 
   try {
+    // Limpiar timer de esta oferta
+    if (_ofertaTimers.has(pedidoId)) { clearTimeout(_ofertaTimers.get(pedidoId)); _ofertaTimers.delete(pedidoId); }
+
     await apiPost('/api/pedidos/aceptar', {
       pedidoId:  pedidoId,
       cadeteId:  cadeteUserId,
@@ -490,6 +606,7 @@ async function aceptarViaje(pedidoId) {
 }
 
 function rechazarOferta(pedidoId) {
+  if (_ofertaTimers.has(pedidoId)) { clearTimeout(_ofertaTimers.get(pedidoId)); _ofertaTimers.delete(pedidoId); }
   ofertasPendientes = ofertasPendientes.filter(o => o.pedido_id !== pedidoId && o.id !== pedidoId);
   renderViajes();
   toast(`${ICONS.warn} Viaje rechazado`);
@@ -586,8 +703,39 @@ async function confirmarEntrega() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ESTADÍSTICAS
 // ═══════════════════════════════════════════════════════════════════════════════
+let cadeteVehiculo = 'bici'; // se actualiza desde el perfil del cadete
+
 function calcularGananciaLocal(distanciaKm) {
-  return Math.round((600 + distanciaKm * 250) / 50) * 50;
+  const base = cadeteVehiculo === 'moto' ? 1800 : 1200;
+  return Math.round((base + distanciaKm * 250) / 50) * 50;
+}
+
+function actualizarSelectorVehiculo() {
+  const el = document.getElementById('vehiculo-selector');
+  if (!el) return;
+  el.querySelectorAll('.veh-opt').forEach(btn => {
+    const v = btn.dataset.vehiculo;
+    const activo = v === cadeteVehiculo;
+    btn.style.background = activo ? '#FF6B35' : 'rgba(255,255,255,0.08)';
+    btn.style.color = activo ? '#fff' : '#9CA3AF';
+  });
+  const baseEl = document.getElementById('tarifa-base-display');
+  if (baseEl) baseEl.textContent = cadeteVehiculo === 'moto' ? '$1.800' : '$1.200';
+}
+
+async function cambiarVehiculo(tipo) {
+  if (tipo !== 'moto' && tipo !== 'bici') return;
+  cadeteVehiculo = tipo;
+  actualizarSelectorVehiculo();
+  renderViajes();
+
+  // Persistir en la DB
+  if (cadeteUserId) {
+    try {
+      await sb.from('cadetes').update({ vehiculo: tipo }).eq('auth_uid', cadeteUserId);
+      toast(tipo === 'moto' ? '🏍️ Vehículo: Moto · Base $1.800' : '🚲 Vehículo: Bici · Base $1.200');
+    } catch { toast('Error guardando vehículo'); }
+  }
 }
 
 function actualizarStats() {
@@ -823,7 +971,296 @@ if (checkForm) {
       document.getElementById('cd-antecedentes') && (document.getElementById('cd-antecedentes').value = 'true');
       document.getElementById('cd-ant-upload')   && (document.getElementById('cd-ant-upload').style.display = 'block');
     }
+
+    // Setear vehículo global para cálculo de tarifa
+    const veh = (data.vehiculo ?? '').toLowerCase();
+    cadeteVehiculo = (veh === 'moto') ? 'moto' : 'bici';
+    actualizarSelectorVehiculo();
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ONBOARDING — datos obligatorios para empezar a recibir viajes
+// ═══════════════════════════════════════════════════════════════════════════════
+let _obVehiculo = 'bici';
+
+function obSelVeh(tipo) {
+  _obVehiculo = tipo;
+  const bici = document.getElementById('ob-bici');
+  const moto = document.getElementById('ob-moto');
+  if (bici) { bici.style.borderColor = tipo === 'bici' ? '#FF6B35' : '#333'; bici.style.background = tipo === 'bici' ? '#1a0d08' : '#1a1a1a'; bici.style.color = tipo === 'bici' ? '#FF6B35' : '#888'; }
+  if (moto) { moto.style.borderColor = tipo === 'moto' ? '#FF6B35' : '#333'; moto.style.background = tipo === 'moto' ? '#1a0d08' : '#1a1a1a'; moto.style.color = tipo === 'moto' ? '#FF6B35' : '#888'; }
+}
+
+async function verificarOnboarding() {
+  if (!cadeteUserId) return;
+  try {
+    const { data } = await sb.from('cadetes').select('nombre, cvu, foto_dni_url, vehiculo, onboarding_completo').eq('auth_uid', cadeteUserId).maybeSingle();
+    if (data?.onboarding_completo) return;
+    document.getElementById('onboarding-overlay').style.display = 'block';
+  } catch { }
+}
+
+function bindOnboardingForm() {
+  const form = document.getElementById('onboarding-form');
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('ob-btn');
+    const errEl = document.getElementById('ob-err');
+    const nombre = document.getElementById('ob-nombre')?.value.trim();
+    const cvu    = document.getElementById('ob-cvu')?.value.trim();
+    const dniFile = document.getElementById('ob-dni')?.files?.[0];
+
+    if (!nombre) { errEl.textContent = 'Ingresá tu nombre completo.'; errEl.style.display = 'block'; return; }
+    if (!dniFile) { errEl.textContent = 'Subí la foto de tu DNI.'; errEl.style.display = 'block'; return; }
+    if (!cvu) { errEl.textContent = 'Ingresá tu CVU o alias.'; errEl.style.display = 'block'; return; }
+
+    btn.disabled = true; btn.textContent = 'Guardando...'; errEl.style.display = 'none';
+
+    try {
+      // Subir foto DNI a Storage
+      const dniPath = `${cadeteUserId}/dni/${Date.now()}_${dniFile.name}`;
+      const { error: upErr } = await sb.storage.from('cadetes-antecedentes').upload(dniPath, dniFile, { cacheControl: '3600', upsert: true });
+      if (upErr) throw new Error('Error subiendo DNI: ' + upErr.message);
+
+      // Generar código de referido único
+      const miCodigo = generarCodigoReferido(cadeteUserId);
+      const referidoPor = (document.getElementById('ob-referido')?.value ?? '').trim().toUpperCase() || null;
+
+      // Actualizar cadetes
+      const { error: dbErr } = await sb.from('cadetes').upsert({
+        auth_uid: cadeteUserId,
+        nombre,
+        cvu,
+        vehiculo: _obVehiculo,
+        foto_dni_url: dniPath,
+        onboarding_completo: true,
+        codigo_referido: miCodigo,
+        referido_por: referidoPor,
+        email: (await sb.auth.getUser()).data?.user?.email ?? '',
+      }, { onConflict: 'auth_uid' });
+      if (dbErr) throw new Error(dbErr.message);
+
+      // Asignar rol cadete en backend
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session?.access_token) {
+          const base = window.BACKEND_URL ?? '';
+          await fetch(`${base}/api/auth/set-role`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+            body: JSON.stringify({ role: 'cadete' }),
+          });
+        }
+      } catch {}
+
+      cadeteVehiculo = _obVehiculo;
+      document.getElementById('onboarding-overlay').style.display = 'none';
+      actualizarSelectorVehiculo();
+      toast('🎉 ¡Perfil completo! Ya podés recibir viajes');
+
+    } catch (err) {
+      errEl.textContent = err.message; errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Empezar a repartir →';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HISTORIAL DE VIAJES — pedidos entregados por este cadete
+// ═══════════════════════════════════════════════════════════════════════════════
+async function cargarHistorial() {
+  const container = document.getElementById('historial-container');
+  if (!container || !cadeteUserId) return;
+  container.innerHTML = '<div class="empty"><p>Cargando...</p></div>';
+  try {
+    const { data, error } = await sb
+      .from('pedidos')
+      .select('id, numero, total, estado, pago_cadete, distancia_estimada, direccion_entrega, created_at, comercios(nombre)')
+      .eq('cadete_id', cadeteUserId)
+      .in('estado', ['entregado', 'en_camino', 'en_preparacion'])
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    if (!data?.length) {
+      container.innerHTML = '<div class="empty"><div class="big">📋</div><p>Todavía no hiciste viajes.</p></div>';
+      document.getElementById('hist-total-viajes').textContent = '0 viajes';
+      return;
+    }
+
+    document.getElementById('hist-total-viajes').textContent = `${data.length} viaje${data.length > 1 ? 's' : ''}`;
+
+    const estadoBadge = {
+      entregado: { bg: '#DCFCE7', color: '#16A34A', txt: 'Entregado' },
+      en_camino: { bg: '#FEF9C3', color: '#A16207', txt: 'En camino' },
+      en_preparacion: { bg: '#DBEAFE', color: '#2563EB', txt: 'Preparando' },
+    };
+
+    container.innerHTML = data.map(p => {
+      const fecha = new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+      const hora  = new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      const badge = estadoBadge[p.estado] ?? estadoBadge.entregado;
+      const gan   = p.pago_cadete ?? '—';
+      const dist  = p.distancia_estimada ? `${p.distancia_estimada} km` : '';
+      return `
+        <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid #f0f0f0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#111;">${p.comercios?.nombre ?? 'Comercio'}</div>
+              <div style="font-size:12px;color:#888;margin-top:3px;">${p.direccion_entrega ?? ''}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${badge.bg};color:${badge.color};">${badge.txt}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+            <div style="font-size:12px;color:#888;">${fecha} · ${hora}${dist ? ' · ' + dist : ''}</div>
+            <div style="font-size:15px;font-weight:800;color:#FF6B35;">$${Number(gan).toLocaleString('es-AR')}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = '<div class="empty"><p>Error cargando historial.</p></div>';
+    console.error('[Historial]', err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBIDA DE DOCUMENTOS (DNI, Seguro, Carnet)
+// ═══════════════════════════════════════════════════════════════════════════════
+function previsualizarDNI(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = document.getElementById('dni-img');
+    const preview = document.getElementById('dni-preview');
+    if (img) img.src = e.target.result;
+    if (preview) preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  subirDocumento(input, 'dni');
+}
+
+async function subirDocumento(input, tipo) {
+  const file = input.files?.[0];
+  if (!file || !cadeteUserId) return;
+  const statusEl = document.getElementById(`${tipo}-status`);
+  if (statusEl) { statusEl.textContent = 'Subiendo...'; statusEl.style.color = '#888'; }
+
+  try {
+    const path = `${cadeteUserId}/${tipo}/${Date.now()}_${file.name}`;
+    const { error } = await sb.storage.from('cadetes-antecedentes').upload(path, file, { cacheControl: '3600', upsert: true });
+    if (error) throw error;
+
+    const campo = tipo === 'dni' ? 'foto_dni_url' : tipo === 'seguro' ? 'seguro_url' : 'carnet_url';
+    await sb.from('cadetes').update({ [campo]: path }).eq('auth_uid', cadeteUserId);
+
+    if (statusEl) { statusEl.textContent = '✓ Subido correctamente'; statusEl.style.color = '#4ADE80'; }
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = 'Error: ' + err.message; statusEl.style.color = '#ff6b6b'; }
+  }
+}
+
+// Show/hide moto-specific fields (patente, carnet, seguro)
+function bindVehiculoSelect() {
+  const sel = document.getElementById('cd-vehiculo');
+  if (!sel) return;
+  const toggle = () => {
+    const isMoto = sel.value === 'moto';
+    const motoFields = document.getElementById('moto-fields');
+    const motoLegal  = document.getElementById('moto-legal');
+    if (motoFields) motoFields.style.display = isMoto ? 'flex' : 'none';
+    if (motoLegal)  motoLegal.style.display  = isMoto ? 'block' : 'none';
+  };
+  sel.addEventListener('change', toggle);
+  toggle();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CÓDIGO DE REFERIDO — cada cadete tiene un código único para invitar otros
+// ═══════════════════════════════════════════════════════════════════════════════
+function generarCodigoReferido(uid) {
+  return 'PAP-' + uid.slice(0, 4).toUpperCase();
+}
+
+async function cargarCodigoReferido() {
+  if (!cadeteUserId) return;
+  try {
+    const { data } = await sb.from('cadetes').select('codigo_referido').eq('auth_uid', cadeteUserId).maybeSingle();
+    let codigo = data?.codigo_referido;
+    if (!codigo) {
+      codigo = generarCodigoReferido(cadeteUserId);
+      await sb.from('cadetes').update({ codigo_referido: codigo }).eq('auth_uid', cadeteUserId);
+    }
+    const el = document.getElementById('mi-codigo-referido');
+    if (el) el.textContent = codigo;
+  } catch {}
+}
+
+function copiarCodigo() {
+  const el = document.getElementById('mi-codigo-referido');
+  if (!el || el.textContent === '—') return;
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    toast('📋 Código copiado: ' + el.textContent);
+  }).catch(() => {
+    toast(el.textContent);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TIMER 10 MIN — cliente no aparece al momento de la entrega
+// ═══════════════════════════════════════════════════════════════════════════════
+let _noShowTimer = null;
+let _noShowStart = null;
+const NO_SHOW_MS = 10 * 60 * 1000;
+
+function iniciarTimerNoShow() {
+  _noShowStart = Date.now();
+  const btnWrap = document.getElementById('noshow-wrap');
+  if (btnWrap) btnWrap.style.display = 'none';
+  const timerWrap = document.getElementById('noshow-timer');
+  if (timerWrap) timerWrap.style.display = 'block';
+
+  if (_noShowTimer) clearInterval(_noShowTimer);
+  _noShowTimer = setInterval(() => {
+    const elapsed = Date.now() - _noShowStart;
+    const remaining = Math.max(0, NO_SHOW_MS - elapsed);
+    const min = Math.floor(remaining / 60000);
+    const sec = Math.floor((remaining % 60000) / 1000);
+    const timerEl = document.getElementById('noshow-countdown');
+    if (timerEl) timerEl.textContent = `${min}:${String(sec).padStart(2, '0')}`;
+
+    // Barra de progreso: de 100% a 0%
+    const barEl = document.getElementById('noshow-bar');
+    if (barEl) barEl.style.width = `${(remaining / NO_SHOW_MS) * 100}%`;
+
+    if (remaining <= 0) {
+      clearInterval(_noShowTimer);
+      _noShowTimer = null;
+      const cancelBtn = document.getElementById('noshow-cancel-btn');
+      if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.style.opacity = '1'; }
+      toast('⏰ Se cumplieron los 10 minutos. Podés cancelar la entrega.');
+    }
+  }, 500);
+}
+
+async function cancelarPorNoShow() {
+  if (!activeTrip) return;
+  try {
+    await apiPost('/api/pedidos/cambiar-estado', {
+      pedido_id: activeTrip.id ?? activeTrip.pedido_id,
+      nuevo_estado: 'entregado',
+      codigo_entrega: '0000',
+    });
+  } catch {}
+  // Forzar finalización local
+  activeTripState = 3;
+  if (_noShowTimer) { clearInterval(_noShowTimer); _noShowTimer = null; }
+  removeAlertBtn();
+  renderViajes();
+  toast('Entrega marcada como no-show. Contactá soporte si es necesario.');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -852,8 +1289,18 @@ if ('Notification' in window && Notification.permission === 'default') {
     }
 
     cadeteUserId = user.id;
+
+    // Verificar si necesita completar onboarding antes de operar
+    await verificarOnboarding();
+    bindOnboardingForm();
+    bindVehiculoSelect();
+    cargarCodigoReferido();
+
     await cargarOfertas();
     iniciarRealtimeCadete();
+
+    // Arrancar GPS si el cadete está disponible
+    if (disp) iniciarReporteGPS();
 
   } catch (e) {
     console.warn('cadete guard check failed', e);
@@ -883,5 +1330,13 @@ Object.assign(window, {
   enviarIACadete,
   preguntaRapidaCadete,
   conectarMPCadete,
+  cambiarVehiculo,
+  cargarHistorial,
+  obSelVeh,
+  previsualizarDNI,
+  subirDocumento,
+  copiarCodigo,
+  iniciarTimerNoShow,
+  cancelarPorNoShow,
   toast,
 });

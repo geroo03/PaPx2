@@ -1,172 +1,266 @@
-// assets/js/embajador.js
+// embajador.js — dashboard del embajador
+// Usa el backend API (BACKEND_URL) para todas las operaciones sensibles.
 import { supabase } from './config.js';
-import { sanitizeHTML, formatARS } from './ui.js';
 
-const toastEl = document.getElementById('toast');
-function toast(msg, dur = 3000){ if(!toastEl) return alert(msg); toastEl.textContent = msg; toastEl.style.display = 'block'; setTimeout(()=>toastEl.style.display='none', dur); }
+const API  = window.BACKEND_URL ?? '';
+const $    = id => document.getElementById(id);
+const toast = (msg, dur = 3500) => {
+  const el = $('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.style.display = 'none', dur);
+};
+const fmt = n => '$' + Number(n ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 });
 
-const elMisComercios = document.getElementById('v-mis-comercios');
-const elVentas = document.getElementById('v-ventas-totales');
-const elGanancias = document.getElementById('v-mis-ganancias');
-const listaComerciosEl = document.getElementById('lista-comercios');
+let SESSION = null;
+let SALDO_DISPONIBLE = 0;
 
-const formAlta = document.getElementById('form-alta-comercio');
-const btnAlta = document.getElementById('btn-alta');
-const altaLoader = document.getElementById('alta-loader');
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 
-let currentUserId = null;
+async function init() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { location.href = '/login.html'; return; }
+  SESSION = session;
 
-async function init(){
-  // Obtener sesión y user id
-  try{
-    const { data } = await supabase.auth.getSession();
-    const session = data?.session;
-    currentUserId = session?.user?.id || null;
-  }catch(e){ console.error('No session', e); }
+  const nombre = session.user.user_metadata?.full_name ?? session.user.email;
+  $('sub-nombre').textContent = nombre;
 
-  if(!currentUserId){ toast('Debes iniciar sesión como Embajador'); return; }
+  bindTabs();
+  bindLogout();
+  bindRetiroModal();
+  bindFormAlta();
 
-  // cargar métricas y lista
-  await cargarMetricasEmbajador();
-  attachForm();
+  await cargarDashboard();
 }
 
-function setLoadingAlta(on){ btnAlta.disabled = on; altaLoader.style.display = on ? 'inline-block' : 'none'; }
+// ─── TABS ─────────────────────────────────────────────────────────────────────
 
-function attachForm(){
-  formAlta.addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const nombre = document.getElementById('c-nombre').value.trim();
-    const whatsapp = document.getElementById('c-whatsapp').value.trim();
-    const direccion = document.getElementById('c-direccion').value.trim();
-    const rubro = document.getElementById('c-rubro').value.trim();
-    const email = document.getElementById('c-email').value.trim();
-    if(!nombre || !direccion || !rubro){ toast('Completa los campos obligatorios'); return; }
-    setLoadingAlta(true);
-    try{
-      // VALIDACIÓN: evitar duplicados por mismo nombre+direccion o mismo teléfono
-      const dupQuery = supabase.from('comercios').select('id,nombre,direccion,telefono').or(
-        `and(nombre.eq.${encodeURIComponent(nombre)},direccion.eq.${encodeURIComponent(direccion)})`,
-        `telefono.eq.${encodeURIComponent(whatsapp)}`
-      ).limit(1);
-      // Note: supabase-js .or requires raw string; using .or above for best-effort. We'll run and inspect result.
-      let dup = null;
-      try{ const { data: dd, error: dErr } = await dupQuery; if(!dErr && dd && dd.length) dup = dd[0]; }catch(e){}
-      if(dup){ toast('Ya existe un comercio similar: ' + (dup.nombre||'')); setLoadingAlta(false); return; }
-
-      const payload = {
-        nombre,
-        telefono: whatsapp || null,
-        direccion,
-        categoria: rubro,
-        email: email || null,
-        creado_por_embajador_id: currentUserId,
-        estado_registro: 'pendiente',
-        created_at: new Date().toISOString()
-      };
-      const { data, error } = await supabase.from('comercios').insert([payload]);
-      if(error){ console.error(error); toast('Error al crear comercio: '+error.message); }
-      else{ toast('Comercio registrado correctamente'); formAlta.reset(); await cargarMetricasEmbajador(); }
-    }catch(e){ console.error(e); toast('Error inesperado'); }
-    finally{ setLoadingAlta(false); }
+function bindTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn, .tab-panel').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      $(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
   });
 }
 
-export async function cargarMetricasEmbajador(){
-  if(!currentUserId){
-    // Try to get it synchronously if not initialized
-    try{ const { data } = await supabase.auth.getSession(); currentUserId = data?.session?.user?.id; }catch{}
-    if(!currentUserId) return;
-  }
+// ─── LOGOUT ───────────────────────────────────────────────────────────────────
 
-  // Loader state in list
-  listaComerciosEl.innerHTML = '<div class="empty">Cargando...</div>';
-
-  try{
-    // 1) contar comercios
-    const { data: comercios, error: cErr } = await supabase
-      .from('comercios')
-      .select('id, nombre, estado_registro, created_at, telefono, direccion')
-      .eq('creado_por_embajador_id', currentUserId)
-      .order('created_at', { ascending: false });
-    if(cErr) throw cErr;
-
-    const cantidad = comercios?.length || 0;
-    elMisComercios.textContent = cantidad;
-
-    // Render lista
-    if(!cantidad){ listaComerciosEl.innerHTML = '<div class="empty">No registraste comercios aún.</div>'; }
-    else{
-      listaComerciosEl.innerHTML = comercios.map(c=>{
-        const fecha = new Date(c.created_at).toLocaleDateString();
-        return `<div class="card item"><div class="left"><div class="name">${sanitizeHTML(c.nombre)}</div><div class="meta">Alta: ${fecha}</div></div><div class="status ${sanitizeHTML(c.estado_registro)}">${sanitizeHTML(c.estado_registro)}</div></div>`;
-      }).join('');
-    }
-
-    // 2) Pedidos entregados para comercios de este embajador -> sumar totales
-    // Primero obtener ids de comercios
-    const comercioIds = comercios.map(x=>x.id).filter(Boolean);
-    let ventasTotales = 0;
-    let gananciaTotal = 0;
-    if(comercioIds.length){
-      // traer pedidos entregados
-      const { data: pedidos, error: pErr } = await supabase
-        .from('pedidos')
-        .select('id,total,estado,comercio_id')
-        .in('comercio_id', comercioIds)
-        .eq('estado', 'entregado');
-      if(pErr) throw pErr;
-
-      // Mapear comercios por id para acceder a created_at
-      const comerciosById = (comercios||[]).reduce((acc,c)=>{ acc[c.id]=c; return acc; }, {});
-
-      // Para cada pedido calcular la ganancia según antigüedad del comercio
-      (pedidos || []).forEach(p => {
-        const total = Number(p.total || 0);
-        ventasTotales += total;
-        const comercio = comerciosById[p.comercio_id];
-        let meses = 9999;
-        if(comercio && comercio.created_at){
-          const created = new Date(comercio.created_at);
-          const now = new Date();
-          meses = Math.floor((now - created) / (1000*60*60*24*30));
-        }
-        // Regla: 5% del total si comercio < 6 meses; 2% si entre 7 y 12 meses; 0% si >12 meses
-        let factor = 0;
-        if(meses <= 6) factor = 0.05;
-        else if(meses >=7 && meses <= 12) factor = 0.02;
-        else factor = 0;
-        gananciaTotal += total * factor;
-      });
-    }
-
-    elVentas.textContent = formatARS(ventasTotales || 0);
-    elGanancias.textContent = formatARS(gananciaTotal || 0);
-
-    // 3) Cargar historial (últimos 50 eventos) para comercios creados por este embajador
-    try{
-      const { data: hist, error: hErr } = await supabase
-        .from('comercios_historial')
-        .select('id, comercio_id, embajador_id, usuario_id, accion, detalles, created_at')
-        .in('comercio_id', comercioIds)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if(hErr) throw hErr;
-      const histEl = document.getElementById('historial-comercios');
-      if(!hist || !hist.length){ histEl.innerHTML = '<div class="empty">Sin actividad reciente</div>'; }
-      else{
-        histEl.innerHTML = hist.map(h=>{
-          const t = new Date(h.created_at).toLocaleString();
-          const accion = sanitizeHTML(h.accion);
-          const cid = sanitizeHTML(h.comercio_id);
-          const detalles = sanitizeHTML(JSON.stringify(h.detalles || {}));
-          return `<div class="card item"><div class="left"><div class="name">${accion} · Comercio ${cid}</div><div class="meta">${t}</div></div><div class="meta small">${detalles}</div></div>`;
-        }).join('');
-      }
-    }catch(e){ console.warn('Error historial', e); }
-
-  }catch(e){ console.error('Error metricas embajador', e); toast('Error cargando métricas'); listaComerciosEl.innerHTML = '<div class="empty">Error al cargar</div>'; }
+function bindLogout() {
+  $('btn-logout')?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    location.href = '/login.html';
+  });
 }
 
-// Auto-init
+// ─── CARGA DEL DASHBOARD ──────────────────────────────────────────────────────
+
+async function cargarDashboard() {
+  try {
+    const res = await authFetch(`${API}/api/embajadores/dashboard`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { billetera, comisiones, patrocinios, retiros } = await res.json();
+
+    renderBilletera(billetera);
+    renderRetiros(retiros);
+    renderComisiones(comisiones);
+    renderPatrocinios(patrocinios);
+  } catch (err) {
+    console.error('[Dashboard] Error:', err.message);
+    toast('Error cargando el dashboard. Revisá la consola.');
+  }
+}
+
+// ─── BILLETERA ────────────────────────────────────────────────────────────────
+
+function renderBilletera(b) {
+  SALDO_DISPONIBLE = Number(b?.saldo_disponible ?? 0);
+  $('saldo-disponible').textContent = fmt(b?.saldo_disponible ?? 0);
+  $('saldo-acumulado').textContent  = fmt(b?.saldo_acumulado  ?? 0);
+  $('saldo-retirado').textContent   = fmt(b?.saldo_retirado   ?? 0);
+}
+
+// ─── RETIROS ──────────────────────────────────────────────────────────────────
+
+function renderRetiros(retiros) {
+  const el = $('lista-retiros');
+  if (!retiros?.length) { el.innerHTML = '<div class="empty">Sin solicitudes de retiro.</div>'; return; }
+  el.innerHTML = retiros.map(r => `
+    <div class="retiro-row">
+      <div>
+        <strong>${fmt(r.monto)}</strong>
+        <div style="font-size:12px;color:#888;margin-top:2px">${new Date(r.created_at).toLocaleDateString('es-AR')}</div>
+        ${r.cbu_alias ? `<div style="font-size:12px;color:#666">${sanitize(r.cbu_alias)}</div>` : ''}
+      </div>
+      <span class="badge ${sanitize(r.estado)}">${sanitize(r.estado)}</span>
+    </div>
+  `).join('');
+}
+
+// ─── COMISIONES ───────────────────────────────────────────────────────────────
+
+function renderComisiones(comisiones) {
+  const el = $('lista-comisiones');
+  if (!comisiones?.length) { el.innerHTML = '<div class="empty">Aún no tenés comisiones registradas.</div>'; return; }
+  el.innerHTML = comisiones.map(c => {
+    const pct   = c.tasa_aplicada >= 0.05 ? '5%' : '2%';
+    const meses = c.meses_activo;
+    return `
+      <div class="hist-row">
+        <div>
+          <div style="font-weight:600">${fmt(c.monto_pedido)} venta</div>
+          <div style="font-size:12px;color:#888">${new Date(c.created_at).toLocaleDateString('es-AR')} · ${meses} mes${meses !== 1 ? 'es' : ''} activo</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="tasa">${pct}</span>
+          <span class="monto-com">${fmt(c.monto_comision)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── PATROCINIOS / COMERCIOS ──────────────────────────────────────────────────
+
+function renderPatrocinios(patrocinios) {
+  const el = $('lista-comercios');
+  if (!patrocinios?.length) { el.innerHTML = '<div class="empty">No registraste comercios aún.</div>'; return; }
+  el.innerHTML = patrocinios.map(p => {
+    const c         = p.comercios ?? {};
+    const inicio    = new Date(p.fecha_inicio);
+    const mesesActivo = Math.floor((Date.now() - inicio) / (1000 * 60 * 60 * 24 * 30));
+    const tasa      = mesesActivo < 6 ? '5%' : '2%';
+    const estado    = sanitize(c.estado_registro ?? '—');
+    return `
+      <div class="card item" style="padding:14px 0;border-bottom:1px solid #f0f0f0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:700">${sanitize(c.nombre ?? '—')}</div>
+            <div style="font-size:12px;color:#888">${sanitize(c.direccion ?? '')} · ${sanitize(c.categoria ?? '')}</div>
+            <div style="font-size:12px;color:#666;margin-top:4px">
+              Desde ${inicio.toLocaleDateString('es-AR')} · ${mesesActivo} mes${mesesActivo !== 1 ? 'es' : ''} activo
+            </div>
+          </div>
+          <div style="text-align:right">
+            <span class="tasa">${tasa}</span>
+            <div style="font-size:12px;margin-top:4px" class="badge ${estado}">${estado}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── MODAL RETIRO ─────────────────────────────────────────────────────────────
+
+function bindRetiroModal() {
+  $('btn-solicitar-retiro').addEventListener('click', () => {
+    $('modal-saldo-info').textContent = `Saldo disponible: ${fmt(SALDO_DISPONIBLE)}`;
+    $('retiro-monto').value = '';
+    $('retiro-cbu').value   = '';
+    $('retiro-error').textContent = '';
+    $('modal-retiro').classList.add('open');
+  });
+
+  $('btn-cancelar-retiro').addEventListener('click', () => {
+    $('modal-retiro').classList.remove('open');
+  });
+
+  $('btn-confirmar-retiro').addEventListener('click', async () => {
+    const monto    = Number($('retiro-monto').value);
+    const cbu      = $('retiro-cbu').value.trim();
+    const errEl    = $('retiro-error');
+
+    if (!monto || monto <= 0) { errEl.textContent = 'Ingresá un monto válido.'; return; }
+    if (monto > SALDO_DISPONIBLE) {
+      errEl.textContent = `Insuficiente. Disponible: ${fmt(SALDO_DISPONIBLE)}`; return;
+    }
+
+    $('btn-confirmar-retiro').disabled = true;
+    errEl.textContent = '';
+
+    try {
+      const res = await authFetch(`${API}/api/embajadores/solicitar-retiro`, {
+        method: 'POST',
+        body:   JSON.stringify({ monto, cbu_alias: cbu || null }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        errEl.textContent = json.error ?? `Error ${res.status}`;
+        return;
+      }
+      $('modal-retiro').classList.remove('open');
+      toast(`Retiro de ${fmt(monto)} solicitado. Revisaremos tu solicitud en breve.`);
+      await cargarDashboard();
+    } catch (err) {
+      errEl.textContent = 'Error de red. Intentá nuevamente.';
+    } finally {
+      $('btn-confirmar-retiro').disabled = false;
+    }
+  });
+}
+
+// ─── FORM ALTA COMERCIO ───────────────────────────────────────────────────────
+
+function bindFormAlta() {
+  $('form-alta').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const btn    = $('btn-alta');
+    const msgEl  = $('alta-msg');
+    const nombre    = $('c-nombre').value.trim();
+    const direccion = $('c-direccion').value.trim();
+    const rubro     = $('c-rubro').value.trim();
+    const telefono  = $('c-tel').value.trim();
+    const email     = $('c-email').value.trim();
+
+    if (!nombre || !direccion || !rubro) { toast('Completá los campos obligatorios.'); return; }
+
+    btn.disabled    = true;
+    btn.textContent = 'Registrando...';
+    msgEl.textContent = '';
+
+    try {
+      const res = await authFetch(`${API}/api/embajadores/comercios`, {
+        method: 'POST',
+        body:   JSON.stringify({ nombre, direccion, rubro, telefono: telefono || null, email: email || null }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        toast('Error: ' + (json.error ?? res.status));
+        return;
+      }
+      msgEl.textContent = `✅ "${json.comercio?.nombre}" registrado. Estado: pendiente de aprobación.`;
+      $('form-alta').reset();
+      await cargarDashboard();
+    } catch (err) {
+      toast('Error de red al registrar el comercio.');
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Registrar Comercio';
+    }
+  });
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+async function authFetch(url, opts = {}) {
+  return fetch(url, {
+    ...opts,
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${SESSION.access_token}`,
+      ...(opts.headers ?? {}),
+    },
+  });
+}
+
+function sanitize(str) {
+  return String(str ?? '').replace(/[<>"'&]/g, c => ({ '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":"&#39;", '&':'&amp;' }[c]));
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
 init();

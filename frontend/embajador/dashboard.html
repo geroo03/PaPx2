@@ -3,73 +3,157 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Embajador · Dashboard — Puerta a Puerta</title>
+  <title>Embajador · Puerta a Puerta</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/embajador.css">
+  <style>
+    /* ── tabs ── */
+    .tabs { display:flex; gap:8px; padding:0 0 24px; border-bottom:2px solid #eee; margin-bottom:24px; }
+    .tab-btn { padding:10px 22px; border-radius:8px; border:none; cursor:pointer; font:600 14px/1 'Plus Jakarta Sans',sans-serif; background:#f0f0f0; color:#555; transition:.15s; }
+    .tab-btn.active { background:var(--accent,#ff6b35); color:#fff; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── billetera ── */
+    .billetera { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+    .bill-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px #0001; }
+    .bill-card .label { font-size:12px; color:#888; margin-bottom:6px; }
+    .bill-card .value { font-size:24px; font-weight:800; color:#1a1a1a; }
+    .bill-card.disponible .value { color:#16a34a; }
+
+    /* ── retiro modal ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:#0005; z-index:100; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#fff; border-radius:16px; padding:32px; width:min(440px,92vw); }
+    .modal h3 { margin:0 0 20px; font-size:20px; }
+    .modal input { width:100%; box-sizing:border-box; padding:12px; border:1.5px solid #ddd; border-radius:8px; font-size:15px; margin-bottom:12px; }
+    .modal .btn-row { display:flex; gap:12px; margin-top:8px; }
+    .modal .btn-row button { flex:1; padding:12px; border-radius:8px; border:none; cursor:pointer; font:600 15px/1 'Plus Jakarta Sans',sans-serif; }
+    .btn-confirm { background:#16a34a; color:#fff; }
+    .btn-cancel  { background:#f0f0f0; color:#555; }
+
+    /* ── historial ── */
+    .hist-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+    .hist-row .tasa { background:#fef3c7; color:#92400e; border-radius:6px; padding:2px 8px; font-weight:700; font-size:12px; }
+    .hist-row .monto-com { font-weight:700; color:#16a34a; }
+
+    /* ── solicitudes ── */
+    .retiro-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+    .badge { border-radius:6px; padding:2px 8px; font-size:12px; font-weight:700; }
+    .badge.pendiente { background:#fef9c3; color:#854d0e; }
+    .badge.pagado    { background:#dcfce7; color:#15803d; }
+    .badge.rechazado { background:#fee2e2; color:#b91c1c; }
+  </style>
 </head>
 <body>
   <div class="page">
     <header class="topbar">
       <h1>Embajador</h1>
-      <p class="sub">Panel de gestión · Mis comercios y comisiones</p>
+      <p class="sub" id="sub-nombre">Cargando...</p>
+      <button id="btn-logout" style="margin-left:auto;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;background:#fee2e2;color:#b91c1c;font-weight:600">Salir</button>
     </header>
 
-    <main class="content">
-      <section class="kpis">
-        <div class="card kpi" id="k-mis-comercios">
-          <div class="label">Locales Captados</div>
-          <div class="value" id="v-mis-comercios">—</div>
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="embajada">Mi Embajada</button>
+      <button class="tab-btn"       data-tab="tienda">Ir a la Tienda</button>
+    </div>
+
+    <!-- TAB: MI EMBAJADA -->
+    <div class="tab-panel active" id="tab-embajada">
+
+      <!-- Billetera -->
+      <section>
+        <h2>Billetera</h2>
+        <div class="billetera">
+          <div class="bill-card disponible">
+            <div class="label">Disponible para retirar</div>
+            <div class="value" id="saldo-disponible">—</div>
+          </div>
+          <div class="bill-card">
+            <div class="label">Acumulado histórico</div>
+            <div class="value" id="saldo-acumulado">—</div>
+          </div>
+          <div class="bill-card">
+            <div class="label">Total retirado</div>
+            <div class="value" id="saldo-retirado">—</div>
+          </div>
         </div>
-        <div class="card kpi" id="k-ventas-totales">
-          <div class="label">Ventas Totales</div>
-          <div class="value" id="v-ventas-totales">—</div>
-        </div>
-        <div class="card kpi" id="k-mis-ganancias">
-          <div class="label">Mis Ganancias Acumuladas</div>
-          <div class="value" id="v-mis-ganancias">—</div>
-        </div>
+        <button id="btn-solicitar-retiro" style="padding:12px 24px;background:var(--accent,#ff6b35);color:#fff;border:none;border-radius:8px;font:700 15px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">
+          Solicitar Retiro
+        </button>
       </section>
 
-      <section class="panel">
-        <h2>Alta de Comercio</h2>
-        <form id="form-alta-comercio" class="form">
-          <div class="row"><input id="c-nombre" placeholder="Nombre del local" required></div>
-          <div class="row"><input id="c-whatsapp" placeholder="WhatsApp (sin espacios)" inputmode="tel"></div>
-          <div class="row"><input id="c-direccion" placeholder="Dirección" required></div>
-          <div class="row"><input id="c-rubro" placeholder="Rubro (ej: comida, farmacia)" required></div>
-          <div class="row"><input id="c-email" placeholder="Email del comerciante (opcional)" type="email"></div>
+      <!-- Solicitudes de retiro -->
+      <section class="panel" style="margin-top:32px">
+        <h2>Mis Retiros</h2>
+        <div id="lista-retiros"><div class="empty">Cargando...</div></div>
+      </section>
+
+      <!-- Historial de comisiones -->
+      <section class="panel" style="margin-top:32px">
+        <h2>Historial de Comisiones</h2>
+        <div id="lista-comisiones"><div class="empty">Cargando...</div></div>
+      </section>
+
+      <!-- Mis comercios -->
+      <section class="panel" style="margin-top:32px">
+        <h2>Mis Comercios Registrados</h2>
+        <div id="lista-comercios"><div class="empty">Cargando...</div></div>
+      </section>
+
+      <!-- Alta de comercio -->
+      <section class="panel" style="margin-top:32px">
+        <h2>Registrar Nuevo Comercio</h2>
+        <form id="form-alta" class="form">
+          <div class="row"><input id="c-nombre"    placeholder="Nombre del local *"            required></div>
+          <div class="row"><input id="c-direccion" placeholder="Dirección *"                   required></div>
+          <div class="row"><input id="c-rubro"     placeholder="Rubro (ej: comida, farmacia) *" required></div>
+          <div class="row"><input id="c-tel"       placeholder="WhatsApp / Teléfono"           inputmode="tel"></div>
+          <div class="row"><input id="c-email"     placeholder="Email del comerciante"         type="email"></div>
           <div class="row actions">
             <button type="submit" id="btn-alta">Registrar Comercio</button>
-            <div class="loader" id="alta-loader" aria-hidden="true" style="display:none"></div>
+            <span id="alta-msg" style="font-size:13px;color:#16a34a"></span>
           </div>
         </form>
       </section>
 
-      <section class="panel">
-        <h2>Mis Comercios Registrados</h2>
-        <div id="lista-comercios" class="list">
-          <div class="empty">Cargando...</div>
-        </div>
-      </section>
+    </div><!-- /tab-embajada -->
 
-      <section class="panel">
-        <h2>Historial de Cambios</h2>
-        <div id="historial-comercios" class="list">
-          <div class="empty">Cargando historial...</div>
-        </div>
-      </section>
-    </main>
+    <!-- TAB: TIENDA -->
+    <div class="tab-panel" id="tab-tienda">
+      <div style="padding:48px 0;text-align:center">
+        <p style="font-size:18px;margin-bottom:24px">Podés pedir delivery igual que cualquier cliente.</p>
+        <a href="/cliente/index.html"
+           style="display:inline-block;padding:14px 32px;background:var(--accent,#ff6b35);color:#fff;border-radius:10px;font-weight:700;text-decoration:none;font-size:16px">
+          Ir a la tienda →
+        </a>
+      </div>
+    </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
 
-  <!-- Supabase CDN (provides `window.supabase` when using the ESM build too) -->
+  <!-- Modal retiro -->
+  <div class="modal-overlay" id="modal-retiro">
+    <div class="modal">
+      <h3>Solicitar Retiro</h3>
+      <p id="modal-saldo-info" style="margin:0 0 16px;font-size:14px;color:#666"></p>
+      <input id="retiro-monto" type="number" min="1" placeholder="Monto a retirar ($)" step="0.01">
+      <input id="retiro-cbu"   type="text"   placeholder="CBU / Alias (opcional)">
+      <div class="btn-row">
+        <button class="btn-confirm" id="btn-confirmar-retiro">Confirmar</button>
+        <button class="btn-cancel"  id="btn-cancelar-retiro">Cancelar</button>
+      </div>
+      <p id="retiro-error" style="color:#dc2626;font-size:13px;margin-top:8px"></p>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <!-- Main bootstrap: exposes window.supabase/window.sb and wires modular config -->
+  <script src="/env.js"></script>
   <script type="module" src="/assets/js/main.js"></script>
-  <!-- Embajador module (depends on config/main) -->
   <script type="module" src="/assets/js/embajador.js"></script>
 </body>
 </html>
