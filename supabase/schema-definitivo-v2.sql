@@ -1255,5 +1255,223 @@ END;
 $$;
 
 -- ============================================================
+-- F. EMBAJADOR: patrocinios, comisiones, billetera, retiros
+-- ============================================================
+
+-- F-1. patrocinios
+CREATE TABLE IF NOT EXISTS public.patrocinios (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  embajador_id uuid        NOT NULL,
+  comercio_id  uuid        NOT NULL,
+  fecha_inicio timestamptz NOT NULL DEFAULT now(),
+  activo       boolean     NOT NULL DEFAULT true,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.patrocinios ADD COLUMN IF NOT EXISTS embajador_id uuid;
+ALTER TABLE public.patrocinios ADD COLUMN IF NOT EXISTS comercio_id  uuid;
+ALTER TABLE public.patrocinios ADD COLUMN IF NOT EXISTS fecha_inicio timestamptz;
+ALTER TABLE public.patrocinios ADD COLUMN IF NOT EXISTS activo       boolean;
+ALTER TABLE public.patrocinios ADD COLUMN IF NOT EXISTS created_at   timestamptz;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE public.patrocinios ADD CONSTRAINT patrocinios_embajador_fkey
+      FOREIGN KEY (embajador_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+  BEGIN
+    ALTER TABLE public.patrocinios ADD CONSTRAINT patrocinios_comercio_fkey
+      FOREIGN KEY (comercio_id) REFERENCES public.comercios(id) ON DELETE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+  BEGIN
+    ALTER TABLE public.patrocinios ADD CONSTRAINT patrocinios_embajador_comercio_key
+      UNIQUE (embajador_id, comercio_id);
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+END; $$;
+
+-- F-2. historial_comisiones
+CREATE TABLE IF NOT EXISTS public.historial_comisiones (
+  id             uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  embajador_id   uuid          NOT NULL,
+  comercio_id    uuid          NOT NULL,
+  pedido_id      uuid          NOT NULL,
+  monto_pedido   numeric(12,2) NOT NULL,
+  tasa_aplicada  numeric(5,4)  NOT NULL,
+  monto_comision numeric(12,2) NOT NULL,
+  meses_activo   integer       NOT NULL,
+  created_at     timestamptz   NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS embajador_id   uuid;
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS comercio_id    uuid;
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS pedido_id      uuid;
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS monto_pedido   numeric(12,2);
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS tasa_aplicada  numeric(5,4);
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS monto_comision numeric(12,2);
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS meses_activo   integer;
+ALTER TABLE public.historial_comisiones ADD COLUMN IF NOT EXISTS created_at     timestamptz;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE public.historial_comisiones ADD CONSTRAINT historial_comisiones_embajador_fkey
+      FOREIGN KEY (embajador_id) REFERENCES auth.users(id);
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+  BEGIN
+    ALTER TABLE public.historial_comisiones ADD CONSTRAINT historial_comisiones_pedido_fkey
+      FOREIGN KEY (pedido_id) REFERENCES public.pedidos(id) ON DELETE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+  BEGIN
+    ALTER TABLE public.historial_comisiones ADD CONSTRAINT historial_comisiones_pedido_embajador_key
+      UNIQUE (pedido_id, embajador_id);
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+END; $$;
+
+-- F-3. billetera_embajador
+CREATE TABLE IF NOT EXISTS public.billetera_embajador (
+  embajador_id     uuid          PRIMARY KEY,
+  saldo_disponible numeric(12,2) NOT NULL DEFAULT 0,
+  saldo_acumulado  numeric(12,2) NOT NULL DEFAULT 0,
+  saldo_retirado   numeric(12,2) NOT NULL DEFAULT 0,
+  updated_at       timestamptz   NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.billetera_embajador ADD COLUMN IF NOT EXISTS saldo_disponible numeric(12,2);
+ALTER TABLE public.billetera_embajador ADD COLUMN IF NOT EXISTS saldo_acumulado  numeric(12,2);
+ALTER TABLE public.billetera_embajador ADD COLUMN IF NOT EXISTS saldo_retirado   numeric(12,2);
+ALTER TABLE public.billetera_embajador ADD COLUMN IF NOT EXISTS updated_at       timestamptz;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE public.billetera_embajador ADD CONSTRAINT billetera_embajador_fkey
+      FOREIGN KEY (embajador_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+END; $$;
+
+-- F-4. solicitudes_retiro
+CREATE TABLE IF NOT EXISTS public.solicitudes_retiro (
+  id           uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  embajador_id uuid          NOT NULL,
+  monto        numeric(12,2) NOT NULL,
+  estado       text          NOT NULL DEFAULT 'pendiente',
+  cbu_alias    text,
+  notas_admin  text,
+  created_at   timestamptz   NOT NULL DEFAULT now(),
+  updated_at   timestamptz   NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS embajador_id uuid;
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS monto        numeric(12,2);
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS estado       text;
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS cbu_alias    text;
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS notas_admin  text;
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS created_at   timestamptz;
+ALTER TABLE public.solicitudes_retiro ADD COLUMN IF NOT EXISTS updated_at   timestamptz;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE public.solicitudes_retiro ADD CONSTRAINT solicitudes_retiro_embajador_fkey
+      FOREIGN KEY (embajador_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+  BEGIN
+    ALTER TABLE public.solicitudes_retiro DROP CONSTRAINT IF EXISTS solicitudes_retiro_estado_check;
+    ALTER TABLE public.solicitudes_retiro ADD CONSTRAINT solicitudes_retiro_estado_check
+      CHECK (estado IN ('pendiente','pagado','rechazado'));
+  EXCEPTION WHEN duplicate_object THEN NULL; WHEN OTHERS THEN NULL; END;
+END; $$;
+
+-- F-5. Índices embajador
+CREATE INDEX IF NOT EXISTS idx_patrocinios_embajador ON public.patrocinios         (embajador_id);
+CREATE INDEX IF NOT EXISTS idx_patrocinios_comercio  ON public.patrocinios         (comercio_id);
+CREATE INDEX IF NOT EXISTS idx_historial_embajador   ON public.historial_comisiones(embajador_id);
+CREATE INDEX IF NOT EXISTS idx_historial_pedido      ON public.historial_comisiones(pedido_id);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_embajador ON public.solicitudes_retiro  (embajador_id);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_estado    ON public.solicitudes_retiro  (estado);
+CREATE INDEX IF NOT EXISTS idx_cadetes_referido      ON public.cadetes             (codigo_referido);
+
+-- F-6. RLS embajador
+ALTER TABLE public.patrocinios          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.historial_comisiones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.billetera_embajador  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.solicitudes_retiro   ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "pat_embajador_select" ON public.patrocinios;
+DROP POLICY IF EXISTS "pat_service_all"      ON public.patrocinios;
+CREATE POLICY "pat_embajador_select" ON public.patrocinios FOR SELECT USING (embajador_id = auth.uid());
+CREATE POLICY "pat_service_all"      ON public.patrocinios FOR ALL    USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "hist_embajador_select" ON public.historial_comisiones;
+DROP POLICY IF EXISTS "hist_service_all"      ON public.historial_comisiones;
+CREATE POLICY "hist_embajador_select" ON public.historial_comisiones FOR SELECT USING (embajador_id = auth.uid());
+CREATE POLICY "hist_service_all"      ON public.historial_comisiones FOR ALL    USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "bill_embajador_select" ON public.billetera_embajador;
+DROP POLICY IF EXISTS "bill_service_all"      ON public.billetera_embajador;
+CREATE POLICY "bill_embajador_select" ON public.billetera_embajador FOR SELECT USING (embajador_id = auth.uid());
+CREATE POLICY "bill_service_all"      ON public.billetera_embajador FOR ALL    USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "sol_embajador_select" ON public.solicitudes_retiro;
+DROP POLICY IF EXISTS "sol_service_all"      ON public.solicitudes_retiro;
+CREATE POLICY "sol_embajador_select" ON public.solicitudes_retiro FOR SELECT USING (embajador_id = auth.uid());
+CREATE POLICY "sol_service_all"      ON public.solicitudes_retiro FOR ALL    USING (auth.role() = 'service_role');
+
+-- F-7. RPCs embajador
+
+CREATE OR REPLACE FUNCTION public.acreditar_comision(
+  p_embajador_id uuid, p_monto numeric
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO billetera_embajador (embajador_id, saldo_disponible, saldo_acumulado, saldo_retirado, updated_at)
+  VALUES (p_embajador_id, p_monto, p_monto, 0, now())
+  ON CONFLICT (embajador_id) DO UPDATE
+    SET saldo_disponible = billetera_embajador.saldo_disponible + p_monto,
+        saldo_acumulado  = billetera_embajador.saldo_acumulado  + p_monto,
+        updated_at       = now();
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.solicitar_retiro_embajador(
+  p_embajador_id uuid, p_monto numeric, p_cbu_alias text DEFAULT NULL
+) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_saldo numeric; v_id uuid;
+BEGIN
+  IF p_monto <= 0 THEN RETURN json_build_object('error','El monto debe ser mayor a 0'); END IF;
+  SELECT saldo_disponible INTO v_saldo FROM billetera_embajador WHERE embajador_id = p_embajador_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN json_build_object('error','Billetera no encontrada'); END IF;
+  IF v_saldo < p_monto THEN RETURN json_build_object('error','Saldo insuficiente','saldo_disponible',v_saldo); END IF;
+  INSERT INTO solicitudes_retiro (embajador_id, monto, cbu_alias) VALUES (p_embajador_id, p_monto, p_cbu_alias) RETURNING id INTO v_id;
+  UPDATE billetera_embajador SET saldo_disponible = saldo_disponible - p_monto, updated_at = now() WHERE embajador_id = p_embajador_id;
+  RETURN json_build_object('ok', true, 'solicitud_id', v_id, 'monto', p_monto);
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.confirmar_pago_retiro(
+  p_solicitud_id uuid
+) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_monto numeric; v_embajador_id uuid; v_estado text;
+BEGIN
+  SELECT monto, embajador_id, estado INTO v_monto, v_embajador_id, v_estado FROM solicitudes_retiro WHERE id = p_solicitud_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN json_build_object('error','Solicitud no encontrada'); END IF;
+  IF v_estado != 'pendiente' THEN RETURN json_build_object('error','Ya fue procesada','estado',v_estado); END IF;
+  UPDATE solicitudes_retiro SET estado = 'pagado', updated_at = now() WHERE id = p_solicitud_id;
+  UPDATE billetera_embajador SET saldo_retirado = saldo_retirado + v_monto, updated_at = now() WHERE embajador_id = v_embajador_id;
+  RETURN json_build_object('ok', true, 'solicitud_id', p_solicitud_id, 'monto', v_monto);
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.rechazar_retiro(
+  p_solicitud_id uuid, p_motivo text DEFAULT NULL
+) RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_monto numeric; v_embajador_id uuid; v_estado text;
+BEGIN
+  SELECT monto, embajador_id, estado INTO v_monto, v_embajador_id, v_estado FROM solicitudes_retiro WHERE id = p_solicitud_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN json_build_object('error','Solicitud no encontrada'); END IF;
+  IF v_estado != 'pendiente' THEN RETURN json_build_object('error','Ya fue procesada','estado',v_estado); END IF;
+  UPDATE solicitudes_retiro SET estado = 'rechazado', notas_admin = p_motivo, updated_at = now() WHERE id = p_solicitud_id;
+  UPDATE billetera_embajador SET saldo_disponible = saldo_disponible + v_monto, updated_at = now() WHERE embajador_id = v_embajador_id;
+  RETURN json_build_object('ok', true, 'saldo_devuelto', v_monto);
+END; $$;
+
+-- ============================================================
 -- FIN — schema-definitivo-v2.sql
 -- ============================================================
