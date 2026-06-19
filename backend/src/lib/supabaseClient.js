@@ -16,6 +16,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } = process.env;
 
@@ -33,10 +34,14 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
   );
 }
 
+// Node 20 no tiene WebSocket nativo — se usa el paquete 'ws' como polyfill
 const BASE_OPTIONS = {
   auth: {
     persistSession:   false,
     autoRefreshToken: false,
+  },
+  realtime: {
+    transport: WebSocket,
   },
 };
 
