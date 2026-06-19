@@ -162,22 +162,6 @@ async function submitForm() {
   btn.disabled = true; btn.textContent = currentTab === 'login' ? 'Ingresando...' : 'Creando cuenta...';
 
   try {
-    // ── BYPASS DE PRUEBA ──────────────────────────────────────────────────────
-    // cliente_test@gmail.com: intenta Supabase directo y salta el check de rol.
-    // Si la cuenta no existe en Supabase activa un bypass de emergencia para el guard.
-    if (currentTab === 'login' && email === 'cliente_test@gmail.com') {
-      try {
-        const { data:_d, error:_e } = await sb.auth.signInWithPassword({ email, password: pass });
-        if (!_e && _d?.session) {
-          try { localStorage.setItem('access_token',_d.session.access_token||''); localStorage.setItem('user_id',_d.user?.id||''); localStorage.setItem('role','usuario'); } catch(_){}
-          window.location.href = 'index.html'; return;
-        }
-      } catch(_) {}
-      // Supabase falló o cuenta inexistente → bypass persistente de desarrollo
-      try { localStorage.setItem('pap_bypass_activo','true'); localStorage.setItem('role','usuario'); localStorage.setItem('user_id','test-uid-cliente-001'); } catch(_){}
-      window.location.href = 'index.html'; return;
-    }
-    // ── FIN BYPASS ────────────────────────────────────────────────────────────
       if (currentTab === 'login') {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) {

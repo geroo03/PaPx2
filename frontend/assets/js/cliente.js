@@ -479,13 +479,6 @@ window.addEventListener('load', () => {
   // Sincronizar ICONS ahora que main.js (módulo) ya ejecutó
   if (window.ICONS) ICONS = window.ICONS;
 
-  // Bypass persistente de desarrollo: saltar verificación Supabase en cada carga
-  if (localStorage.getItem('pap_bypass_activo') === 'true') {
-    console.log('[PaP] Bypass de desarrollo activo');
-    cargarPerfil({email:'cliente_test@gmail.com',user_metadata:{}});
-    return;
-  }
-
   const _sb = window.sb;
   if (!_sb || !_sb.auth) {
     console.error('[PaP] window.sb no disponible en load — redirigiendo a login');

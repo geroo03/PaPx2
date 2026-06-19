@@ -33,10 +33,6 @@
       window.sb = window.supabase.createClient(_url, _key);
     }
   }
-  // Bypass persistente de desarrollo: saltar verificación de sesión en cada refresh
-  if (localStorage.getItem('pap_bypass_activo') === 'true') { return; }
-  // Compatibilidad: flag de un solo uso seteado por login de prueba
-  if (localStorage.getItem('pap_test_bypass') === '1') { localStorage.removeItem('pap_test_bypass'); localStorage.setItem('pap_bypass_activo','true'); return; }
   const sb = window.sb;
   if (!sb) {
     console.warn('No Supabase client available. Redirecting to login.');
@@ -185,14 +181,11 @@
     </div>
     <div id="search-results" style="display:none;position:absolute;left:18px;right:18px;top:100%;z-index:300;background:#fff;border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,.15);overflow:hidden;max-height:320px;overflow-y:auto;"></div>
   </div>
-  <div style="padding:14px 18px 0;position:relative;">
-    <div style="border-radius:var(--radius-lg);overflow:hidden;position:relative;height:160px;background:#111;" id="hero-banner">
-      <div id="banner-slides" style="display:flex;transition:transform .4s ease;height:100%;">
-        <div style="min-width:100%;position:relative;"><img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=700&q=80" alt="oferta" style="width:100%;height:160px;object-fit:cover;display:block;filter:brightness(.6);"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 100%);"></div><div style="position:absolute;top:8px;left:12px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.06em;">PATROCINADO</div><div style="position:absolute;inset:0;padding:32px 16px 16px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Burger King</div><div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;">2x1 en Whopper<br>solo hoy 🔥</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;width:fit-content;">Ver oferta</div></div></div>
-        <div style="min-width:100%;position:relative;"><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700&q=80" alt="oferta2" style="width:100%;height:160px;object-fit:cover;display:block;filter:brightness(.6);"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 100%);"></div><div style="position:absolute;top:8px;left:12px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.06em;">PATROCINADO</div><div style="position:absolute;inset:0;padding:32px 16px 16px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Pizza Hut</div><div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;">Pizza grande<br>+ bebida gratis 🍕</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;width:fit-content;">Ver oferta</div></div></div>
-        <div style="min-width:100%;position:relative;"><img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=700&q=80" alt="oferta3" style="width:100%;height:160px;object-fit:cover;display:block;filter:brightness(.6);"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 100%);"></div><div style="position:absolute;top:8px;left:12px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.06em;">PATROCINADO</div><div style="position:absolute;inset:0;padding:32px 16px 16px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Disco Súper</div><div style="font-size:20px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;">30% off en<br>productos seleccionados</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;width:fit-content;">Ver oferta</div></div></div>
-      </div>
-      <div style="position:absolute;bottom:10px;right:14px;display:flex;gap:5px;" id="banner-dots"><div style="width:6px;height:6px;border-radius:50%;background:#fff;" class="bdot"></div><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);" class="bdot"></div><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);" class="bdot"></div></div>
+  <!-- Banner de ofertas: se carga dinámicamente desde la tabla patrocinios -->
+  <div id="hero-banner" style="padding:14px 18px 0;display:none;">
+    <div style="border-radius:var(--radius-lg);overflow:hidden;position:relative;height:160px;background:#111;">
+      <div id="banner-slides" style="display:flex;transition:transform .4s ease;height:100%;"></div>
+      <div style="position:absolute;bottom:10px;right:14px;display:flex;gap:5px;" id="banner-dots"></div>
     </div>
   </div>
   <div id="ofertas-banner-wrap" style="display:none;padding:16px 0 0;">

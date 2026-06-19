@@ -790,35 +790,6 @@ function sonarViaje() {
   } catch {}
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SIMULADOR LOCAL
-// ═══════════════════════════════════════════════════════════════════════════════
-window.simularNuevoViaje = function () {
-  const id = 'sim-' + Date.now();
-  ofertasPendientes.unshift({
-    pedido_id:          id,
-    id,
-    numero:             Math.floor(Math.random() * 9000) + 100,
-    estado:             'pendiente',
-    tipo_delivery:      'app',
-    comercio_nombre:    'La Piola Pizzería (Sim)',
-    comercio_direccion: 'Av. Belgrano 234',
-    comercio_lat:       -27.7833,
-    comercio_lng:       -64.2667,
-    cliente_direccion:  'Urquiza 456, Santiago del Estero',
-    cliente_lat:        -27.7950,
-    cliente_lng:        -64.2550,
-    distancia_km:       1.8,
-    ganancia_estimada:  1050,
-    total:              5700,
-    metodo_pago:        'Efectivo',
-    created_at:         new Date().toISOString(),
-    comercios:          { nombre: 'La Piola Pizzería (Sim)', direccion: 'Av. Belgrano 234', telefono: '3700-123456' },
-  });
-  renderViajes();
-  sonarViaje();
-  toast(`${ICONS.scooter} Simulador: Nuevo viaje disponible`, 2500);
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ASISTENTE IA
