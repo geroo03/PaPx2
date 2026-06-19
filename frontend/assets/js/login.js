@@ -16,6 +16,7 @@ import { supabase as sb, USE_MOCK, MOCK_DATABASE } from './config.js';
 // Paths absolutos para que funcionen desde cualquier subcarpeta del proyecto.
 const RUTAS = {
   usuario:   '/cliente/index.html',
+  cliente:   '/cliente/index.html',
   comercio:  '/comercio/comercio.html',
   cadete:    '/cadete/cadete.html',
   embajador: '/embajador/dashboard.html',
