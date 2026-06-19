@@ -10,9 +10,9 @@ node_modules/
 secrets/
 service-account.json
 credentials.json
-# Credenciales del cliente: env.js se genera desde env.js.template
-frontend/env.js
-env.js
+# env.js del frontend contiene solo la ANON key (pública) + BACKEND_URL
+# Se commitea para que Vercel la tenga en el deploy
+# La SERVICE_ROLE key NUNCA va en este archivo — solo en backend/.env
 
 # ── Build artifacts ───────────────────────────────────────────────────────────
 dist/
