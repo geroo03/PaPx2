@@ -61,29 +61,15 @@ function go(screen){
 
 function showToast(msg,duration=2500){document.getElementById('toast-msg').innerHTML=msg;const t=document.getElementById('toast');t.style.display='block';setTimeout(()=>t.style.display='none',duration);}
 
-// UUID provisional — se reemplaza en runtime por el UUID real de la tabla comercios (lookup por nombre)
-const HABIBI_ESTATICO={id:'00000000-0000-0000-0000-000000000001',nombre:'Habibi Rest',categoria:'Sándwiches',imagen_url:'https://images.unsplash.com/photo-1550503531-0974c8945921?q=80&w=800',rating:4.9,total_pedidos:87,abierto_ahora:true};
-
 async function cargarComercios(){
   try{
-    // Columna real: estado_registro (TEXT). Sin filtro por 'activo' (no existe).
-    // Orden por nombre (columna NOT NULL garantizada).
     const{data,error}=await sb.from('comercios').select('*').order('nombre',{ascending:true});
     if(error)throw error;
     allComercios=data||[];
-    // Resolver UUID real de Habibi Rest desde los resultados de Supabase
-    const _habibiDB=allComercios.find(c=>c.nombre==='Habibi Rest')||allComercios.find(c=>c.nombre&&c.nombre.toLowerCase().includes('habibi'));
-    if(_habibiDB){HABIBI_ESTATICO.id=_habibiDB.id;menusFallback[_habibiDB.id]=menusFallback['habibi-rest'];}
-    else{try{const{data:_h}=await sb.from('comercios').select('id').ilike('nombre','%habibi%').limit(1).maybeSingle();if(_h?.id){HABIBI_ESTATICO.id=_h.id;menusFallback[_h.id]=menusFallback['habibi-rest'];}}catch{}}
   }catch(e){
-    allComercios=[
-      {id:'demo-1',nombre:'Restaurante Central',categoria:'comida',imagen_url:'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=80',rating:4.8,total_pedidos:142,abierto_ahora:true},
-      {id:'demo-2',nombre:'Carnicería El Norte',categoria:'carniceria',imagen_url:'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=600&q=80',rating:4.7,total_pedidos:98,abierto_ahora:true},
-      {id:'demo-3',nombre:'Farmacia Del Centro',categoria:'farmacia',imagen_url:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80',rating:4.9,total_pedidos:201,abierto_ahora:true},
-    ];
+    console.error('[PaP] Error cargando comercios:', e);
+    allComercios=[];
   }
-  // Siempre garantizar Habibi Rest (dato estático, independiente de Supabase)
-  if(!allComercios.find(c=>c.nombre==='Habibi Rest'))allComercios.unshift(HABIBI_ESTATICO);
   renderRubros();
 }
 
@@ -183,7 +169,7 @@ function selStar(n){starSeleccionada=n;document.querySelectorAll('.star').forEac
 async function enviarRating(){if(!starSeleccionada){showToast('Elegí una puntuación');return;}const comentario=document.getElementById('rating-comentario').value.trim();try{await sb.from('ratings').insert([{comercio_id:currentComercio?.id,pedido_id:currentPedido?.id,rating:starSeleccionada,comentario}]);}catch(e){}cerrarRating();showToast(`${ICONS.check} ¡Gracias por tu calificación!`,3000);} 
 function cerrarRating(){document.getElementById('rating-screen').classList.remove('visible');}
 
-const menusFallback={'habibi-rest':[{cat:'Sándwiches',items:[{nombre:'Lomito de vacío',desc:'Lomito de vacío de primera calidad',precio:16100,emoji:'🥩'},{nombre:'Sándwich de pollo',desc:'Pollo grillado con vegetales',precio:11500,emoji:'🍗'}]}],'demo-1':[{cat:'Pizzas',items:[{nombre:'Muzarella',desc:'Salsa, queso, orégano',precio:2500,emoji:'🍕'},{nombre:'Napolitana',desc:'Tomate, albahaca, ajo',precio:2800,emoji:'🍕'}]},{cat:'Empanadas',items:[{nombre:'Carne a cuchillo',desc:'Docena',precio:3200,emoji:'🥟'}]}],'demo-2':[{cat:'Vacuno',items:[{nombre:'Milanesas',desc:'Precio por kg',precio:3800,emoji:'🥩'},{nombre:'Asado',desc:'Precio por kg',precio:4200,emoji:'🥩'}]}],'demo-3':[{cat:'Medicamentos',items:[{nombre:'Ibuprofeno 400mg x20',desc:'Genérico',precio:1200,emoji:'💊'},{nombre:'Paracetamol 500mg x20',desc:'Genérico',precio:900,emoji:'💊'}]}]};
+const menusFallback={};
 
 async function abrirComercio(id){const com=allComercios.find(c=>c.id===id);if(!com)return;currentComercio=com;window.state.cart={};document.getElementById('det-name').textContent=com.nombre;document.getElementById('det-meta').textContent=`${com.abierto_ahora?'🟢 Abierto':'🔴 Cerrado'} · ⭐ ${com.rating} · ${com.total_pedidos||0} pedidos · Envío desde $600`;document.getElementById('cart-comercio-name').textContent=com.nombre;document.getElementById('cart-float').style.display='none';document.getElementById('ratings-comercio').style.display='none';go('detail');cargarRatingsComercio(id);try{const[{data,error},{data:catData}]=await Promise.all([window.sb.from('productos').select('*').eq('comercio_id',id).eq('disponible',true),window.sb.from('categorias_producto').select('id,nombre').eq('comercio_id',id)]);if(error){console.error('[PaP] Error cargando productos:',error.message);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">⚠️</div><p>Error al cargar el menú. Intentá de nuevo.</p></div>';return;}const cerradoBanner=!com.abierto_ahora?'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 16px;margin-bottom:12px;font-size:13px;font-weight:600;color:#DC2626;text-align:center;">🔴 Cerrado ahora — podés explorar el menú pero no hacer pedidos.</div>':'';if(!data||!data.length){document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="empty"><div class="big">🍽️</div><p>Este comercio no tiene productos disponibles.</p></div>';return;}const catMap=Object.fromEntries((catData||[]).map(c=>[c.id,c.nombre]));const cats=[...new Set(data.map(p=>p.categoria_id||'General'))];document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="section-card">'+cats.map(cat=>`<div class="menu-cat-label">${catMap[cat]||cat}</div>${data.filter(p=>(p.categoria_id||'General')===cat).map(p=>{const precio=Number(p.precio_base??p.precio??0);const img=p.imagen_url?`<img src="${p.imagen_url}" style="width:54px;height:54px;object-fit:cover;border-radius:10px;flex-shrink:0;margin-left:8px;" loading="lazy"/>`:'';const addDisabled=!com.abierto_ahora?' disabled style="opacity:.4;cursor:not-allowed;"':'';return`<div class="menu-item"><div style="flex:1;min-width:0;"><div class="mi-name">${p.nombre}</div><div class="mi-desc">${p.descripcion||''}</div></div><div class="mi-right">${img}<div class="mi-price">$${precio.toLocaleString('es-AR')}</div><button class="add-btn" onclick="addCart('${p.id}','${p.nombre.replace(/'/g,"\\'")}',${precio})"${addDisabled}>+</button></div></div>`;}).join('')}`).join('')+'</div>';}catch(e){console.error('[PaP] Excepción al cargar productos:',e);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">⚠️</div><p>No se pudo cargar el menú. Revisá tu conexión.</p></div>';}}
 
