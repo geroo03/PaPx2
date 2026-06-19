@@ -2,6 +2,15 @@
 
 Plataforma de delivery para Santiago del Estero. Conecta clientes, comercios, cadetes y embajadores.
 
+## Funcionalidades
+
+- **Sistema de Embajadores:** Patrocinios con comisiones dinámicas (5% primeros 6 meses, 2% después)
+- **Tracking Realtime:** Seguimiento de cadetes con Leaflet + Supabase Realtime
+- **Pagos:** Integración MercadoPago con webhook HMAC + billetera digital embajadores
+- **Asignación Inteligente:** Matching de cadetes por geolocalización (Haversine, radio 10km)
+- **Seguridad:** JWT en todos los endpoints, códigos de entrega CSPRNG (4 dígitos), timingSafeEqual
+- **Anti-colisión:** Solo un cadete puede tomar cada pedido (`.is('cadete_id', null)`)
+
 ## Stack
 
 - **Backend:** Node.js 20+ / Express 5 / ES Modules
@@ -35,8 +44,7 @@ frontend/
   env.js.template  Template para credenciales del cliente
 
 supabase/
-  schema-definitivo-v2.sql          Schema principal (20+ tablas, triggers, RLS)
-  migracion-nuevas-funciones.sql    Embajador: patrocinios, comisiones, billetera
+  schema-definitivo-v2.sql   Schema completo (tablas, embajador, RPCs, triggers, RLS)
 ```
 
 ## Endpoints
@@ -55,6 +63,8 @@ supabase/
 | GET | `/api/embajadores/dashboard` | JWT | Billetera + comisiones + comercios |
 | POST | `/api/embajadores/comercios` | JWT | Registrar comercio como embajador |
 | POST | `/api/embajadores/solicitar-retiro` | JWT | Solicitar retiro de comisiones |
+| PATCH | `/api/embajadores/retiro/:id/pagar` | JWT | Admin confirma pago de retiro |
+| PATCH | `/api/embajadores/retiro/:id/rechazar` | JWT | Admin rechaza retiro |
 | GET | `/health` | No | Health check |
 
 ## Setup local
@@ -67,12 +77,12 @@ npm install
 npm start               # http://localhost:3000
 
 # Frontend
-# Servir frontend/ con cualquier server estático en puerto 8000
 # Copiar env.js.template a env.js y completar las keys
+# Servir frontend/ con cualquier server estático en puerto 8000
 ```
 
 ## Deploy
 
-- **Backend:** Railway (desde GitHub, entry: `backend/`)
-- **Frontend:** Vercel (desde GitHub, root: `frontend/`)
-- **DB:** Supabase (correr los SQL del directorio `supabase/`)
+- **Backend:** Railway (desde GitHub, root: `backend/`, start: `npm start`)
+- **Frontend:** Vercel (desde GitHub, root: `frontend/`, output: `.`)
+- **DB:** Supabase (correr `supabase/schema-definitivo-v2.sql` en SQL Editor)
