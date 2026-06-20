@@ -4,7 +4,7 @@ import { ICONS } from './icons.js';
 // ESTADO GLOBAL
 // activeTripState: 0=idle | 1=yendo_al_local | 2=en_camino_al_cliente | 3=finalizado
 // ═══════════════════════════════════════════════════════════════════════════════
-let disp          = true;
+let disp          = sessionStorage.getItem('cadete_disp') !== 'false';
 let ofertasPendientes = [];   // ofertas_cadetes con estado 'pendiente'
 const OFERTA_TIMEOUT_MS = 20000;
 const _ofertaTimers = new Map(); // pedido_id → timeoutId
@@ -139,11 +139,11 @@ function mapsTo(addr) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function togDisp() {
   disp = !disp;
+  sessionStorage.setItem('cadete_disp', disp ? 'true' : 'false');
   document.getElementById('disp-dot').className = 'disp-dot' + (disp ? ' on' : '');
   document.getElementById('disp-lbl').textContent = disp ? 'Disponible' : 'Inactivo';
-  toast(disp ? '✅ Estás disponible' : '⏸️ Pausaste los viajes');
+  toast(disp ? 'Disponible' : 'Pausaste los viajes');
 
-  // GPS: activar cuando disponible, pausar cuando inactivo
   if (disp) iniciarReporteGPS();
   else      detenerReporteGPS();
 
@@ -1291,8 +1291,8 @@ if ('Notification' in window && Notification.permission === 'default') {
 // ROLE GUARD + BOOT
 // ═══════════════════════════════════════════════════════════════════════════════
 ;(async function guardCadete() {
-  if (window._cadete_redirecting || window._cadete_booted) return;
-  window._cadete_booted = true;
+  if (window._cadete_redirecting || window._cadeteGuardDone) return;
+  window._cadeteGuardDone = true;
   try {
     // getUser() valida el token contra el servidor (no cache local)
     const { data: { user }, error } = await sb.auth.getUser();
@@ -1323,15 +1323,6 @@ if ('Notification' in window && Notification.permission === 'default') {
 
     cadeteUserId = user.id;
 
-    // Mostrar nombre real en el header
-    const displayName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Cadete';
-    const headerName = document.getElementById('cad-nombre');
-    if (headerName) headerName.textContent = displayName;
-    const perfName = document.getElementById('perf-nombre');
-    if (perfName) perfName.textContent = displayName;
-    const perfAv = document.getElementById('perf-av');
-    if (perfAv) perfAv.textContent = displayName.slice(0, 2).toUpperCase();
-
     // Verificar si necesita completar onboarding antes de operar
     await verificarOnboarding();
     bindOnboardingForm();
@@ -1340,6 +1331,10 @@ if ('Notification' in window && Notification.permission === 'default') {
 
     await cargarOfertas();
     iniciarRealtimeCadete();
+
+    // Sincronizar UI del toggle con el estado guardado
+    document.getElementById('disp-dot').className = 'disp-dot' + (disp ? ' on' : '');
+    document.getElementById('disp-lbl').textContent = disp ? 'Disponible' : 'Inactivo';
 
     // Arrancar GPS si el cadete está disponible
     if (disp) iniciarReporteGPS();
