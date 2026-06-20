@@ -725,16 +725,25 @@ function actualizarSelectorVehiculo() {
 
 async function cambiarVehiculo(tipo) {
   if (tipo !== 'moto' && tipo !== 'bici') return;
+  if (tipo === cadeteVehiculo) return;
+
+  const desde = cadeteVehiculo === 'moto' ? 'Moto' : 'Bici';
+  const hacia = tipo === 'moto' ? 'Moto' : 'Bici';
+  if (!confirm(`Cambiar de ${desde} a ${hacia}?\n\nBase ${desde}: $${cadeteVehiculo === 'moto' ? '1.800' : '1.200'}\nBase ${hacia}: $${tipo === 'moto' ? '1.800' : '1.200'}`)) return;
+
   cadeteVehiculo = tipo;
   actualizarSelectorVehiculo();
+  bindVehiculoSelect();
   renderViajes();
 
-  // Persistir en la DB
   if (cadeteUserId) {
     try {
       await sb.from('cadetes').update({ vehiculo: tipo }).eq('auth_uid', cadeteUserId);
-      toast(tipo === 'moto' ? '🏍️ Vehículo: Moto · Base $1.800' : '🚲 Vehículo: Bici · Base $1.200');
-    } catch { toast('Error guardando vehículo'); }
+      toast(tipo === 'moto' ? 'Vehiculo: Moto - Base $1.800' : 'Vehiculo: Bici - Base $1.200');
+      if (tipo === 'moto') {
+        toast('Completa patente, carnet y seguro en tu perfil');
+      }
+    } catch { toast('Error guardando vehiculo'); }
   }
 }
 
@@ -890,10 +899,12 @@ if (checkForm) {
       const nombre           = document.getElementById('cd-nombre')?.value.trim()       ?? '';
       const fecha_nacimiento = document.getElementById('cd-fecha')?.value               || null;
       const email            = document.getElementById('cd-email')?.value.trim()        ?? '';
+      const telefono         = document.getElementById('cd-telefono')?.value.trim()     ?? '';
+      const cvu              = document.getElementById('cd-cvu')?.value.trim()          ?? '';
       const vehiculo         = document.getElementById('cd-vehiculo')?.value.trim()     ?? '';
       const color            = document.getElementById('cd-color')?.value.trim()        ?? '';
       const patente          = document.getElementById('cd-patente')?.value.trim()      ?? '';
-      const antecedentes     = document.getElementById('cd-antecedentes')?.value === 'true';
+      const antecedentes     = false;
 
       let antecedentes_path = null;
       if (antecedentes) {
@@ -910,7 +921,7 @@ if (checkForm) {
       }
 
       const { error: dbErr } = await sb.from('cadetes').upsert(
-        { auth_uid: user.id, nombre, fecha_nacimiento, email, vehiculo, color, patente, antecedentes, antecedentes_path },
+        { auth_uid: user.id, nombre, fecha_nacimiento, email, telefono, cvu, vehiculo, color, patente },
         { onConflict: 'auth_uid' },
       );
       if (dbErr) throw new Error('Error guardando en BD: ' + dbErr.message);
@@ -932,16 +943,15 @@ if (checkForm) {
     if (!user) return;
     const { data } = await sb.from('cadetes').select('*').eq('auth_uid', user.id).single();
     if (!data) return;
-    document.getElementById('cd-nombre')?.value != null       && (document.getElementById('cd-nombre').value = data.nombre || '');
-    document.getElementById('cd-fecha')?.value != null        && (document.getElementById('cd-fecha').value = data.fecha_nacimiento || '');
-    document.getElementById('cd-email')?.value != null        && (document.getElementById('cd-email').value = data.email || '');
-    document.getElementById('cd-vehiculo')?.value != null     && (document.getElementById('cd-vehiculo').value = data.vehiculo || '');
-    document.getElementById('cd-color')?.value != null        && (document.getElementById('cd-color').value = data.color || '');
-    document.getElementById('cd-patente')?.value != null      && (document.getElementById('cd-patente').value = data.patente || '');
-    if (data.antecedentes) {
-      document.getElementById('cd-antecedentes') && (document.getElementById('cd-antecedentes').value = 'true');
-      document.getElementById('cd-ant-upload')   && (document.getElementById('cd-ant-upload').style.display = 'block');
-    }
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    setVal('cd-nombre', data.nombre);
+    setVal('cd-fecha', data.fecha_nacimiento);
+    setVal('cd-email', data.email);
+    setVal('cd-telefono', data.telefono);
+    setVal('cd-cvu', data.cvu);
+    setVal('cd-vehiculo', data.vehiculo);
+    setVal('cd-color', data.color);
+    setVal('cd-patente', data.patente);
 
     // Setear vehículo global para cálculo de tarifa
     const veh = (data.vehiculo ?? '').toLowerCase();
