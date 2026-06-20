@@ -520,8 +520,8 @@ async function registrar() {
     // Se hace upsert para no romper si el trigger handle_new_auth_user_create_profile
     // ya creó la fila automáticamente en Supabase.
     await sb.from('perfiles').upsert(
-      { id: userId, rol: 'comercio', email },
-      { onConflict: 'id', ignoreDuplicates: false }
+      { usuario_id: userId, rol: 'comercio', email },
+      { onConflict: 'usuario_id', ignoreDuplicates: false }
     );
 
     // ── 3. Insertar en 'comercios' ────────────────────────────

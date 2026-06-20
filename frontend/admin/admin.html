@@ -381,11 +381,23 @@ document.getElementById('form-crear').addEventListener('submit', async (e) => {
   const resEl = document.getElementById('crear-result');
   resEl.textContent = 'Creando...';
   try {
+    // Guardar sesion admin antes de signUp (signUp reemplaza la sesion activa)
+    const { data: { session: adminSession } } = await supabase.auth.getSession();
+
     const { data, error } = await supabase.auth.signUp({
       email, password: pass,
       options: { data: { nombre, role: 'embajador' } },
     });
     if (error) throw error;
+
+    // Restaurar sesion admin inmediatamente
+    if (adminSession?.refresh_token) {
+      await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      });
+    }
+
     resEl.textContent = 'Embajador creado: ' + (data?.user?.email || email);
     resEl.style.color = '#16a34a';
     document.getElementById('form-crear').reset();

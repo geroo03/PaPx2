@@ -13,12 +13,11 @@
 <title>Puerta a Puerta — Tu pedido, ya mismo.</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/index.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/env.js"></script>
 </head>
 <body>
@@ -95,9 +94,15 @@
 
           btn.disabled = true; btn.textContent = 'Convirtiendo...';
           try {
-            const res = await sb.auth.updateUser({ data: { role: 'cadete' } });
-            if (res.error) throw res.error;
-            // Small success feedback then redirect
+            const sess = await sb.auth.getSession();
+            const token = sess.data?.session?.access_token;
+            if (!token) throw new Error('Sin sesion');
+            const r = await fetch((window.BACKEND_URL||'') + '/api/auth/set-role', {
+              method: 'POST',
+              headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+              body: JSON.stringify({ role: 'cadete' }),
+            });
+            if (!r.ok) { const j = await r.json().catch(()=>({})); throw new Error(j.error||'Error'); }
             setTimeout(()=> window.location.href = '../cadete/cadete.html', 220);
           } catch(err) {
             console.error(err);

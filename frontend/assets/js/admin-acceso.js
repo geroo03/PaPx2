@@ -1,10 +1,8 @@
 /**
- * admin-acceso.js — Puerta a Puerta — Login del panel de administración
- * ES module. Importa USE_MOCK y MOCK_DATABASE desde config.js.
- * En modo mock valida credenciales contra MOCK_DATABASE.usuarios sin tocar Supabase.
+ * admin-acceso.js — Puerta a Puerta — Login del panel de administracion
  */
 
-import { supabase as sb, USE_MOCK, MOCK_DATABASE } from './config.js';
+import { supabase as sb } from './config.js';
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────
 function showErr(msg) {
@@ -35,37 +33,6 @@ async function login() {
 
   if (!email || !pass) { showErr('Completá todos los campos.'); return; }
   setBtn(btn, true);
-
-  // ── MOCK BYPASS ──────────────────────────────────────────────────────────────
-  if (USE_MOCK) {
-    await new Promise(r => setTimeout(r, 600));
-
-    const found = MOCK_DATABASE.usuarios.find(
-      u => u.email === email.toLowerCase() && u.pass === pass
-    );
-
-    if (!found) {
-      showErr('Credenciales incorrectas. Verificá email y contraseña.');
-      setBtn(btn, false);
-      return;
-    }
-
-    if (found.rol !== 'admin') {
-      showErr('No tenés permisos de administrador.');
-      setBtn(btn, false);
-      return;
-    }
-
-    try {
-      sessionStorage.setItem('pap_rol', found.rol);
-      sessionStorage.setItem('pap_uid', found.uid);
-    } catch (_) {}
-
-    showOk('✅ Acceso concedido. Redirigiendo...');
-    setTimeout(() => { window.location.href = 'admin.html'; }, 800);
-    return;
-  }
-  // ─────────────────────────────────────────────────────────────────────────────
 
   try {
     const res = await sb.auth.signInWithPassword({ email, password: pass });
@@ -117,12 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ─── CHECK SESIÓN EXISTENTE ───────────────────────────────────────────────────
 (async function checkSession() {
-  if (USE_MOCK) {
-    if (sessionStorage.getItem('pap_rol') === 'admin') {
-      window.location.href = 'admin.html';
-    }
-    return;
-  }
   try {
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user?.user_metadata?.role === 'admin') {

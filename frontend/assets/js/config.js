@@ -5,8 +5,6 @@
 //   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js">
 // y luego: window.sb = window.supabase.createClient(URL, KEY)
 
-// ─── BANDERA DE MODO MOCK ─────────────────────────────────────────────────────
-export const USE_MOCK = false;
 
 // ─── COORDENADAS DE SUPABASE ──────────────────────────────────────────────────
 export const SUPA_URL = (typeof window !== 'undefined' && window.SUPABASE_URL)     ? window.SUPABASE_URL     : '';
@@ -38,4 +36,3 @@ export const supabase = _resolveClient();
   }catch(e){ /* no-op */ }
 })();
 
-export const MOCK_DATABASE = { usuarios: [], pedidos: [] };

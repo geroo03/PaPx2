@@ -10,7 +10,7 @@
  *     → redirect según rol
  */
 
-import { supabase as sb, USE_MOCK, MOCK_DATABASE } from './config.js';
+import { supabase as sb } from './config.js';
 
 // ─── RUTAS POR ROL ────────────────────────────────────────────────────────────
 // Paths absolutos para que funcionen desde cualquier subcarpeta del proyecto.
@@ -26,17 +26,6 @@ const RUTAS = {
 
 // ─── BOOT: auto-redirect si ya hay sesión activa ───────────────────────────────
 (async function checkExistingSession() {
-  if (USE_MOCK) {
-    const rol = sessionStorage.getItem('pap_rol');
-    if (rol) {
-      const rutas = {
-        usuario: '/cliente/index.html', comercio: '/comercio/comercio.html',
-        cadete: '/cadete/cadete.html', embajador: '/embajador/dashboard.html', admin: '/admin/admin.html',
-      };
-      if (rutas[rol]) location.href = rutas[rol];
-    }
-    return;
-  }
   try {
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user) await redirectPorRol(session.user.id, true);
@@ -75,33 +64,6 @@ async function handleLogin() {
 
   setLoading(btn, true);
   hideMessages();
-
-  // ── MOCK BYPASS ──────────────────────────────────────────────────────────────
-  if (USE_MOCK) {
-    await new Promise(r => setTimeout(r, 600));
-
-    const found = MOCK_DATABASE.usuarios.find(
-      u => u.email === email.toLowerCase() && u.pass === pass
-    );
-
-    if (!found) {
-      setLoading(btn, false);
-      showError('Credenciales incorrectas. Verificá email y contraseña.');
-      return;
-    }
-
-    try {
-      sessionStorage.setItem('pap_rol',             found.rol);
-      sessionStorage.setItem('pap_uid',             found.uid);
-      sessionStorage.setItem('pap_cid',             found.cid || '');
-      sessionStorage.setItem('pap_comercio_nombre', found.nombre || '');
-    } catch (_) {}
-
-    showOk('Acceso exitoso. Redirigiendo...');
-    setTimeout(() => { location.href = RUTAS[found.rol] || '/'; }, 700);
-    return;
-  }
-  // ─────────────────────────────────────────────────────────────────────────────
 
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
