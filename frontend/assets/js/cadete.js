@@ -1302,6 +1302,15 @@ if ('Notification' in window && Notification.permission === 'default') {
 
     cadeteUserId = user.id;
 
+    // Mostrar nombre real en el header
+    const displayName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Cadete';
+    const headerName = document.getElementById('cad-nombre');
+    if (headerName) headerName.textContent = displayName;
+    const perfName = document.getElementById('perf-nombre');
+    if (perfName) perfName.textContent = displayName;
+    const perfAv = document.getElementById('perf-av');
+    if (perfAv) perfAv.textContent = displayName.slice(0, 2).toUpperCase();
+
     // Verificar si necesita completar onboarding antes de operar
     await verificarOnboarding();
     bindOnboardingForm();
