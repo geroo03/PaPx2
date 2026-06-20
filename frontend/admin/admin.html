@@ -307,7 +307,69 @@
           });
 
           // init
+          // Load cadetes registrados
+          async function loadCadetes(){
+            const el = document.getElementById('cadetes');
+            const countEl = document.getElementById('cadetesCount');
+            el.innerHTML = 'Cargando...';
+            try{
+              const { data, error } = await supabase
+                .from('cadetes')
+                .select('auth_uid, nombre, email, telefono, vehiculo, cvu, onboarding_completo, disponible, activo, created_at')
+                .order('created_at',{ascending:false});
+              if(error) throw error;
+              if(!data || !data.length){ el.innerHTML = '<div class="empty">No hay cadetes registrados.</div>'; countEl.textContent = '0'; return; }
+              countEl.textContent = data.length;
+              // Update KPI
+              const kpiCadetes = document.querySelector('[data-key="cadetes"]');
+              if(kpiCadetes) kpiCadetes.textContent = data.length;
+
+              el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="text-align:left;border-bottom:2px solid #eee;">
+                  <th style="padding:8px 6px;">Nombre</th>
+                  <th style="padding:8px 6px;">Email</th>
+                  <th style="padding:8px 6px;">Tel</th>
+                  <th style="padding:8px 6px;">Vehiculo</th>
+                  <th style="padding:8px 6px;">CVU</th>
+                  <th style="padding:8px 6px;">Estado</th>
+                </tr></thead>
+                <tbody>${data.map(c => {
+                  const estado = !c.onboarding_completo ? '<span style="color:#f59e0b;font-weight:700;">Pendiente</span>'
+                    : c.disponible ? '<span style="color:#16a34a;font-weight:700;">Disponible</span>'
+                    : '<span style="color:#888;">Inactivo</span>';
+                  return `<tr style="border-bottom:1px solid #f0f0f0;">
+                    <td style="padding:8px 6px;font-weight:600;">${c.nombre || '—'}</td>
+                    <td style="padding:8px 6px;">${c.email || '—'}</td>
+                    <td style="padding:8px 6px;">${c.telefono || '—'}</td>
+                    <td style="padding:8px 6px;">${c.vehiculo || '—'}</td>
+                    <td style="padding:8px 6px;font-size:11px;">${c.cvu || '—'}</td>
+                    <td style="padding:8px 6px;">${estado}</td>
+                  </tr>`;
+                }).join('')}</tbody>
+              </table>`;
+            }catch(e){ console.error('Error cargando cadetes', e); el.innerHTML = '<div class="empty">Error cargando cadetes</div>'; }
+          }
+
+          // Load KPIs
+          async function loadKPIs(){
+            try{
+              const [usuarios, comercios, cadetes, pedidos] = await Promise.all([
+                supabase.from('perfiles').select('id', {count:'exact', head:true}),
+                supabase.from('comercios').select('id', {count:'exact', head:true}),
+                supabase.from('cadetes').select('id', {count:'exact', head:true}),
+                supabase.from('pedidos').select('total').eq('estado','entregado'),
+              ]);
+              const kU = document.querySelector('[data-key="users"]'); if(kU) kU.textContent = usuarios.count || 0;
+              const kC = document.querySelector('[data-key="comercios"]'); if(kC) kC.textContent = comercios.count || 0;
+              const kCa = document.querySelector('[data-key="cadetes"]'); if(kCa) kCa.textContent = cadetes.count || 0;
+              const facturacion = (pedidos.data||[]).reduce((s,p)=>s+Number(p.total||0),0);
+              const kF = document.querySelector('[data-key="revenue"]'); if(kF) kF.textContent = '$'+facturacion.toLocaleString('es-AR');
+            }catch(e){ console.error('Error KPIs', e); }
+          }
+
           // init
+          loadKPIs();
+          loadCadetes();
           loadPendientes();
           // --- Patrocinios management ---
           async function loadPatrocinios(){
