@@ -1,535 +1,400 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PaP — Panel de Administración</title>
-  <meta name="description" content="Panel de administración general de Puerta a Puerta — KPIs, comercios, cadetes y tracking de pedidos." />
-  <!doctype html>
-  <html lang="es">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <title>PaP — Panel de Administración</title>
-      <meta name="description" content="Panel de administración — Puerta a Puerta" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PaP — Panel de Administracion</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/env.js"></script>
-      <style>
-        /* Design system tokens */
-        :root{
-          --bg: #f8f9fa;
-          --card: #ffffff;
-          --muted: #6b7280;
-          --brand: #FF6B35;
-          --radius: 12px;
-          --gap: 20px;
-          --shadow: 0 6px 20px rgba(12,15,20,0.06);
-          --glass: rgba(255,255,255,0.6);
-        }
+  <style>
+    :root{--bg:#f8f9fa;--card:#fff;--muted:#6b7280;--brand:#FF6B35;--radius:12px;--gap:20px;--shadow:0 6px 20px rgba(12,15,20,0.06)}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:#0f1724}
+    .container{max-width:1260px;margin:24px auto;padding:20px;box-sizing:border-box}
+    header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#ff8a5a);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+    h1{margin:0;font-size:18px;font-weight:800}
+    .sub{color:var(--muted);font-size:13px}
+    .top-controls{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .search{padding:9px 12px;border-radius:10px;border:1px solid #e6eef7;background:#fff;min-width:200px;font-size:13px}
+    .btn{padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:13px;font-family:inherit}
+    .btn-primary{background:var(--brand);color:#fff}
+    .btn-outline{background:#fff;border:1px solid #e6eef7;color:#374151}
+    .btn-danger{background:#fff;border:1px solid #e6eef7;color:#B71C1C}
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--gap);margin-top:20px}
+    .kpi{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;border:1px solid #f1f5f9}
+    .kpi .title{font-size:12px;color:var(--muted);font-weight:700}
+    .kpi .value{font-size:22px;font-weight:900;margin-top:4px}
+    .tabs{display:flex;gap:0;margin-top:20px;border-bottom:2px solid #eee}
+    .tab{padding:10px 20px;cursor:pointer;font-weight:700;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s}
+    .tab.active{color:var(--brand);border-bottom-color:var(--brand)}
+    .tab-panel{display:none;margin-top:16px}
+    .tab-panel.active{display:block}
+    .panel{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid #eef2f5;margin-bottom:16px}
+    .panel h2{margin:0 0 12px;font-size:15px;font-weight:800}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{font-size:11px;color:var(--muted);text-align:left;padding:8px 6px;font-weight:800;text-transform:uppercase}
+    tbody tr{transition:background .12s}
+    tbody tr:hover{background:#f8fafc}
+    td{padding:10px 6px;border-bottom:1px solid #f1f5f9}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .badge-green{background:#dcfce7;color:#16a34a}
+    .badge-yellow{background:#fef9c3;color:#a16207}
+    .badge-red{background:#fee2e2;color:#dc2626}
+    .badge-gray{background:#f3f4f6;color:#6b7280}
+    .action-btn{background:var(--brand);color:#fff;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px}
+    .empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+    footer{margin-top:20px;text-align:center;color:#94a3b8;font-size:12px}
+    @media(max-width:768px){.top-controls{width:100%;justify-content:flex-end}.search{min-width:140px}}
+  </style>
+</head>
+<body>
+<div id="admin-root" class="container" style="display:none;">
+  <header>
+    <div class="brand">
+      <div class="logo">PaP</div>
+      <div><h1>Panel de Administracion</h1><div class="sub">Vision general</div></div>
+    </div>
+    <div class="top-controls">
+      <input id="search" class="search" placeholder="Buscar..." oninput="filtrarAdmin(this.value)"/>
+      <button class="btn btn-primary" onclick="refreshAll()">Actualizar</button>
+      <button class="btn btn-outline" onclick="location.href='/login.html'">Volver</button>
+      <button class="btn btn-danger" onclick="signOutAdmin()">Cerrar sesion</button>
+    </div>
+  </header>
 
-        html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#0f1724}
-        .container{max-width:1200px;margin:32px auto;padding:24px;box-sizing:border-box}
+  <!-- KPIs -->
+  <section class="kpi-row">
+    <article class="kpi"><div><div class="title">Usuarios</div><div class="value" id="kpi-users">0</div></div></article>
+    <article class="kpi"><div><div class="title">Comercios</div><div class="value" id="kpi-comercios">0</div></div></article>
+    <article class="kpi"><div><div class="title">Cadetes</div><div class="value" id="kpi-cadetes">0</div></div></article>
+    <article class="kpi"><div><div class="title">Facturacion</div><div class="value" id="kpi-revenue">$0</div></div></article>
+    <article class="kpi"><div><div class="title">Embajadores</div><div class="value" id="kpi-embajadores">0</div></div></article>
+    <article class="kpi"><div><div class="title">Retiros pendientes</div><div class="value" id="kpi-retiros">0</div></div></article>
+  </section>
 
-        header{display:flex;align-items:center;gap:16px}
-        .brand{display:flex;align-items:center;gap:12px}
-        .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#ff8a5a);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px}
-        h1{margin:0;font-size:18px;font-weight:800}
-        .sub{color:var(--muted);font-size:13px}
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="pedidos" onclick="switchTab('pedidos')">Pedidos</div>
+    <div class="tab" data-tab="comercios" onclick="switchTab('comercios')">Comercios</div>
+    <div class="tab" data-tab="cadetes" onclick="switchTab('cadetes')">Cadetes</div>
+    <div class="tab" data-tab="embajadores" onclick="switchTab('embajadores')">Embajadores</div>
+    <div class="tab" data-tab="retiros" onclick="switchTab('retiros')">Retiros</div>
+    <div class="tab" data-tab="crear" onclick="switchTab('crear')">Crear usuario</div>
+  </div>
 
-        .top-controls{margin-left:auto;display:flex;gap:12px;align-items:center}
-        .search{padding:10px 12px;border-radius:10px;border:1px solid #e6eef7;background:#fff;min-width:220px}
-        .btn-primary{background:var(--brand);color:#fff;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;transition:transform .12s ease,box-shadow .12s}
-        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,107,53,0.12)}
+  <!-- TAB: Pedidos -->
+  <div class="tab-panel active" id="tab-pedidos">
+    <div class="panel"><h2>Pedidos activos</h2><div id="pedidos-list">Cargando...</div></div>
+  </div>
 
-        /* KPIs */
-        .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--gap);margin-top:22px}
-        .kpi{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;border:1px solid #f1f5f9}
-        .kpi .left{display:flex;flex-direction:column}
-        .kpi .title{font-size:12px;color:var(--muted);font-weight:700}
-        .kpi .value{font-size:24px;font-weight:900;margin-top:6px}
-        .kpi svg{width:110px;height:44px}
+  <!-- TAB: Comercios -->
+  <div class="tab-panel" id="tab-comercios">
+    <div class="panel"><h2>Comercios pendientes (embajadores)</h2><div id="pendientes-list">Cargando...</div></div>
+    <div class="panel"><h2>Comercios activos</h2><div id="comercios-list">Cargando...</div></div>
+  </div>
 
-        main.grid{display:grid;grid-template-columns:2fr 1fr;gap:var(--gap);margin-top:20px}
+  <!-- TAB: Cadetes -->
+  <div class="tab-panel" id="tab-cadetes">
+    <div class="panel"><h2>Cadetes registrados</h2><div id="cadetes-list">Cargando...</div></div>
+  </div>
 
-        .panel{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border:1px solid #eef2f5}
-        .panel h2{margin:0 0 12px 0;font-size:16px}
+  <!-- TAB: Embajadores -->
+  <div class="tab-panel" id="tab-embajadores">
+    <div class="panel"><h2>Embajadores y billeteras</h2><div id="embajadores-list">Cargando...</div></div>
+  </div>
 
-        /* Tables */
-        table{width:100%;border-collapse:collapse;font-size:14px}
-        thead th{font-size:12px;color:var(--muted);text-align:left;padding:10px 8px;font-weight:800}
-        tbody tr{background:transparent;transition:background .12s ease}
-        tbody tr:hover{background:#fbfdff}
-        td{padding:12px 8px;border-bottom:1px solid #f1f5f9}
+  <!-- TAB: Retiros -->
+  <div class="tab-panel" id="tab-retiros">
+    <div class="panel"><h2>Solicitudes de retiro</h2><div id="retiros-list">Cargando...</div></div>
+  </div>
 
-        .action-btn{background:var(--brand);color:#fff;border:none;padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:700;transition:opacity .12s}
-        .action-btn:hover{opacity:0.9}
+  <!-- TAB: Crear usuario -->
+  <div class="tab-panel" id="tab-crear">
+    <div class="panel" style="max-width:500px;">
+      <h2>Crear Embajador</h2>
+      <form id="form-crear" style="display:flex;flex-direction:column;gap:10px;">
+        <label style="font-size:12px;color:var(--muted);">Email
+          <input id="crear-email" type="email" required style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;"/>
+        </label>
+        <label style="font-size:12px;color:var(--muted);">Nombre
+          <input id="crear-nombre" type="text" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;"/>
+        </label>
+        <label style="font-size:12px;color:var(--muted);">Clave temporal
+          <input id="crear-pass" type="password" value="temporal123" required style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;"/>
+        </label>
+        <button type="submit" class="btn btn-primary" style="margin-top:8px;">Crear Embajador</button>
+        <div id="crear-result" style="font-size:13px;color:var(--muted);"></div>
+      </form>
+    </div>
+  </div>
 
-        /* Orders & Cadetes list styles */
-        .list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid #f1f5f9;margin-bottom:8px;background:#fff}
+  <footer>Puerta a Puerta — Panel Admin</footer>
+</div>
 
-        footer{margin-top:18px;text-align:center;color:#94a3b8;font-size:13px}
+<script type="module">
+import { supabase } from '../assets/js/config.js';
 
-        /* Responsive tweaks */
-        @media(max-width:980px){main.grid{grid-template-columns:1fr}} 
-      </style>
-    </head>
-    <body>
-  <div id="admin-root" class="container" style="display:none;">
-        <header>
-          <div class="brand">
-            <div class="logo">PaP</div>
-            <div>
-              <h1>Panel de Administración</h1>
-              <div class="sub">Visión general • KPIs en tiempo simulado</div>
-            </div>
-          </div>
-          <div class="top-controls">
-            <input id="search" class="search" placeholder="Buscar comercio, cadete o pedido" />
-            <button id="btn-refresh" class="btn-primary">Actualizar</button>
-            <button id="btn-back-site" style="background:#fff;border:1px solid #e6eef7;color:#374151;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;margin-left:8px" onclick="window.location.href='../cliente/index.html'">Volver al sitio</button>
-            <button id="btn-logout" style="background:#fff;border:1px solid #e6eef7;color:#B71C1C;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;margin-left:8px" onclick="signOutAdmin()">Cerrar sesión</button>
-          </div>
-        </header>
+// ── ROUTE GUARD ──────────────────────────────────────────────────────────────
+(async function(){
+  try {
+    const { data:{ session } } = await supabase.auth.getSession();
+    if (!session) { location.href = '/admin/admin-acceso.html'; return; }
+    let role = session.user?.user_metadata?.role ?? null;
+    if (!role) {
+      const { data: p } = await supabase.from('perfiles').select('rol').eq('usuario_id', session.user.id).maybeSingle();
+      role = p?.rol;
+    }
+    if (role !== 'admin') { alert('Acceso denegado'); location.href = '/login.html'; return; }
+    document.getElementById('admin-root').style.display = 'block';
+    refreshAll();
+  } catch(e) { console.error(e); location.href = '/login.html'; }
+})();
 
-        <!-- KPI row -->
-        <section class="kpi-row" aria-label="KPIs">
-          <article class="kpi" id="kpi-users">
-            <div class="left"><div class="title">Usuarios Activos</div><div class="value" data-key="users">0</div></div>
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#10b981" stroke-width="2" points="0,30 20,26 40,14 60,10 80,8 100,6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
-          </article>
+// ── TABS ─────────────────────────────────────────────────────────────────────
+window.switchTab = function(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+};
 
-          <article class="kpi" id="kpi-comercios">
-            <div class="left"><div class="title">Comercios</div><div class="value" data-key="comercios">0</div></div>
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#ff9800" stroke-width="2" points="0,28 20,20 40,14 60,22 80,18 100,12" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
-          </article>
+// ── REFRESH ALL ──────────────────────────────────────────────────────────────
+window.refreshAll = async function() {
+  loadKPIs(); loadPedidos(); loadComercios(); loadPendientes(); loadCadetes(); loadEmbajadores(); loadRetiros();
+};
 
-          <article class="kpi" id="kpi-cadetes">
-            <div class="left"><div class="title">Cadetes</div><div class="value" data-key="cadetes">0</div></div>
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#3b82f6" stroke-width="2" points="0,30 20,24 40,18 60,10 80,12 100,8" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
-          </article>
+// ── SIGN OUT ─────────────────────────────────────────────────────────────────
+window.signOutAdmin = async function() {
+  try { await supabase.auth.signOut(); } catch {}
+  localStorage.clear(); sessionStorage.clear();
+  location.href = '/login.html';
+};
 
-          <article class="kpi" id="kpi-rev">
-            <div class="left"><div class="title">Facturación</div><div class="value" data-key="revenue">$0</div></div>
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#ff6347" stroke-width="2" points="0,34 20,30 40,22 60,18 80,12 100,10" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/></svg>
-          </article>
-        </section>
+// ── SEARCH ───────────────────────────────────────────────────────────────────
+window.filtrarAdmin = function(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.tab-panel table tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
 
-        <main class="grid">
-          <section class="panel">
-            <h2>Comercios</h2>
-            <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-              <div style="color:var(--muted);font-weight:700">Listado de comercios simulados</div>
-              <div style="color:var(--muted);">Total: <span id="comerciosCount">0</span></div>
-            </div>
-            <div style="overflow:auto">
-              <table aria-describedby="comerciosCount">
-                <thead><tr><th>Nombre</th><th>Rubro</th><th>Pedidos</th><th style="text-align:right">Acción</th></tr></thead>
-                <tbody id="table-comercios"></tbody>
-              </table>
-            </div>
-          </section>
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+async function loadKPIs() {
+  try {
+    const [u, c, ca, p, e, r] = await Promise.all([
+      supabase.from('perfiles').select('id', {count:'exact', head:true}),
+      supabase.from('comercios').select('id', {count:'exact', head:true}),
+      supabase.from('cadetes').select('id', {count:'exact', head:true}),
+      supabase.from('pedidos').select('total').eq('estado','entregado'),
+      supabase.from('perfiles').select('id', {count:'exact', head:true}).eq('rol','embajador'),
+      supabase.from('solicitudes_retiro').select('id', {count:'exact', head:true}).eq('estado','pendiente'),
+    ]);
+    document.getElementById('kpi-users').textContent = u.count || 0;
+    document.getElementById('kpi-comercios').textContent = c.count || 0;
+    document.getElementById('kpi-cadetes').textContent = ca.count || 0;
+    const fac = (p.data||[]).reduce((s,x)=>s+Number(x.total||0),0);
+    document.getElementById('kpi-revenue').textContent = '$' + fac.toLocaleString('es-AR');
+    document.getElementById('kpi-embajadores').textContent = e.count || 0;
+    document.getElementById('kpi-retiros').textContent = r.count || 0;
+  } catch(e) { console.error('KPIs error', e); }
+}
 
-          <section class="panel">
-            <h2>Comercios Pendientes (Registrados por Embajadores)</h2>
-            <div id="pendientes-list" style="margin-top:10px">Cargando...</div>
-          </section>
+// ── PEDIDOS ──────────────────────────────────────────────────────────────────
+async function loadPedidos() {
+  const el = document.getElementById('pedidos-list');
+  try {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select('id, numero, estado, total, direccion_entrega, created_at, comercios(nombre), cadete_id')
+      .in('estado', ['nuevo','preparando','en_preparacion','listo','en_camino'])
+      .order('created_at', {ascending:false})
+      .limit(50);
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin pedidos activos.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>#</th><th>Comercio</th><th>Estado</th><th>Total</th><th>Direccion</th><th>Fecha</th></tr></thead><tbody>${data.map(p => {
+      const badge = {nuevo:'badge-yellow',preparando:'badge-yellow',en_preparacion:'badge-yellow',listo:'badge-green',en_camino:'badge-green'}[p.estado]||'badge-gray';
+      return `<tr><td>${p.numero||'—'}</td><td>${p.comercios?.nombre||'—'}</td><td><span class="badge ${badge}">${p.estado}</span></td><td>$${Number(p.total||0).toLocaleString('es-AR')}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.direccion_entrega||'—'}</td><td>${new Date(p.created_at).toLocaleString('es-AR')}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando pedidos.</div>'; console.error(e); }
+}
 
-          <section class="panel" id="patrocinios-panel" style="margin-top:18px">
-            <h2 class="text-lg font-semibold">Gestión de Patrocinios (Carrusel)</h2>
-            <div class="text-sm text-slate-500 mb-4">Administra los 3 slots del carrusel. Editá contenido, orden y activá/desactivá cada banner.</div>
-            <div id="patrocinios-grid" class="space-y-6">
-              <!-- Slots will be injected here -->
-            </div>
-            <div class="mt-3 text-sm text-slate-500">Los cambios se guardan con 'Actualizar Slot [X]'. El orden determina la posición en el carrusel.</div>
-          </section>
+// ── COMERCIOS ────────────────────────────────────────────────────────────────
+async function loadComercios() {
+  const el = document.getElementById('comercios-list');
+  try {
+    const { data, error } = await supabase
+      .from('comercios')
+      .select('id, nombre, categoria, direccion, telefono, estado_registro, lat, lng')
+      .order('nombre');
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin comercios.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Rubro</th><th>Direccion</th><th>Tel</th><th>GPS</th><th>Estado</th></tr></thead><tbody>${data.map(c => {
+      const gps = (c.lat && c.lng) ? '<span class="badge badge-green">Si</span>' : '<span class="badge badge-red">No</span>';
+      const est = c.estado_registro === 'activo' ? '<span class="badge badge-green">Activo</span>' : `<span class="badge badge-yellow">${c.estado_registro}</span>`;
+      return `<tr><td style="font-weight:600;">${c.nombre}</td><td>${c.categoria||'—'}</td><td>${c.direccion||'—'}</td><td>${c.telefono||'—'}</td><td>${gps}</td><td>${est}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando comercios.</div>'; console.error(e); }
+}
 
-          <aside>
-            <section class="panel" style="margin-bottom:16px">
-              <h2>Pedidos Activos</h2>
-              <div id="orders" style="margin-top:8px"></div>
-              <div style="margin-top:8px;color:var(--muted);font-size:13px">Activos: <span id="ordersCount">0</span></div>
-            </section>
+// ── PENDIENTES ───────────────────────────────────────────────────────────────
+async function loadPendientes() {
+  const el = document.getElementById('pendientes-list');
+  try {
+    const { data, error } = await supabase
+      .from('comercios')
+      .select('id, nombre, telefono, direccion, created_at')
+      .eq('estado_registro','pendiente')
+      .order('created_at',{ascending:false});
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin comercios pendientes.</div>'; return; }
+    el.innerHTML = data.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #f1f5f9;border-radius:10px;margin-bottom:8px;">
+        <div><div style="font-weight:700;">${c.nombre}</div><div style="font-size:12px;color:var(--muted);">${c.direccion||''} ${c.telefono?'- '+c.telefono:''}</div></div>
+        <button class="action-btn" onclick="aprobarComercio('${c.id}',this)">Aprobar</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<div class="empty">Error.</div>'; }
+}
 
-            <section class="panel">
-              <h2>Crear Embajador (Admin)</h2>
-              <form id="form-create-embajador">
-                <label style="font-size:13px;color:var(--muted);margin-top:8px">Email</label>
-                <input id="admin-e-email" type="email" style="padding:8px;width:100%" required>
-                <label style="font-size:13px;color:var(--muted);margin-top:8px">Nombre</label>
-                <input id="admin-e-name" type="text" style="padding:8px;width:100%">
-                <label style="font-size:13px;color:var(--muted);margin-top:8px">Clave temporal</label>
-                <input id="admin-e-pass" type="password" value="temporal123" style="padding:8px;width:100%" required>
-                <button id="admin-create-btn" class="btn-primary" style="width:100%;margin-top:10px">Crear Embajador</button>
-              </form>
-              <div id="admin-create-result" style="margin-top:8px;color:var(--muted)"></div>
-            </section>
+window.aprobarComercio = async function(id, btn) {
+  btn.disabled = true; btn.textContent = 'Aprobando...';
+  try {
+    await supabase.from('comercios').update({estado_registro:'activo'}).eq('id',id);
+    loadPendientes(); loadComercios(); loadKPIs();
+  } catch(e) { alert('Error: '+e.message); btn.disabled=false; btn.textContent='Aprobar'; }
+};
 
-            <section class="panel">
-              <h2>Cadetes</h2>
-              <div id="cadetes" style="margin-top:8px"></div>
-              <div style="margin-top:8px;color:var(--muted);font-size:13px">Total: <span id="cadetesCount">0</span></div>
-            </section>
-          </aside>
-        </main>
+// ── CADETES ──────────────────────────────────────────────────────────────────
+async function loadCadetes() {
+  const el = document.getElementById('cadetes-list');
+  try {
+    const { data, error } = await supabase
+      .from('cadetes')
+      .select('auth_uid, nombre, email, telefono, vehiculo, cvu, foto_dni_url, onboarding_completo, disponible, created_at')
+      .order('created_at',{ascending:false});
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin cadetes.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Email</th><th>Tel</th><th>Vehiculo</th><th>CVU</th><th>DNI</th><th>Estado</th></tr></thead><tbody>${data.map(c => {
+      const estado = !c.onboarding_completo ? '<span class="badge badge-yellow">Pendiente</span>'
+        : c.disponible ? '<span class="badge badge-green">Disponible</span>'
+        : '<span class="badge badge-gray">Inactivo</span>';
+      const dni = c.foto_dni_url ? '<span class="badge badge-green">Si</span>' : '<span class="badge badge-red">No</span>';
+      return `<tr><td style="font-weight:600;">${c.nombre||'—'}</td><td>${c.email||'—'}</td><td>${c.telefono||'—'}</td><td>${c.vehiculo||'—'}</td><td style="font-size:11px;">${c.cvu||'—'}</td><td>${dni}</td><td>${estado}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando cadetes.</div>'; console.error(e); }
+}
 
-        <footer>Puerta a Puerta — Panel Admin • Datos simulados</footer>
-      </div>
+// ── EMBAJADORES ──────────────────────────────────────────────────────────────
+async function loadEmbajadores() {
+  const el = document.getElementById('embajadores-list');
+  try {
+    const { data, error } = await supabase
+      .from('perfiles')
+      .select('usuario_id, email, nombre')
+      .eq('rol','embajador');
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin embajadores.</div>'; return; }
 
-      <!-- Encapsulated JS module (no inline code outside script) -->
+    // Cargar billeteras
+    const ids = data.map(e => e.usuario_id);
+    const { data: billeteras } = await supabase.from('billetera_embajador').select('*').in('embajador_id', ids);
+    const billMap = Object.fromEntries((billeteras||[]).map(b => [b.embajador_id, b]));
 
-        <script type="module">
-          // env.js will be generated at build time from env.template.js and must be loaded before config
-          const envScript = document.createElement('script'); envScript.src = '/env.js'; document.head.appendChild(envScript);
-          import { supabase } from '../assets/js/config.js';
+    // Cargar patrocinios count
+    const { data: pats } = await supabase.from('patrocinios').select('embajador_id').in('embajador_id', ids);
+    const patCount = {};
+    (pats||[]).forEach(p => { patCount[p.embajador_id] = (patCount[p.embajador_id]||0) + 1; });
 
-          // Route guard: protect admin panel from unauthorized access
-          (async function adminRouteGuard(){
-            // local safe buildUrl helper (prefer global if available)
-            // Siempre resuelve desde el origen del servidor para no romper en subdirectorios.
-            const safeBuildUrl = (p)=>{
-              if(window.buildUrl) return window.buildUrl(p);
-              if(!p) p='';
-              if(p.startsWith('/')) return window.location.origin + p;
-              if(p===''||p.toLowerCase()==='index.html') p='cliente/index.html';
-              return window.location.origin + '/' + p;
-            };
+    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Email</th><th>Comercios</th><th>Disponible</th><th>Acumulado</th><th>Retirado</th></tr></thead><tbody>${data.map(e => {
+      const b = billMap[e.usuario_id] || {};
+      return `<tr><td style="font-weight:600;">${e.nombre||'—'}</td><td>${e.email||'—'}</td><td>${patCount[e.usuario_id]||0}</td><td style="color:#16a34a;font-weight:700;">$${Number(b.saldo_disponible||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_acumulado||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_retirado||0).toLocaleString('es-AR')}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando embajadores.</div>'; console.error(e); }
+}
 
-            try{
-              const { data:{ session } } = await supabase.auth.getSession();
-              if(!session){
-                alert('Acceso denegado. Por favor, iniciá sesión.');
-                window.location.href = safeBuildUrl('cliente/login-usuario.html');
-                return;
-              }
-              const role = session?.user?.user_metadata?.role || session?.user?.raw_user_meta_data?.role || null;
-              if(role !== 'admin'){
-                alert('No tenés permisos para acceder a esta sección');
-                // redirect based on role
-                if(role === 'usuario') window.location.href = safeBuildUrl('cliente/index.html');
-                else if(role === 'cadete') window.location.href = safeBuildUrl('cadete/cadete.html');
-                else if(role === 'comercio') window.location.href = safeBuildUrl('comercio/comercio.html');
-                else if(role === 'embajador') window.location.href = safeBuildUrl('embajador/dashboard.html');
-                else window.location.href = safeBuildUrl('cliente/index.html');
-                return;
-              }
-              // authorized admin — show the panel
-              const root = document.getElementById('admin-root');
-              if(root) root.style.display='block';
-            }catch(err){
-              console.error('Admin route guard error', err);
-              alert('Error verificando sesión. Redirigiendo al login.');
-              window.location.href = safeBuildUrl('cliente/login-usuario.html');
-            }
-          })();
+// ── RETIROS ──────────────────────────────────────────────────────────────────
+async function loadRetiros() {
+  const el = document.getElementById('retiros-list');
+  try {
+    const { data, error } = await supabase
+      .from('solicitudes_retiro')
+      .select('id, embajador_id, monto, estado, cbu_alias, created_at')
+      .order('created_at',{ascending:false})
+      .limit(30);
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin solicitudes de retiro.</div>'; return; }
 
-          // Sign-out helper for admin panel
-          async function signOutAdmin(){
-            try{ await supabase.auth.signOut(); }catch(e){ console.warn('SignOut error', e); }
-            try{ localStorage.clear(); sessionStorage.clear(); }catch(e){}
-            window.location.href = '/login.html';
-          }
+    // Nombres de embajadores
+    const ids = [...new Set(data.map(r => r.embajador_id))];
+    const { data: perfiles } = await supabase.from('perfiles').select('usuario_id, nombre, email').in('usuario_id', ids);
+    const nameMap = Object.fromEntries((perfiles||[]).map(p => [p.usuario_id, p]));
 
-          // Load pending comercios registered by embajadores
-          async function loadPendientes(){
-            const el = document.getElementById('pendientes-list');
-            el.innerHTML = 'Cargando...';
-            try{
-              // Safety: ensure Supabase client is configured before attempting signUp
-              if(typeof window !== 'undefined' && window.SUPABASE_CONFIG_OK === false){
-                const msg = 'Supabase no está configurado correctamente en este entorno. Revisa assets/js/config.js y las variables window.SUPABASE_URL / window.SUPABASE_ANON_KEY.';
-                console.error(msg);
-                alert(msg);
-                resEl.textContent = 'Error: Supabase no configurado';
-                return;
-              }
-              const { data, error } = await supabase
-                .from('comercios')
-                .select('id,nombre,telefono,direccion,creado_por_embajador_id,created_at')
-                .eq('estado_registro','pendiente')
-                .order('created_at',{ascending:false});
-              if(error) throw error;
-              if(!data || !data.length){ el.innerHTML = '<div class="empty">No hay comercios pendientes.</div>'; return; }
-              el.innerHTML = data.map(c=>{
-                const t = new Date(c.created_at).toLocaleString();
-                return `<div class="list-item" data-id="${c.id}"><div><div style="font-weight:800">${c.nombre}</div><div style="color:var(--muted);font-size:12px">${c.direccion} · ${c.telefono||''}</div><div style="font-size:12px;color:var(--muted)">Alta: ${t}</div></div><div><button class="action-btn approve" data-id="${c.id}">Aprobar</button></div></div>`;
-              }).join('');
-              // attach handlers
-              el.querySelectorAll('.approve').forEach(b=> b.addEventListener('click', async ()=>{
-                const id = b.dataset.id;
-                b.disabled = true; b.textContent = 'Aprobando...';
-                try{
-                  const { error } = await supabase.from('comercios').update({ estado_registro: 'activo', activo: true }).eq('id', id);
-                  if(error) throw error;
-                  loadPendientes();
-                }catch(err){ console.error('Error aprobando', err); alert('Error: '+err.message); b.disabled=false; b.textContent='Aprobar'; }
-              }));
-            }catch(e){ console.error(e); document.getElementById('pendientes-list').innerHTML = '<div class="empty">Error cargando pendientes</div>'; }
-          }
+    el.innerHTML = `<table><thead><tr><th>Embajador</th><th>Monto</th><th>CVU/Alias</th><th>Fecha</th><th>Estado</th><th>Accion</th></tr></thead><tbody>${data.map(r => {
+      const emb = nameMap[r.embajador_id] || {};
+      const badgeClass = {pendiente:'badge-yellow',pagado:'badge-green',rechazado:'badge-red'}[r.estado]||'badge-gray';
+      const acciones = r.estado === 'pendiente'
+        ? `<button class="action-btn" onclick="pagarRetiro('${r.id}',this)" style="margin-right:6px;">Pagar</button><button class="btn btn-outline" onclick="rechazarRetiro('${r.id}',this)" style="font-size:12px;padding:6px 10px;">Rechazar</button>`
+        : '—';
+      return `<tr><td style="font-weight:600;">${emb.nombre||emb.email||'—'}</td><td style="font-weight:700;color:#16a34a;">$${Number(r.monto).toLocaleString('es-AR')}</td><td style="font-size:11px;">${r.cbu_alias||'—'}</td><td>${new Date(r.created_at).toLocaleDateString('es-AR')}</td><td><span class="badge ${badgeClass}">${r.estado}</span></td><td>${acciones}</td></tr>`;
+    }).join('')}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando retiros.</div>'; console.error(e); }
+}
 
-          // Admin: crear embajador via server endpoint
-          const form = document.getElementById('form-create-embajador');
-          form.addEventListener('submit', async (e)=>{
-            e.preventDefault();
-            const email = document.getElementById('admin-e-email').value.trim();
-            const name = document.getElementById('admin-e-name').value.trim();
-            const pass = document.getElementById('admin-e-pass').value;
-            const resEl = document.getElementById('admin-create-result');
-            resEl.textContent = 'Creando embajador...';
-            console.log('Datos enviados para crear embajador:', { email, name, password: pass ? 'REDACTED' : '' });
-            try{
-              // Use Supabase client directly to create the user instead of posting to a static-server endpoint
-              // We add basic user_metadata (nombre, role)
-              const { data, error } = await supabase.auth.signUp({
-                email: email,
-                password: pass,
-                options: {
-                  data: { nombre: name, role: 'embajador' }
-                }
-              });
+window.pagarRetiro = async function(id, btn) {
+  if (!confirm('Confirmar pago de este retiro?')) return;
+  btn.disabled = true; btn.textContent = 'Procesando...';
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch((window.BACKEND_URL||'') + '/api/embajadores/retiro/' + id + '/pagar', {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
+    alert('Retiro marcado como pagado');
+    loadRetiros(); loadKPIs();
+  } catch(e) { alert('Error: '+e.message); btn.disabled=false; btn.textContent='Pagar'; }
+};
 
-              if(error){
-                console.error('Supabase signUp error:', error);
-                const serverMsg = error.message || JSON.stringify(error);
-                alert('Error al crear embajador: ' + serverMsg);
-                resEl.textContent = 'Error: ' + serverMsg;
-                return;
-              }
+window.rechazarRetiro = async function(id, btn) {
+  const motivo = prompt('Motivo del rechazo (opcional):');
+  if (motivo === null) return;
+  btn.disabled = true;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch((window.BACKEND_URL||'') + '/api/embajadores/retiro/' + id + '/rechazar', {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token },
+      body: JSON.stringify({ motivo }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
+    alert('Retiro rechazado. Saldo devuelto al embajador.');
+    loadRetiros(); loadKPIs();
+  } catch(e) { alert('Error: '+e.message); btn.disabled=false; }
+};
 
-              // Success
-              console.log('Supabase signUp result:', data);
-              resEl.textContent = 'Embajador creado: ' + (data?.user?.email || email);
-            }catch(err){
-              console.error('SignUp exception:', err);
-              const cleanMsg = (err && err.message) ? err.message : String(err);
-              alert('Error al crear embajador: ' + cleanMsg);
-              resEl.textContent = 'Error: ' + cleanMsg;
-            }
-          });
-
-          // init
-          // Load cadetes registrados
-          async function loadCadetes(){
-            const el = document.getElementById('cadetes');
-            const countEl = document.getElementById('cadetesCount');
-            el.innerHTML = 'Cargando...';
-            try{
-              const { data, error } = await supabase
-                .from('cadetes')
-                .select('auth_uid, nombre, email, telefono, vehiculo, cvu, onboarding_completo, disponible, activo, created_at')
-                .order('created_at',{ascending:false});
-              if(error) throw error;
-              if(!data || !data.length){ el.innerHTML = '<div class="empty">No hay cadetes registrados.</div>'; countEl.textContent = '0'; return; }
-              countEl.textContent = data.length;
-              // Update KPI
-              const kpiCadetes = document.querySelector('[data-key="cadetes"]');
-              if(kpiCadetes) kpiCadetes.textContent = data.length;
-
-              el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
-                <thead><tr style="text-align:left;border-bottom:2px solid #eee;">
-                  <th style="padding:8px 6px;">Nombre</th>
-                  <th style="padding:8px 6px;">Email</th>
-                  <th style="padding:8px 6px;">Tel</th>
-                  <th style="padding:8px 6px;">Vehiculo</th>
-                  <th style="padding:8px 6px;">CVU</th>
-                  <th style="padding:8px 6px;">Estado</th>
-                </tr></thead>
-                <tbody>${data.map(c => {
-                  const estado = !c.onboarding_completo ? '<span style="color:#f59e0b;font-weight:700;">Pendiente</span>'
-                    : c.disponible ? '<span style="color:#16a34a;font-weight:700;">Disponible</span>'
-                    : '<span style="color:#888;">Inactivo</span>';
-                  return `<tr style="border-bottom:1px solid #f0f0f0;">
-                    <td style="padding:8px 6px;font-weight:600;">${c.nombre || '—'}</td>
-                    <td style="padding:8px 6px;">${c.email || '—'}</td>
-                    <td style="padding:8px 6px;">${c.telefono || '—'}</td>
-                    <td style="padding:8px 6px;">${c.vehiculo || '—'}</td>
-                    <td style="padding:8px 6px;font-size:11px;">${c.cvu || '—'}</td>
-                    <td style="padding:8px 6px;">${estado}</td>
-                  </tr>`;
-                }).join('')}</tbody>
-              </table>`;
-            }catch(e){ console.error('Error cargando cadetes', e); el.innerHTML = '<div class="empty">Error cargando cadetes</div>'; }
-          }
-
-          // Load KPIs
-          async function loadKPIs(){
-            try{
-              const [usuarios, comercios, cadetes, pedidos] = await Promise.all([
-                supabase.from('perfiles').select('id', {count:'exact', head:true}),
-                supabase.from('comercios').select('id', {count:'exact', head:true}),
-                supabase.from('cadetes').select('id', {count:'exact', head:true}),
-                supabase.from('pedidos').select('total').eq('estado','entregado'),
-              ]);
-              const kU = document.querySelector('[data-key="users"]'); if(kU) kU.textContent = usuarios.count || 0;
-              const kC = document.querySelector('[data-key="comercios"]'); if(kC) kC.textContent = comercios.count || 0;
-              const kCa = document.querySelector('[data-key="cadetes"]'); if(kCa) kCa.textContent = cadetes.count || 0;
-              const facturacion = (pedidos.data||[]).reduce((s,p)=>s+Number(p.total||0),0);
-              const kF = document.querySelector('[data-key="revenue"]'); if(kF) kF.textContent = '$'+facturacion.toLocaleString('es-AR');
-            }catch(e){ console.error('Error KPIs', e); }
-          }
-
-          // init
-          loadKPIs();
-          loadCadetes();
-          loadPendientes();
-          // --- Patrocinios management ---
-          async function loadPatrocinios(){
-            const container=document.getElementById('patrocinios-grid');
-            container.innerHTML='Cargando...';
-            try{
-              const { data, error } = await supabase.from('patrocinios').select('*').order('orden',{ascending:true}).limit(3);
-              if(error) throw error;
-              const rows = data || [];
-              // ensure we always render 3 slots
-              const slots = [0,1,2].map(i=>rows[i]||null);
-              container.innerHTML = slots.map((r,i)=>renderPatrocinioSlot(r,i+1)).join('');
-              // attach handlers
-              slots.forEach((r,i)=>{
-                const idx=i+1;
-                const form=document.getElementById('pat-form-'+idx);
-                form.addEventListener('submit', async (e)=>{ e.preventDefault(); await handleUpdateSlot(idx); });
-                const activoSwitch=document.getElementById('pat-activo-'+idx);
-                activoSwitch.addEventListener('change',()=>{ /* visual only; handled on submit */ });
-
-                // file input handler for immediate upload
-                const fileInput = document.getElementById('pat-file-'+idx);
-                if(fileInput){
-                  fileInput.addEventListener('change', async (ev)=>{
-                    const f = ev.target.files && ev.target.files[0];
-                    if(!f) return;
-                    const uploadEl = document.getElementById('pat-upload-'+idx);
-                    const previewImg = document.getElementById('pat-preview-'+idx);
-                    const hiddenImg = document.getElementById('pat-img-'+idx);
-                    uploadEl.textContent = 'Subiendo...';
-                    try{
-                      const publicUrl = await uploadPatrocinioImage(f, idx);
-                      if(publicUrl){
-                        hiddenImg.value = publicUrl;
-                        // update preview image (preview element is an <img> with this id)
-                        if(previewImg){ previewImg.src = publicUrl; previewImg.style.display = 'block'; }
-                        uploadEl.textContent = 'Listo';
-                      } else { uploadEl.textContent = 'Error'; }
-                    }catch(err){ console.error('Upload failed',err); uploadEl.textContent = 'Error'; }
-                    setTimeout(()=>{ if(uploadEl) uploadEl.textContent = ''; }, 2200);
-                  });
-                }
-              });
-            }catch(err){ console.error('Error cargando patrocinios',err); container.innerHTML='<div class="empty">Error cargando patrocinios</div>'; }
-          }
-
-          // Upload image to Supabase Storage bucket 'patrocinios' and return public URL
-          async function uploadPatrocinioImage(file, slot){
-            try{
-              const ext = file.name.split('.').pop();
-              const fileName = `patro_${Date.now()}_${Math.random().toString(36).slice(2,9)}.${ext}`;
-              const path = fileName;
-              // upload
-              const { data, error } = await supabase.storage.from('patrocinios').upload(path, file, { cacheControl: '3600', upsert: false });
-              if(error){ console.error('Storage upload error', error); throw error; }
-              // get public url
-              const { data: urlData } = await supabase.storage.from('patrocinios').getPublicUrl(path);
-              return urlData?.publicUrl || null;
-            }catch(e){ console.error('uploadPatrocinioImage failed', e); return null; }
-          }
-
-          function renderPatrocinioSlot(row,slot){
-            const idVal = row?.id||'';
-            const sub = row?.sub_titulo||'';
-            const title = row?.titulo||'';
-            const img = row?.imagen_url||'';
-            const link = row?.link_oferta||'';
-            const activo = (typeof row?.activo === 'boolean') ? row.activo : true;
-            const orden = row?.orden!=null ? row.orden : (slot-1);
-            return `
-              <form id="pat-form-${slot}" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(12,15,20,0.04);">
-                <input type="hidden" id="pat-id-${slot}" value="${idVal}">
-                <div style="display:flex;gap:16px;align-items:flex-start;">
-                  <!-- LEFT: form fields -->
-                  <div style="flex:0 0 65%;max-width:65%;min-width:0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                      <div style="font-weight:700;font-size:14px;">Slot ${slot}</div>
-                      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;">
-                        <label for="pat-activo-${slot}" style="font-size:13px;color:#374151;">Activo</label>
-                        <input type="checkbox" id="pat-activo-${slot}" ${activo? 'checked':''} />
-                      </div>
-                    </div>
-
-                    <div style="margin-bottom:10px;">
-                      <label style="display:block;font-size:13px;color:#374151;margin-bottom:6px;">Sub título</label>
-                      <input id="pat-sub-${slot}" value="${sub}" style="width:100%;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
-                    </div>
-
-                    <div style="margin-bottom:10px;">
-                      <label style="display:block;font-size:13px;color:#374151;margin-bottom:6px;">Título</label>
-                      <input id="pat-title-${slot}" value="${title}" style="width:100%;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
-                    </div>
-
-                    <div style="margin-bottom:10px;">
-                      <label style="display:block;font-size:13px;color:#374151;margin-bottom:6px;">Link de oferta (URL)</label>
-                      <input id="pat-link-${slot}" value="${link}" style="width:100%;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
-                    </div>
-
-                    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
-                      <div style="display:flex;flex-direction:column;">
-                        <label style="font-size:13px;color:#374151;margin-bottom:6px;">Orden</label>
-                        <input id="pat-orden-${slot}" type="number" value="${orden}" style="width:90px;background:#f8fafc;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:13px;box-sizing:border-box;" />
-                      </div>
-
-                      <div style="margin-left:auto;display:flex;gap:8px;">
-                        <button type="submit" style="background:#ff6b35;color:#fff;padding:8px 12px;border-radius:8px;border:none;font-weight:700;">Actualizar Slot ${slot}</button>
-                        <button type="button" onclick="document.getElementById('pat-form-${slot}').reset();loadPatrocinios();" style="background:#fff;border:1px solid #d1d5db;padding:8px 12px;border-radius:8px;color:#374151;">Cancelar</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- RIGHT: image preview and upload -->
-                  <div style="flex:0 0 35%;max-width:35%;display:flex;flex-direction:column;align-items:center;">
-                    <label style="font-size:13px;color:#374151;margin-bottom:8px;">Imagen</label>
-                    <!-- preview image (strictly sized) -->
-                    <img id="pat-preview-${slot}" src="${img||''}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; display: ${img? 'block':'none'}; margin-bottom: 8px;" onerror="this.style.display='none'" />
-
-                    <label for="pat-file-${slot}" style="display:inline-block;text-align:center;cursor:pointer;margin-bottom:6px;">
-                      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px dashed #d1d5db;background:#fff;">
-                        <span style="font-size:16px;">📸</span>
-                        <span style="font-size:13px;color:#374151;">Cambiar imagen / Sacar foto</span>
-                      </div>
-                    </label>
-                    <div style="font-size:11px;color:#6b7280;margin-bottom:6px;">PNG, JPG • recomendado 1200×600</div>
-                    <input id="pat-file-${slot}" type="file" accept="image/*" style="display:none" />
-                    <div id="pat-upload-${slot}" style="font-size:13px;color:#6b7280;">${img? 'Cargada':''}</div>
-                    <input type="hidden" id="pat-img-${slot}" value="${img}" />
-                  </div>
-                </div>
-              </form>
-            `;
-          }
-
-          async function handleUpdateSlot(slot){
-            const id = document.getElementById('pat-id-'+slot).value || null;
-            const sub = document.getElementById('pat-sub-'+slot).value.trim();
-            const title = document.getElementById('pat-title-'+slot).value.trim();
-            const img = document.getElementById('pat-img-'+slot).value.trim();
-            const link = document.getElementById('pat-link-'+slot).value.trim();
-            const activo = document.getElementById('pat-activo-'+slot).checked;
-            const orden = Number(document.getElementById('pat-orden-'+slot).value||0);
-            const payload = { sub_titulo: sub, titulo: title, imagen_url: img, link_oferta: link, activo, orden };
-            try{
-              // If id present -> update, else insert with orden
-              let res;
-              if(id){
-                res = await supabase.from('patrocinios').update(payload).eq('id',id).select().single();
-              } else {
-                // upsert by orden will be handled by inserting with orden
-                res = await supabase.from('patrocinios').insert([{...payload}]).select().single();
-              }
-              if(res.error) throw res.error;
-              alert('Slot '+slot+' actualizado');
-              loadPatrocinios();
-            }catch(err){console.error('Error actualizando slot',err);alert('Error: '+(err.message||err));}
-          }
-
-          // load patrocinios on init
-          loadPatrocinios();
-        </script>
-    </body>
-  </html>
-      list.forEach(c=>{
+// ── CREAR EMBAJADOR ──────────────────────────────────────────────────────────
+document.getElementById('form-crear').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('crear-email').value.trim();
+  const nombre = document.getElementById('crear-nombre').value.trim();
+  const pass = document.getElementById('crear-pass').value;
+  const resEl = document.getElementById('crear-result');
+  resEl.textContent = 'Creando...';
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email, password: pass,
+      options: { data: { nombre, role: 'embajador' } },
+    });
+    if (error) throw error;
+    resEl.textContent = 'Embajador creado: ' + (data?.user?.email || email);
+    resEl.style.color = '#16a34a';
+    document.getElementById('form-crear').reset();
+    loadKPIs();
+  } catch(err) {
+    resEl.textContent = 'Error: ' + (err.message || err);
+    resEl.style.color = '#dc2626';
+  }
+});
+</script>
+</body>
+</html>
