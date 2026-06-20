@@ -283,9 +283,33 @@
         </div>
       </div>
 
+      <!-- Campos moto (patente, carnet, seguro) — se muestran al elegir Moto -->
+      <div id="ob-moto-fields" style="display:none;flex-direction:column;gap:16px;">
+        <label style="color:#aaa;font-size:12px;font-weight:600;">
+          Patente <span style="color:#FF6B35;">*</span>
+          <input type="text" id="ob-patente" placeholder="Ej: AB 123 CD" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:15px;text-transform:uppercase;"/>
+        </label>
+        <div>
+          <div style="color:#aaa;font-size:12px;font-weight:600;margin-bottom:6px;">Foto del carnet de conducir</div>
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1a1a1a;border:1.5px dashed #444;border-radius:10px;padding:16px;cursor:pointer;color:#aaa;font-size:14px;font-weight:600;">
+            Sacar foto / Elegir archivo
+            <input type="file" id="ob-carnet" accept="image/*" capture="environment" style="display:none;" onchange="document.getElementById('ob-carnet-ok').style.display=this.files.length?'block':'none'"/>
+          </label>
+          <div id="ob-carnet-ok" style="display:none;font-size:12px;color:#4ADE80;text-align:center;margin-top:6px;">Foto seleccionada</div>
+        </div>
+        <div>
+          <div style="color:#aaa;font-size:12px;font-weight:600;margin-bottom:6px;">Seguro del vehiculo (foto o PDF)</div>
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1a1a1a;border:1.5px dashed #444;border-radius:10px;padding:16px;cursor:pointer;color:#aaa;font-size:14px;font-weight:600;">
+            Subir seguro
+            <input type="file" id="ob-seguro" accept="image/*,application/pdf" style="display:none;" onchange="document.getElementById('ob-seguro-ok').style.display=this.files.length?'block':'none'"/>
+          </label>
+          <div id="ob-seguro-ok" style="display:none;font-size:12px;color:#4ADE80;text-align:center;margin-top:6px;">Archivo seleccionado</div>
+        </div>
+      </div>
+
       <!-- Código de referido (opcional) -->
       <label style="color:#aaa;font-size:12px;font-weight:600;">
-        ¿Te invitó otro cadete? Ingresá su código
+        ¿Te invitó otro cadete? Ingresá su codigo
         <input type="text" id="ob-referido" placeholder="Ej: PAP-A1B2" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:15px;text-transform:uppercase;letter-spacing:1px;"/>
       </label>
 

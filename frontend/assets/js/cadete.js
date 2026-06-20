@@ -959,8 +959,10 @@ function obSelVeh(tipo) {
   _obVehiculo = tipo;
   const bici = document.getElementById('ob-bici');
   const moto = document.getElementById('ob-moto');
+  const motoFields = document.getElementById('ob-moto-fields');
   if (bici) { bici.style.borderColor = tipo === 'bici' ? '#FF6B35' : '#333'; bici.style.background = tipo === 'bici' ? '#1a0d08' : '#1a1a1a'; bici.style.color = tipo === 'bici' ? '#FF6B35' : '#888'; }
   if (moto) { moto.style.borderColor = tipo === 'moto' ? '#FF6B35' : '#333'; moto.style.background = tipo === 'moto' ? '#1a0d08' : '#1a1a1a'; moto.style.color = tipo === 'moto' ? '#FF6B35' : '#888'; }
+  if (motoFields) motoFields.style.display = tipo === 'moto' ? 'flex' : 'none';
 }
 
 async function verificarOnboarding() {
@@ -995,12 +997,31 @@ function bindOnboardingForm() {
       const { error: upErr } = await sb.storage.from('cadetes-antecedentes').upload(dniPath, dniFile, { cacheControl: '3600', upsert: true });
       if (upErr) throw new Error('Error subiendo DNI: ' + upErr.message);
 
+      // Si es moto: subir carnet y seguro
+      let carnetPath = null, seguroPath = null, patente = null;
+      if (_obVehiculo === 'moto') {
+        patente = (document.getElementById('ob-patente')?.value ?? '').trim().toUpperCase();
+        if (!patente) throw new Error('La patente es obligatoria para moto.');
+
+        const carnetFile = document.getElementById('ob-carnet')?.files?.[0];
+        if (carnetFile) {
+          carnetPath = `${cadeteUserId}/carnet/${Date.now()}_${carnetFile.name}`;
+          await sb.storage.from('cadetes-antecedentes').upload(carnetPath, carnetFile, { cacheControl: '3600', upsert: true });
+        }
+
+        const seguroFile = document.getElementById('ob-seguro')?.files?.[0];
+        if (seguroFile) {
+          seguroPath = `${cadeteUserId}/seguro/${Date.now()}_${seguroFile.name}`;
+          await sb.storage.from('cadetes-antecedentes').upload(seguroPath, seguroFile, { cacheControl: '3600', upsert: true });
+        }
+      }
+
       // Generar código de referido único
       const miCodigo = generarCodigoReferido(cadeteUserId);
       const referidoPor = (document.getElementById('ob-referido')?.value ?? '').trim().toUpperCase() || null;
 
       // Actualizar cadetes
-      const { error: dbErr } = await sb.from('cadetes').upsert({
+      const upsertData = {
         auth_uid: cadeteUserId,
         nombre,
         cvu,
@@ -1010,7 +1031,12 @@ function bindOnboardingForm() {
         codigo_referido: miCodigo,
         referido_por: referidoPor,
         email: (await sb.auth.getUser()).data?.user?.email ?? '',
-      }, { onConflict: 'auth_uid' });
+      };
+      if (patente) upsertData.patente = patente;
+      if (carnetPath) upsertData.carnet_url = carnetPath;
+      if (seguroPath) upsertData.seguro_url = seguroPath;
+
+      const { error: dbErr } = await sb.from('cadetes').upsert(upsertData, { onConflict: 'auth_uid' });
       if (dbErr) throw new Error(dbErr.message);
 
       // Asignar rol cadete en backend
