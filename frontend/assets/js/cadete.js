@@ -1247,15 +1247,30 @@ if ('Notification' in window && Notification.permission === 'default') {
 ;(async function guardCadete() {
   if (window._cadete_redirecting) return;
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    const user = session?.user ?? null;
-    const role = user?.user_metadata?.role ?? user?.raw_user_meta_data?.role ?? null;
+    // getUser() valida el token contra el servidor (no cache local)
+    const { data: { user }, error } = await sb.auth.getUser();
 
-    if (!session || role !== 'cadete') {
+    if (error || !user) {
       window._cadete_redirecting = true;
       try { await sb.auth.signOut(); } catch {}
-      try { alert('Acceso restringido a Cadetes'); } catch {}
       window.location.replace('../cliente/login-usuario.html');
+      return;
+    }
+
+    // Verificar rol: primero user_metadata, después perfiles (fuente de verdad)
+    let role = user.user_metadata?.role ?? null;
+    if (!role || role !== 'cadete') {
+      try {
+        const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', user.id).maybeSingle();
+        if (perfil?.rol) role = perfil.rol;
+      } catch {}
+    }
+
+    // Si no es cadete ni usuario nuevo (sin rol), redirigir
+    if (role && role !== 'cadete') {
+      window._cadete_redirecting = true;
+      try { await sb.auth.signOut(); } catch {}
+      window.location.replace('/login.html');
       return;
     }
 
