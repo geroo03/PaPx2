@@ -947,6 +947,16 @@ if (checkForm) {
     const veh = (data.vehiculo ?? '').toLowerCase();
     cadeteVehiculo = (veh === 'moto') ? 'moto' : 'bici';
     actualizarSelectorVehiculo();
+
+    // Actualizar header con nombre real de la tabla cadetes
+    if (data.nombre) {
+      const h = document.getElementById('cad-nombre');
+      if (h) h.textContent = data.nombre;
+      const p = document.getElementById('perf-nombre');
+      if (p) p.textContent = data.nombre;
+      const av = document.getElementById('perf-av');
+      if (av) av.textContent = data.nombre.slice(0, 2).toUpperCase();
+    }
   });
 }
 
@@ -1271,7 +1281,8 @@ if ('Notification' in window && Notification.permission === 'default') {
 // ROLE GUARD + BOOT
 // ═══════════════════════════════════════════════════════════════════════════════
 ;(async function guardCadete() {
-  if (window._cadete_redirecting) return;
+  if (window._cadete_redirecting || window._cadete_booted) return;
+  window._cadete_booted = true;
   try {
     // getUser() valida el token contra el servidor (no cache local)
     const { data: { user }, error } = await sb.auth.getUser();
