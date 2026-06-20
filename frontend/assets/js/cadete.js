@@ -292,7 +292,7 @@ function renderViajes() {
             </div>
           </div>
           <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px;">
-            ${ICONS.pin ?? '📍'} Entregás en: ${o.cliente_direccion ?? o.direccion_entrega ?? '—'}
+            ${ICONS.pin} Entregás en: ${o.cliente_direccion ?? o.direccion_entrega ?? '—'}
           </div>
           <div style="display:flex;gap:10px;">
             <button
@@ -305,7 +305,7 @@ function renderViajes() {
               id="btn-aceptar-${o.pedido_id}"
               onclick="aceptarViaje('${o.pedido_id}')"
               style="flex:2;padding:13px;border-radius:10px;background:linear-gradient(135deg,#FF6B35,#E55A27);color:#fff;border:none;font-weight:800;">
-              ✅ Aceptar viaje · $${Number(gan).toLocaleString('es-AR')}
+              ${ICONS.check} Aceptar viaje · $${Number(gan).toLocaleString('es-AR')}
             </button>
           </div>
         </div>
@@ -321,7 +321,7 @@ function renderViajes() {
     _ofertaTimers.set(o.pedido_id, setTimeout(() => {
       _ofertaTimers.delete(o.pedido_id);
       rechazarOferta(o.pedido_id);
-      toast('⏱ Oferta expirada — esperando nuevos viajes');
+      toast('Oferta expirada — esperando nuevos viajes');
     }, remaining));
   });
 }
@@ -369,7 +369,7 @@ function renderTripActivo(container) {
         <!-- Badge de distancia en vivo al comercio -->
         <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);
                     border-radius:8px;padding:8px 12px;margin-bottom:14px;">
-          <span style="font-size:18px;">📍</span>
+          <span style="font-size:18px;">${ICONS.pin}</span>
           <div>
             <div style="font-size:11px;color:#9CA3AF;">Distancia al local (en vivo)</div>
             <div id="km-al-local" style="font-size:16px;font-weight:800;color:#60A5FA;">
@@ -382,7 +382,7 @@ function renderTripActivo(container) {
         <div style="background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.25);
                     border-radius:10px;padding:14px;margin-bottom:14px;">
           <div style="font-size:12px;font-weight:700;color:#FCD34D;margin-bottom:8px;">
-            🔐 Código de Retiro
+            Codigo de Retiro
           </div>
           <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px;">
             El comercio te dará un código de 4 dígitos al llegar. Ingresalo acá para confirmar el retiro.
@@ -419,7 +419,7 @@ function renderTripActivo(container) {
           style="display:flex;align-items:center;justify-content:center;gap:6px;
                  padding:13px;border-radius:10px;background:transparent;
                  border:1px solid rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-weight:700;">
-          ${ICONS.pin ?? '📍'} Ver ruta al Local
+          ${ICONS.pin} Ver ruta al Local
         </a>
       </div>`;
 
@@ -448,7 +448,7 @@ function renderTripActivo(container) {
         <!-- Badge de distancia en vivo al cliente -->
         <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);
                     border-radius:8px;padding:8px 12px;margin-bottom:14px;">
-          <span style="font-size:18px;">🏁</span>
+          <span style="font-size:18px;"></span>
           <div>
             <div style="font-size:11px;color:#9CA3AF;">Distancia al cliente (en vivo)</div>
             <div id="km-al-cliente" style="font-size:16px;font-weight:800;color:#34D399;">—</div>
@@ -459,7 +459,7 @@ function renderTripActivo(container) {
         <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);
                     border-radius:10px;padding:14px;margin-bottom:14px;">
           <div style="font-size:12px;font-weight:700;color:#6EE7B7;margin-bottom:8px;">
-            🔐 Código de Entrega
+            Codigo de Entrega
           </div>
           <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px;">
             El cliente te mostrará un código de 4 dígitos en su celular. Ingresalo para confirmar la entrega.
@@ -496,7 +496,7 @@ function renderTripActivo(container) {
           style="display:flex;align-items:center;justify-content:center;gap:6px;
                  padding:13px;border-radius:10px;background:transparent;
                  border:1px solid rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-weight:700;">
-          ${ICONS.pin ?? '📍'} Ver ruta de Entrega
+          ${ICONS.pin} Ver ruta de Entrega
         </a>
 
         <!-- No-show: cliente no aparece -->
@@ -504,7 +504,7 @@ function renderTripActivo(container) {
           <button onclick="iniciarTimerNoShow()"
             style="width:100%;padding:12px;border-radius:10px;background:transparent;
                    border:1px solid rgba(220,38,38,0.3);color:#F87171;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">
-            ⏱ El cliente no aparece
+            El cliente no aparece
           </button>
         </div>
         <div id="noshow-timer" style="display:none;margin-top:12px;background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:10px;padding:14px;">
@@ -544,7 +544,7 @@ function renderTripActivo(container) {
       if (kmChannel) { sb.removeChannel(kmChannel); kmChannel = null; }
       actualizarStats();
       renderViajes();
-      toast(`${ICONS.confetti ?? '🎉'} ¡Viaje completado! Ganaste $${Number(ganFinal).toLocaleString('es-AR')}`, 3500);
+      toast(`${ICONS.confetti} ¡Viaje completado! Ganaste $${Number(ganFinal).toLocaleString('es-AR')}`, 3500);
     }, 1200);
   }
 }
@@ -600,7 +600,7 @@ async function aceptarViaje(pedidoId) {
       renderViajes();
     } else {
       toast(`${ICONS.warn} Error al aceptar el viaje. Intentá de nuevo.`, 3000);
-      if (btn) { btn.disabled = false; btn.textContent = `✅ Aceptar viaje · $${oferta.ganancia_estimada ?? '—'}`; }
+      if (btn) { btn.disabled = false; btn.textContent = `Aceptar viaje · $${oferta.ganancia_estimada ?? '—'}`; }
     }
   }
 }
@@ -809,7 +809,7 @@ let iaIniciadoCadete  = false;
 function iniciarAsistenteCadete() {
   if (iaIniciadoCadete) return;
   iaIniciadoCadete = true;
-  agregarMsgIACadete('bot', '¡Hola! Soy tu asistente de ruta 🤖\n\nPuedo ayudarte con:\n• Cómo funciona el sistema de pagos\n• Qué hacer si hay un problema en la entrega\n• Cómo mejorar tu rating\n• Dudas sobre la app\n\n¿En qué te ayudo?');
+  agregarMsgIACadete('bot', '¡Hola! Soy tu asistente de ruta\n\nPuedo ayudarte con:\n• Cómo funciona el sistema de pagos\n• Qué hacer si hay un problema en la entrega\n• Cómo mejorar tu rating\n• Dudas sobre la app\n\n¿En qué te ayudo?');
 }
 
 function agregarMsgIACadete(de, texto) {
@@ -926,12 +926,12 @@ if (checkForm) {
       );
       if (dbErr) throw new Error('Error guardando en BD: ' + dbErr.message);
 
-      msg.textContent = '✅ Datos guardados correctamente.';
+      msg.textContent = 'Datos guardados correctamente.';
       msg.style.color = '#00C853';
       document.getElementById('perf-nombre')?.textContent != null && (document.getElementById('perf-nombre').textContent = nombre);
 
     } catch (err) {
-      msg.textContent = '❌ ' + err.message;
+      msg.textContent = err.message;
       msg.style.color = '#FF5252';
     } finally {
       btn.textContent = 'Guardar mis datos';
@@ -1075,7 +1075,7 @@ function bindOnboardingForm() {
       cadeteVehiculo = _obVehiculo;
       document.getElementById('onboarding-overlay').style.display = 'none';
       actualizarSelectorVehiculo();
-      toast('🎉 ¡Perfil completo! Ya podés recibir viajes');
+      toast(`${ICONS.confetti} ¡Perfil completo! Ya podés recibir viajes`);
 
     } catch (err) {
       errEl.textContent = err.message; errEl.style.display = 'block';
@@ -1103,7 +1103,7 @@ async function cargarHistorial() {
 
     if (error) throw error;
     if (!data?.length) {
-      container.innerHTML = '<div class="empty"><div class="big">📋</div><p>Todavía no hiciste viajes.</p></div>';
+      container.innerHTML = '<div class="empty"><div class="big"></div><p>Todavía no hiciste viajes.</p></div>';
       document.getElementById('hist-total-viajes').textContent = '0 viajes';
       return;
     }
@@ -1220,7 +1220,7 @@ function copiarCodigo() {
   const el = document.getElementById('mi-codigo-referido');
   if (!el || el.textContent === '—') return;
   navigator.clipboard.writeText(el.textContent).then(() => {
-    toast('📋 Código copiado: ' + el.textContent);
+    toast('Codigo copiado: ' + el.textContent);
   }).catch(() => {
     toast(el.textContent);
   });
@@ -1258,7 +1258,7 @@ function iniciarTimerNoShow() {
       _noShowTimer = null;
       const cancelBtn = document.getElementById('noshow-cancel-btn');
       if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.style.opacity = '1'; }
-      toast('⏰ Se cumplieron los 10 minutos. Podés cancelar la entrega.');
+      toast('Se cumplieron los 10 minutos. Podés cancelar la entrega.');
     }
   }, 500);
 }

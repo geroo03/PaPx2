@@ -41,11 +41,11 @@
   <span style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-right:4px;">Vehículo</span>
   <button class="veh-opt" data-vehiculo="bici" onclick="cambiarVehiculo('bici')"
     style="display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:.15s;">
-    🚲 Bici
+    Bici
   </button>
   <button class="veh-opt" data-vehiculo="moto" onclick="cambiarVehiculo('moto')"
     style="display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:.15s;">
-    🏍️ Moto
+    Moto
   </button>
   <span style="margin-left:auto;font-size:11px;color:#6B7280;">Base: <strong id="tarifa-base-display" style="color:#FF6B35;">$1.200</strong></span>
 </div>
@@ -69,7 +69,7 @@
       <div style="font-size:15px;font-weight:800;color:#111;">Historial de viajes</div>
       <div style="font-size:12px;color:#888;" id="hist-total-viajes">—</div>
     </div>
-    <div id="historial-container"><div class="empty"><div class="big">📋</div><p>Cargando historial...</p></div></div>
+    <div id="historial-container"><div class="empty"><div class="big"></div><p>Cargando historial...</p></div></div>
   </div>
 </div>
 
@@ -84,14 +84,14 @@
     </div>
   </div>
   <div style="font-size:13px;font-weight:700;color:#111;margin:4px 0 10px;">Últimos viajes</div>
-  <div id="hist-container"><div class="empty"><div class="big">🛵</div><p>Todavía no hiciste viajes.</p></div></div>
+  <div id="hist-container"><div class="empty"><div class="big"></div><p>Todavía no hiciste viajes.</p></div></div>
 </div>
 
 <!-- ASISTENTE IA -->
 <div class="sec" id="sec-ia">
   <div style="background:linear-gradient(135deg,#111,#222);border-radius:16px;overflow:hidden;margin-bottom:12px;">
     <div style="padding:16px;display:flex;align-items:center;gap:12px;">
-      <div style="width:44px;height:44px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🤖</div>
+      <div style="width:44px;height:44px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">IA</div>
       <div>
         <div style="font-size:15px;font-weight:800;color:#fff;">Asistente IA</div>
         <div style="font-size:11px;color:#aaa;margin-top:2px;">Tu compañero de ruta siempre disponible</div>
@@ -146,7 +146,7 @@
 
   <!-- Cobro semanal -->
   <div style="background:#0d2818;border:1px solid #16a34a30;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
-    <div style="font-size:28px;">💰</div>
+    <div style="font-size:28px;"></div>
     <div>
       <div style="font-size:13px;font-weight:700;color:#4ADE80;">Cobro semanal activo</div>
       <div style="font-size:11px;color:#6B8068;margin-top:2px;">Tu ganancia se acumula y se paga cada semana a tu CVU</div>
@@ -155,7 +155,7 @@
 
   <!-- Datos personales -->
   <div style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;">📋 Datos personales</div>
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;">Datos personales</div>
     <form id="cadete-form" style="display:flex;flex-direction:column;gap:12px;">
       <label style="color:#aaa;font-size:12px;">Nombre completo
         <input type="text" id="cd-nombre" required style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;"/>
@@ -179,13 +179,13 @@
 
   <!-- Foto DNI -->
   <div style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">🪪 Foto del DNI</div>
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Foto del DNI</div>
     <div style="font-size:12px;color:#888;margin-bottom:12px;">Sacale una foto clara al frente de tu DNI. Se usa para verificar tu identidad.</div>
     <div id="dni-preview" style="display:none;margin-bottom:10px;border-radius:8px;overflow:hidden;max-height:180px;">
       <img id="dni-img" style="width:100%;object-fit:cover;"/>
     </div>
     <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:#222;border:1.5px dashed #444;border-radius:10px;padding:14px;cursor:pointer;color:#aaa;font-size:13px;font-weight:600;">
-      📷 Subir foto del DNI
+      Subir foto del DNI
       <input type="file" id="cd-dni-file" accept="image/*" capture="environment" style="display:none;" onchange="previsualizarDNI(this)"/>
     </label>
     <div id="dni-status" style="font-size:11px;color:#888;text-align:center;margin-top:8px;"></div>
@@ -193,13 +193,13 @@
 
   <!-- Vehículo y legal -->
   <div style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;">🏍️ Vehículo y documentación</div>
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;">Vehículo y documentación</div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div style="display:flex;gap:10px;">
         <label style="color:#aaa;font-size:12px;flex:1;">Vehículo
           <select id="cd-vehiculo" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;">
-            <option value="bici">🚲 Bicicleta</option>
-            <option value="moto">🏍️ Moto</option>
+            <option value="bici">Bicicleta</option>
+            <option value="moto">Moto</option>
           </select>
         </label>
         <label style="color:#aaa;font-size:12px;flex:1;">Color
@@ -219,10 +219,10 @@
 
   <!-- Seguro (sección legal — solo moto) -->
   <div id="moto-legal" style="display:none;background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">📄 Seguro del vehículo</div>
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Seguro del vehículo</div>
     <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.5;">Subí una foto o PDF de tu póliza de seguro vigente.</div>
     <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:#222;border:1.5px dashed #444;border-radius:10px;padding:14px;cursor:pointer;color:#aaa;font-size:13px;font-weight:600;">
-      📎 Subir seguro
+      Subir seguro
       <input type="file" id="cd-seguro-file" accept="image/*,application/pdf" style="display:none;" onchange="subirDocumento(this,'seguro')"/>
     </label>
     <div id="seguro-status" style="font-size:11px;color:#888;text-align:center;margin-top:8px;"></div>
@@ -230,11 +230,11 @@
 
   <!-- Código de referido -->
   <div style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">🤝 Invitá a otros cadetes</div>
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Invitá a otros cadetes</div>
     <div style="font-size:12px;color:#888;margin-bottom:12px;">Compartí tu código con amigos. Cuando se registren con tu código, ambos ganan.</div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div id="mi-codigo-referido" style="flex:1;background:#111;border:1.5px solid #FF6B35;border-radius:10px;padding:12px;text-align:center;font-size:18px;font-weight:800;color:#FF6B35;letter-spacing:2px;">—</div>
-      <button onclick="copiarCodigo()" style="background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">📋 Copiar</button>
+      <button onclick="copiarCodigo()" style="background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Copiar</button>
     </div>
   </div>
 
@@ -249,7 +249,7 @@
 <div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:#0d0d0d;z-index:9000;overflow-y:auto;padding:24px 16px 48px;">
   <div style="max-width:480px;margin:0 auto;">
     <div style="text-align:center;margin-bottom:28px;">
-      <div style="font-size:40px;margin-bottom:12px;">🚀</div>
+      <div style="font-size:40px;margin-bottom:12px;"></div>
       <h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;">¡Bienvenido al equipo!</h2>
       <p style="font-size:13px;color:#888;line-height:1.5;">Completá estos datos para empezar a recibir viajes.</p>
     </div>
@@ -265,7 +265,7 @@
       <div>
         <div style="color:#aaa;font-size:12px;font-weight:600;margin-bottom:6px;">Foto del DNI (frente) <span style="color:#FF6B35;">*</span></div>
         <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1a1a1a;border:1.5px dashed #444;border-radius:10px;padding:16px;cursor:pointer;color:#aaa;font-size:14px;font-weight:600;">
-          📷 Sacar foto / Elegir archivo
+          Sacar foto / Elegir archivo
           <input type="file" id="ob-dni" accept="image/*" capture="environment" style="display:none;" onchange="document.getElementById('ob-dni-ok').style.display=this.files.length?'block':'none'"/>
         </label>
         <div id="ob-dni-ok" style="display:none;font-size:12px;color:#4ADE80;text-align:center;margin-top:6px;">✓ Foto seleccionada</div>
@@ -281,8 +281,8 @@
       <div>
         <div style="color:#aaa;font-size:12px;font-weight:600;margin-bottom:8px;">¿Qué usás para repartir? <span style="color:#FF6B35;">*</span></div>
         <div style="display:flex;gap:10px;">
-          <button type="button" id="ob-bici" onclick="obSelVeh('bici')" style="flex:1;padding:14px;border-radius:12px;border:2px solid #FF6B35;background:#1a0d08;color:#FF6B35;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">🚲 Bici<br><span style="font-size:11px;font-weight:400;">Base $1.200</span></button>
-          <button type="button" id="ob-moto" onclick="obSelVeh('moto')" style="flex:1;padding:14px;border-radius:12px;border:2px solid #333;background:#1a1a1a;color:#888;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">🏍️ Moto<br><span style="font-size:11px;font-weight:400;">Base $1.800</span></button>
+          <button type="button" id="ob-bici" onclick="obSelVeh('bici')" style="flex:1;padding:14px;border-radius:12px;border:2px solid #FF6B35;background:#1a0d08;color:#FF6B35;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">Bici<br><span style="font-size:11px;font-weight:400;">Base $1.200</span></button>
+          <button type="button" id="ob-moto" onclick="obSelVeh('moto')" style="flex:1;padding:14px;border-radius:12px;border:2px solid #333;background:#1a1a1a;color:#888;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;">Moto<br><span style="font-size:11px;font-weight:400;">Base $1.800</span></button>
         </div>
       </div>
 
@@ -318,7 +318,7 @@
 
       <!-- Info cobro -->
       <div style="background:#111;border:1px solid #333;border-radius:10px;padding:14px;font-size:13px;color:#aaa;line-height:1.6;">
-        💰 <strong style="color:#FF6B35;">Cobro semanal.</strong> Tu ganancia se acumula y se paga cada semana al CVU que registres.
+        <strong style="color:#FF6B35;">Cobro semanal.</strong> Tu ganancia se acumula y se paga cada semana al CVU que registres.
       </div>
 
       <button type="submit" id="ob-btn" style="background:#FF6B35;color:#fff;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:8px;">

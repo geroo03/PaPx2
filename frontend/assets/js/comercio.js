@@ -1,10 +1,9 @@
 /**
  * comercio.js — Puerta a Puerta Portal
- * Capa dual: USE_MOCK = true → datos en memoria | false → Supabase real.
  * Event delegation total. Cero handlers inline.
  */
 
-import { supabase as sb, USE_MOCK, MOCK_DATABASE } from './config.js';
+import { supabase as sb } from './config.js';
 
 // ─── CONSTANTES FINANCIERAS ───────────────────────────────────────────────────
 // REGLA INQUEBRANTABLE: 15% es la comisión de PaP, siempre sobre el precio base.
@@ -12,110 +11,6 @@ import { supabase as sb, USE_MOCK, MOCK_DATABASE } from './config.js';
 const RECARGO     = 0.15;
 const RECARGO_DIV = 1 + RECARGO; // 1.15
 
-// ─── DATOS MOCK (solo cuando USE_MOCK = true) ─────────────────────────────────
-// Todos los precios "subtotal" reflejan lo que el CLIENTE paga (con 15% incluido).
-// precio_base en productos = precio SIN recargo (lo que el comercio cobra).
-// precio_cliente = precio_base × 1.15
-
-const MOCK = {
-
-  comercio: {
-    id:                    'mock-cid-comercio-001',
-    nombre:                'Comercio Demo',
-    categoria:             'comida',
-    descripcion:           'Panel de demostración con datos simulados',
-    direccion:             'Av. de Prueba 234, Ciudad',
-    telefono:              '3800000000',
-    email:                 'comercio-demo@example.com',
-    usuario_id:            'mock-uid-comercio-001',
-    abierto_ahora:         true,
-    estado_registro:       'activo',
-    tipo_delivery_defecto: 'app',
-    deuda:                 1500.00,
-    rating:                4.4,
-    total_pedidos:         47,
-    banco:                 'Banco Galicia',
-    cbu_alias:             'habibi.pagos',
-    horario_apertura:      '11:30:00',
-    horario_cierre:        '23:00:00',
-    dias_abierto:          ['lunes','martes','miercoles','jueves','viernes','sabado'],
-    mp_conectado:          false,
-  },
-
-  categorias: [
-    { id: 'cat-001', comercio_id: 'mock-cid-comercio-001', nombre: 'Pizzas Tradicionales', orden: 0 },
-    { id: 'cat-002', comercio_id: 'mock-cid-comercio-001', nombre: 'Bebidas',              orden: 1 },
-    { id: 'cat-003', comercio_id: 'mock-cid-comercio-001', nombre: 'Postres',              orden: 2 },
-  ],
-
-  productos: [
-    // PRODUCTO DESTACADO: base $1.000 → cliente paga $1.150
-    {
-      id: 'prod-001', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-001',
-      nombre: 'Pizza Muzza', descripcion: 'Salsa de tomate, mozzarella, aceitunas negras',
-      precio_base: 1000, disponible: true, imagen_url: null, orden: 0,
-    },
-    {
-      id: 'prod-002', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-001',
-      nombre: 'Pizza Calabresa', descripcion: 'Mozzarella, longaniza ahumada, morrón rojo',
-      precio_base: 1200, disponible: true, imagen_url: null, orden: 1,
-    },
-    {
-      id: 'prod-003', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-002',
-      nombre: 'Coca-Cola 1.5L', descripcion: 'Refresco en botella',
-      precio_base: 600, disponible: true, imagen_url: null, orden: 0,
-    },
-    {
-      id: 'prod-004', comercio_id: 'mock-cid-comercio-001', categoria_id: 'cat-003',
-      nombre: 'Tiramisú casero', descripcion: 'Con mascarpone y café espresso',
-      precio_base: 800, disponible: false, imagen_url: null, orden: 0,
-    },
-  ],
-
-  // RESEÑAS con puntaje_comercio y puntaje_cadete (columnas reales del schema CSV)
-  ratings: [
-    {
-      id: 'rat-001', pedido_id: 'ped-003', comercio_id: 'mock-cid-comercio-001',
-      puntaje_comercio: 5, puntaje_cadete: 4,
-      comentario: 'Excelente pizza, llegó caliente y perfectamente empaquetada.',
-      created_at: new Date(Date.now() - 2.5 * 3_600_000).toISOString(),
-    },
-    {
-      id: 'rat-002', pedido_id: 'ped-004', comercio_id: 'mock-cid-comercio-001',
-      puntaje_comercio: 4, puntaje_cadete: 5,
-      comentario: 'Muy rica la muzza. El cadete fue muy puntual.',
-      created_at: new Date(Date.now() - 5 * 3_600_000).toISOString(),
-    },
-    {
-      id: 'rat-003', pedido_id: 'ped-005', comercio_id: 'mock-cid-comercio-001',
-      puntaje_comercio: 5, puntaje_cadete: null,
-      comentario: null,
-      created_at: new Date(Date.now() - 25 * 3_600_000).toISOString(),
-    },
-  ],
-
-  advertencias: [], // sin alertas de problemas en el demo
-
-  // PROMO DEMO: base $1.000, descuento 20%
-  // precio_base_promo = $1.000 × 0.80 = $800
-  // precio_cliente    = $800 × 1.15   = $920  ← lo que paga el cliente
-  // ganancia_pap      = $920 - $800   = $120  ← 15% de $800
-  // ingreso_comercio  = $800
-  promociones: [
-    {
-      id: 'promo-001', comercio_id: 'mock-cid-comercio-001', producto_id: 'prod-001',
-      tipo: 'descuento_porcentaje', valor: 20,
-      descripcion: 'Descuento especial fin de semana — Pizza Muzza',
-      activa: true,
-      fecha_inicio: new Date(Date.now() - 86_400_000).toISOString(),
-      fecha_fin:    new Date(Date.now() + 7 * 86_400_000).toISOString(),
-      created_at:   new Date(Date.now() - 86_400_000).toISOString(),
-    },
-  ],
-};
-
-// Simula latencia de red para que los spinners aparezcan y desaparezcan naturalmente
-const md = (ms = 350) => new Promise(r => setTimeout(r, ms));
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
 const S = {
@@ -429,7 +324,7 @@ function renderPedidosTable(pedidos, advMap = {}, cadetesMap = {}) {
         <td>
           <div class="pedido-num">${numRef}</div>
           <div class="pedido-fecha">${fechaStr}, ${horaStr}</div>
-          ${cadetePerfil ? `<div style="font-size:11px;color:#666;margin-top:2px;">🛵 ${esc([cadetePerfil.nombre,cadetePerfil.apellido].filter(Boolean).join(' ')||'Cadete asignado')}</div>` : ''}
+          ${cadetePerfil ? `<div style="font-size:11px;color:#666;margin-top:2px;">${esc([cadetePerfil.nombre,cadetePerfil.apellido].filter(Boolean).join(' ')||'Cadete asignado')}</div>` : ''}
         </td>
         <td>${advsCount > 0
           ? `<span class="badge badge-cancelado" title="${(advMap[p.id]||[]).map(a=>a.motivo).join(', ')}">${advsCount} aviso${advsCount>1?'s':''}</span>`
@@ -490,20 +385,20 @@ function detallePedido(p, advs, cadetesMap = {}) {
             : `<div style="width:36px;height:36px;border-radius:50%;background:#0369a1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">${esc((cadetePerfil.nombre||'C').charAt(0).toUpperCase())}</div>`}
           <div>
             <div style="font-size:13px;font-weight:700;">${esc([cadetePerfil.nombre,cadetePerfil.apellido].filter(Boolean).join(' ')||'—')}</div>
-            ${cadetePerfil.vehiculo ? `<div style="font-size:11px;color:#666;">🛵 ${esc([cadetePerfil.vehiculo,cadetePerfil.color].filter(Boolean).join(' · '))}</div>` : ''}
+            ${cadetePerfil.vehiculo ? `<div style="font-size:11px;color:#666;">${esc([cadetePerfil.vehiculo,cadetePerfil.color].filter(Boolean).join(' · '))}</div>` : ''}
           </div>
         </div>` : `<div style="font-size:12px;color:#666;">ID: ${p.cadete_id.slice(0,8)}…</div>`}
       ${p.codigo_retiro ? `
         <div style="margin-top:8px;padding:8px 12px;background:#fff;border-radius:6px;border:1px dashed #f59e0b;">
-          <div style="font-size:11px;color:#92400e;font-weight:700;">🔐 Código de Retiro (decíselo al cadete)</div>
+          <div style="font-size:11px;color:#92400e;font-weight:700;">Codigo de Retiro (deciselo al cadete)</div>
           <div style="font-size:22px;font-weight:800;letter-spacing:8px;color:#92400e;margin-top:4px;">${esc(p.codigo_retiro)}</div>
         </div>` : ''}
-      ${p.distancia_estimada ? `<div style="font-size:11px;color:#666;margin-top:6px;">📍 Distancia: ${p.distancia_estimada} km · Ganancia cadete: ${p.pago_cadete ? formatARS(p.pago_cadete) : '—'}</div>` : ''}
+      ${p.distancia_estimada ? `<div style="font-size:11px;color:#666;margin-top:6px;">Distancia: ${p.distancia_estimada} km · Ganancia cadete: ${p.pago_cadete ? formatARS(p.pago_cadete) : '—'}</div>` : ''}
     </div>` : '';
 
   // 4c: Propina
   const propinaHTML = p.propina_cadete > 0
-    ? `<span>🙏 Propina cadete: ${formatARS(p.propina_cadete)}</span>`
+    ? `<span>Propina cadete: ${formatARS(p.propina_cadete)}</span>`
     : '';
 
   return `<div class="pedido-detail">
@@ -563,7 +458,7 @@ async function aceptarPedido(id) {
       })
         .then(r => r.json())
         .then(json => {
-          if (json.difundido > 0) showToast(`📍 Buscando cadetes — ${json.difundido} notificado(s)`, 'info');
+          if (json.difundido > 0) showToast(`Buscando cadetes — ${json.difundido} notificado(s)`, 'info');
         })
         .catch(e => console.warn('[PaP] No se pudo difundir a cadetes:', e.message));
     }
@@ -660,12 +555,12 @@ function renderProductos(prods, catId) {
   const cat = S.categorias.find(c => c.id === catId);
   if (catH) catH.textContent = cat?.nombre || 'Productos';
   if (!prods.length) {
-    cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍽️</div><p>Sin productos en esta sección.</p></div>'; return;
+    cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>Sin productos en esta sección.</p></div>'; return;
   }
   cont.innerHTML = prods.map(p => {
     const precioCliente = Math.round(((p.precio_base ?? p.precio) || 0) * RECARGO_DIV);
     return `<div class="product-row" data-product-id="${p.id}">
-      <div class="product-thumb">${p.imagen_url ? `<img src="${esc(p.imagen_url)}" alt="${esc(p.nombre)}" loading="lazy">` : '<div class="thumb-placeholder">🍽️</div>'}</div>
+      <div class="product-thumb">${p.imagen_url ? `<img src="${esc(p.imagen_url)}" alt="${esc(p.nombre)}" loading="lazy">` : '<div class="thumb-placeholder"></div>'}</div>
       <div class="product-info">
         <div class="product-name">${esc(p.nombre)}</div>
         <div class="product-desc">${esc(p.descripcion || '')}</div>
@@ -962,7 +857,7 @@ async function loadPromociones() {
       calcEl.innerHTML = `
         <div style="background:#F8F9FA;border:1px solid #E5E5E5;border-radius:12px;padding:20px;margin-bottom:24px">
           <div style="font-size:13px;font-weight:700;color:#FF6B35;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">
-            💡 Ejemplo de cálculo — Regla del 15%
+            Ejemplo de calculo — Regla del 15%
           </div>
           <table style="width:100%;font-size:13px;border-collapse:collapse">
             <tr><td style="padding:5px 0;color:#555">Precio Base del producto</td>
@@ -1007,7 +902,7 @@ async function loadMisPromociones() {
   if (USE_MOCK) {
     await md();
     if (!MOCK.promociones.length) {
-      list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><p>No tenés promociones creadas.</p></div>'; return;
+      list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>No tenés promociones creadas.</p></div>'; return;
     }
     list.innerHTML = `<div class="table-wrap"><table class="pap-table">
       <thead><tr><th>Estado</th><th>Producto</th><th>Tipo</th><th>Descuento</th><th>Precio cliente</th><th>Vence</th><th></th></tr></thead>
@@ -1037,7 +932,7 @@ async function loadMisPromociones() {
   }
 
   const { data } = await sb.from('promociones').select('*').eq('comercio_id', S.cid).order('created_at', { ascending: false });
-  if (!data?.length) { list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏷️</div><p>No tenés promociones creadas.</p></div>'; return; }
+  if (!data?.length) { list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>No tenés promociones creadas.</p></div>'; return; }
   list.innerHTML = `<div class="table-wrap"><table class="pap-table"><thead><tr><th>Estado</th><th>Tipo</th><th>Valor</th><th>Precio cliente</th><th>Vence</th><th></th></tr></thead>
     <tbody>${data.map(p => {
       const activa = p.activa && new Date(p.fecha_fin) > new Date();
@@ -1120,7 +1015,7 @@ function renderResumenResenas(ratings) {
 
 function renderListaResenas(ratings) {
   const list = g('resenas-list'); if (!list) return;
-  if (!ratings.length) { list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⭐</div><p>Aún no tenés reseñas.</p></div>'; return; }
+  if (!ratings.length) { list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>Aún no tenés reseñas.</p></div>'; return; }
   const starFilter = parseInt(g('resenas-stars-filter')?.value||'0', 10);
   const filtered   = starFilter ? ratings.filter(r => r.puntaje_comercio === starFilter) : ratings;
   if (!filtered.length) { list.innerHTML = '<div class="empty-state"><p>Sin reseñas para este filtro.</p></div>'; return; }
@@ -1166,7 +1061,7 @@ function setupRealtime() {
 function handleRealtimePedido(payload) {
   const { eventType, new: newRow } = payload;
   if (eventType === 'INSERT' && newRow?.estado === 'nuevo') {
-    playBeep(); showToast('¡Nuevo pedido recibido! 🛎️', 'success');
+    playBeep(); showToast('¡Nuevo pedido recibido!', 'success');
     bumpBadge('badge-nuevos-nav');
   }
   if (S.view === 'pedidos') loadPedidos();

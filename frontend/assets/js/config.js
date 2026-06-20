@@ -34,7 +34,7 @@ export const supabase = _resolveClient();
   try{
     const ok = !!(supabase && SUPA_URL && SUPA_URL.indexOf('supabase.co') !== -1);
     if (typeof window !== 'undefined') window.SUPABASE_CONFIG_OK = ok;
-    if (!ok) console.warn('⚠️ [PaP] Supabase client no inicializado correctamente. Verificá env.js y el UMD bundle.');
+    if (!ok) console.warn('[PaP] Supabase client no inicializado correctamente. Verificá env.js y el UMD bundle.');
   }catch(e){ /* no-op */ }
 })();
 

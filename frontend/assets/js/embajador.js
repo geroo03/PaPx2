@@ -233,7 +233,7 @@ function bindFormAlta() {
         toast('Error: ' + (json.error ?? res.status));
         return;
       }
-      msgEl.textContent = `✅ "${json.comercio?.nombre}" registrado. Estado: pendiente de aprobación.`;
+      msgEl.textContent = `"${json.comercio?.nombre}" registrado. Estado: pendiente de aprobación.`;
       $('form-alta').reset();
       await cargarDashboard();
     } catch (err) {

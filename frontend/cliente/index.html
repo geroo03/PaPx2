@@ -75,7 +75,7 @@
         wrapper.style.alignItems = 'center';
 
         wrapper.innerHTML = `
-          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 18px rgba(0,0,0,.06);">🛵</div>
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 18px rgba(0,0,0,.06);"></div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:15px;font-weight:800;color:#0D0D0D;line-height:1;">¿Querés ser Cadete?</div>
             <div style="font-size:12px;color:#6B7280;margin-top:4px;">Ganá plata repartiendo con Puerta a Puerta</div>
@@ -117,11 +117,11 @@
 <div class="toast" id="toast"><span class="toast-dot"></span><span id="toast-msg"></span></div>
 <div class="rating-screen" id="rating-screen">
   <div class="rating-card">
-    <div style="text-align:center;font-size:48px;margin-bottom:12px;">⭐</div>
+    <div style="text-align:center;font-size:48px;margin-bottom:12px;"></div>
     <div class="rating-title">¿Cómo estuvo tu pedido?</div>
     <div class="rating-sub" id="rating-comercio-nombre">Calificá tu experiencia</div>
     <div class="stars" id="stars-container">
-      <span class="star" onclick="selStar(1)">⭐</span><span class="star" onclick="selStar(2)">⭐</span><span class="star" onclick="selStar(3)">⭐</span><span class="star" onclick="selStar(4)">⭐</span><span class="star" onclick="selStar(5)">⭐</span>
+      <span class="star" onclick="selStar(1)">&#9733;</span><span class="star" onclick="selStar(2)">&#9733;</span><span class="star" onclick="selStar(3)">&#9733;</span><span class="star" onclick="selStar(4)">&#9733;</span><span class="star" onclick="selStar(5)">&#9733;</span>
     </div>
     <textarea class="rating-comentario" id="rating-comentario" rows="3" placeholder="Contanos tu experiencia (opcional)..."></textarea>
     <button class="btn-rating" onclick="enviarRating()">Enviar calificación</button>
@@ -132,10 +132,10 @@
   <div class="devolucion-card">
     <div style="font-size:22px;font-weight:800;color:#0D0D0D;margin-bottom:6px;">Reportar un problema</div>
     <div style="font-size:13px;color:#9DA3AE;margin-bottom:20px;">¿Qué pasó con tu pedido?</div>
-    <div class="dev-opcion" onclick="reportarProblema('no-llegó')"><div class="dev-icono" style="background:#FEE2E2;">❌</div><div><div style="font-size:14px;font-weight:700;">No llegó lo que pedí</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">El producto es diferente a la foto</div></div></div>
-    <div class="dev-opcion" onclick="reportarProblema('mal-estado')"><div class="dev-icono" style="background:#FEF3C7;">🤢</div><div><div style="font-size:14px;font-weight:700;">Llegó en mal estado</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Frío, roto o en malas condiciones</div></div></div>
-    <div class="dev-opcion" onclick="reportarProblema('faltó-algo')"><div class="dev-icono" style="background:#DBEAFE;">📦</div><div><div style="font-size:14px;font-weight:700;">Faltó algo en el pedido</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Me enviaron menos productos</div></div></div>
-    <div class="dev-opcion" onclick="reportarProblema('no-llegó-pedido')"><div class="dev-icono" style="background:#F3F4F6;">🛵</div><div><div style="font-size:14px;font-weight:700;">No recibí el pedido</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">El cadete no llegó nunca</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('no-llegó')"><div class="dev-icono" style="background:#FEE2E2;">X</div><div><div style="font-size:14px;font-weight:700;">No llegó lo que pedí</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">El producto es diferente a la foto</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('mal-estado')"><div class="dev-icono" style="background:#FEF3C7;">!</div><div><div style="font-size:14px;font-weight:700;">Llegó en mal estado</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Frío, roto o en malas condiciones</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('faltó-algo')"><div class="dev-icono" style="background:#DBEAFE;"></div><div><div style="font-size:14px;font-weight:700;">Faltó algo en el pedido</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Me enviaron menos productos</div></div></div>
+    <div class="dev-opcion" onclick="reportarProblema('no-llegó-pedido')"><div class="dev-icono" style="background:#F3F4F6;"></div><div><div style="font-size:14px;font-weight:700;">No recibí el pedido</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">El cadete no llegó nunca</div></div></div>
     <button onclick="cerrarDevolucion()" style="width:100%;background:transparent;border:1.5px solid #E0E0E0;border-radius:12px;padding:14px;font-size:14px;font-weight:600;color:#9DA3AE;margin-top:16px;cursor:pointer;">Cancelar</button>
   </div>
 </div>
@@ -143,11 +143,11 @@
   <div style="background:#0D0D0D;padding:16px 18px 20px;flex-shrink:0;">
     <div style="color:#FF6B35;font-size:13px;font-weight:600;margin-bottom:10px;cursor:pointer;" onclick="go('tracking')">← Volver</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div><div style="font-size:18px;font-weight:800;color:#fff;" id="chat-reporte-titulo">Reporte enviado ✅</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;" id="chat-reporte-subtitulo"></div></div>
+      <div><div style="font-size:18px;font-weight:800;color:#fff;" id="chat-reporte-titulo">Reporte enviado</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px;" id="chat-reporte-subtitulo"></div></div>
       <div style="text-align:center;"><div style="font-size:10px;color:#9DA3AE;margin-bottom:2px;">TIEMPO LÍMITE</div><div id="chat-reporte-countdown" style="font-size:28px;font-weight:900;color:#FF6B35;font-variant-numeric:tabular-nums;">10:00</div></div>
     </div>
   </div>
-  <div style="background:#E8F5E9;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;"><span>✅</span><div style="font-size:12px;color:#2E7D32;font-weight:600;">Si no se resuelve en 10 min, tu pedido se anula y recibís el reembolso gratis.</div></div>
+  <div style="background:#E8F5E9;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;"><span>OK</span><div style="font-size:12px;color:#2E7D32;font-weight:600;">Si no se resuelve en 10 min, tu pedido se anula y recibís el reembolso gratis.</div></div>
   <div id="chat-reporte-msgs" style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-height:200px;"></div>
   <div style="background:#fff;padding:12px 16px;display:flex;gap:10px;align-items:center;border-top:1px solid #E0E0E0;">
     <input id="chat-reporte-input" placeholder="Escribí tu mensaje al comercio..." style="flex:1;border:1.5px solid #E0E0E0;border-radius:22px;padding:10px 16px;font-size:13px;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')enviarMsgReporte()"/>
@@ -155,11 +155,11 @@
   </div>
 </div>
 <div class="confirmado-screen" id="s-confirmado">
-  <div class="conf-icono" id="conf-icono">⏳</div>
+  <div class="conf-icono" id="conf-icono"></div>
   <div class="conf-titulo" id="conf-titulo">Pedido enviado</div>
   <div class="conf-sub" id="conf-sub">Esperando que el comercio confirme tu pedido...<br>Te avisamos en segundos.</div>
   <div class="conf-num"><div class="conf-num-label">Número de pedido</div><div class="conf-num-val" id="conf-num-val">#0000</div></div>
-  <button class="conf-btn" id="conf-btn" onclick="irAlTracking()" style="display:none;">Ver seguimiento en vivo 🛵</button>
+  <button class="conf-btn" id="conf-btn" onclick="irAlTracking()" style="display:none;">Ver seguimiento en vivo</button>
   <div id="conf-loader" style="margin-top:16px;display:flex;gap:8px;justify-content:center;">
     <div style="width:8px;height:8px;border-radius:50%;background:#FF6B35;animation:bounce 1.2s infinite;"></div>
     <div style="width:8px;height:8px;border-radius:50%;background:#FF6B35;animation:bounce 1.2s .2s infinite;"></div>
@@ -191,7 +191,7 @@
   </div>
   <div id="ofertas-banner-wrap" style="display:none;padding:16px 0 0;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0 18px;margin-bottom:10px;">
-      <div style="font-size:15px;font-weight:800;color:var(--black);">🔥 Ofertas de hoy</div>
+      <div style="font-size:15px;font-weight:800;color:var(--black);">Ofertas de hoy</div>
       <div style="font-size:11px;font-weight:700;color:var(--brand);background:#FFF3E0;padding:3px 10px;border-radius:20px;">En vivo</div>
     </div>
     <div style="overflow-x:auto;padding:0 18px 12px;scrollbar-width:none;" id="ofertas-banner">
@@ -209,7 +209,7 @@
       <div class="cat" onclick="filtrar(this,'carniceria')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 9h16M9 4v16"></path></svg> Carnicería</div>
       <div class="cat" onclick="filtrar(this,'farmacia')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg> Farmacia</div>
       <div class="cat" onclick="filtrar(this,'panaderia')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Panadería</div>
-    <div class="cat" onclick="filtrar(this,'kiosco')">🏪 Kiosco</div>
+    <div class="cat" onclick="filtrar(this,'kiosco')">Kiosco</div>
   </div></div>
   <div style="margin:14px 18px 10px;border-radius:var(--radius-lg);overflow:hidden;position:relative;height:100px;cursor:pointer;"><img src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=700&q=80" alt="Cerca tuyo" style="width:100%;height:100%;object-fit:cover;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(13,13,13,.72) 0%,rgba(13,13,13,.2) 100%);"></div><div style="position:absolute;inset:0;padding:16px 18px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px;">Cerca tuyo</div><div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:500;margin-top:3px;">Comercios disponibles ahora</div></div><div style="position:absolute;right:16px;top:50%;transform:translateY(-50%);"><span style="font-size:12px;font-weight:700;color:var(--brand);background:rgba(0,0,0,.5);padding:5px 12px;border-radius:20px;backdrop-filter:blur(4px);">Ver todos</span></div></div>
   <div id="comercios-container"><div class="loader">Cargando comercios...</div></div>
@@ -229,7 +229,7 @@
   <div style="padding:14px 18px;background:var(--white);margin-bottom:10px;border-top:1px solid var(--gray-100);border-bottom:1px solid var(--gray-100);">
     <div class="pay-lbl" style="margin-bottom:10px;">Dirección de entrega</div>
     <div id="dir-opciones" style="display:flex;flex-direction:column;gap:8px;">
-      <div id="dir-opt-gps" onclick="selDireccion('gps')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid #FF6B35;background:#FFF8F6;cursor:pointer;"><span style="font-size:20px;">📍</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#0D0D0D;">Mi ubicación actual</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;" id="dir-gps-txt">Detectando...</div></div><div style="width:18px;height:18px;border-radius:50%;border:2px solid #FF6B35;background:#FF6B35;display:flex;align-items:center;justify-content:center;" id="dot-gps"><div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div></div></div>
+      <div id="dir-opt-gps" onclick="selDireccion('gps')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid #FF6B35;background:#FFF8F6;cursor:pointer;"><span style="font-size:20px;"></span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#0D0D0D;">Mi ubicación actual</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;" id="dir-gps-txt">Detectando...</div></div><div style="width:18px;height:18px;border-radius:50%;border:2px solid #FF6B35;background:#FF6B35;display:flex;align-items:center;justify-content:center;" id="dot-gps"><div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div></div></div>
       <div id="mapa-wrap" style="border-radius:14px;overflow:hidden;position:relative;height:180px;background:#e8e8e8;display:none;"><div id="mapa-carrito" style="width:100%;height:100%;"></div><div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:#fff;font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;pointer-events:none;">Arrastrá el pin para ajustar</div></div>
       <div id="dir-opt-otras" style="display:flex;flex-direction:column;gap:8px;"></div>
       <div id="dir-opt-nueva" onclick="selDireccion('nueva')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid #E0E0E0;background:#fff;cursor:pointer;"><span style="font-size:20px;">✏️</span><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#0D0D0D;">Escribir otra dirección</div><div style="font-size:11px;color:#9DA3AE;margin-top:2px;">Ingresá una dirección diferente</div></div><div style="width:18px;height:18px;border-radius:50%;border:2px solid #E0E0E0;background:#fff;" id="dot-nueva"></div></div>
@@ -251,17 +251,17 @@
     <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot3" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div><div class="tline" id="line3"></div></div><div><div class="tstep-lbl" id="lbl3" style="color:var(--gray-400);">Cadete en camino</div><div class="tstep-time" id="t3"></div></div></div>
     <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot4" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div></div><div><div class="tstep-lbl" id="lbl4" style="color:var(--gray-400);">Entregado</div><div class="tstep-time" id="t4"></div></div></div>
   </div>
-  <div id="btn-devolucion-wrap" style="display:none;padding:14px 18px 4px;"><button onclick="abrirDevolucion()" style="width:100%;background:linear-gradient(135deg,#DC2626,#EF4444);color:#fff;border:none;border-radius:14px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(220,38,38,.35);animation:pulseRed 2s infinite;display:flex;align-items:center;justify-content:center;gap:10px;"><span style="font-size:18px;">⚠️</span><div style="text-align:left;"><div>¿Tuviste un problema con tu pedido?</div><div style="font-size:11px;opacity:.85;margin-top:2px;">Tocá acá — lo resolvemos en 10 min</div></div><span style="font-size:16px;margin-left:auto;">›</span></button></div>
+  <div id="btn-devolucion-wrap" style="display:none;padding:14px 18px 4px;"><button onclick="abrirDevolucion()" style="width:100%;background:linear-gradient(135deg,#DC2626,#EF4444);color:#fff;border:none;border-radius:14px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(220,38,38,.35);animation:pulseRed 2s infinite;display:flex;align-items:center;justify-content:center;gap:10px;"><span style="font-size:18px;"></span><div style="text-align:left;"><div>¿Tuviste un problema con tu pedido?</div><div style="font-size:11px;opacity:.85;margin-top:2px;">Tocá acá — lo resolvemos en 10 min</div></div><span style="font-size:16px;margin-left:auto;">›</span></button></div>
   <div style="height:20px;"></div>
 </div>
 <div class="screen" id="s-soporte">
-  <div style="background:var(--black);padding:18px 18px 20px;flex-shrink:0;"><div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;">💬 Soporte</div><div style="font-size:13px;color:rgba(255,255,255,.5);">Reportes activos y asistente IA</div></div>
-  <div style="margin:16px 16px 0;background:#fff;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden;"><div style="background:linear-gradient(135deg,#FF6B35,#E55A27);padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="abrirAsistente()"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🤖</div><div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Asistente Puerta a Puerta</div><div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px;">Preguntame cualquier cosa — estoy para ayudarte</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+  <div style="background:var(--black);padding:18px 18px 20px;flex-shrink:0;"><div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;">Soporte</div><div style="font-size:13px;color:rgba(255,255,255,.5);">Reportes activos y asistente IA</div></div>
+  <div style="margin:16px 16px 0;background:#fff;border-radius:16px;border:1px solid #E0E0E0;overflow:hidden;"><div style="background:linear-gradient(135deg,#FF6B35,#E55A27);padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="abrirAsistente()"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">IA</div><div style="flex:1;"><div style="font-size:14px;font-weight:800;color:#fff;">Asistente Puerta a Puerta</div><div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px;">Preguntame cualquier cosa — estoy para ayudarte</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
   <div style="padding:16px 16px 8px;font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-top:8px;">Mis reportes</div>
   <div id="soporte-list" style="padding:0 16px 16px;"><div style="text-align:center;padding:30px;color:var(--gray-400);">Cargando...</div></div>
 </div>
 <div class="screen" id="s-asistente">
-  <div style="background:var(--black);padding:16px 18px 18px;flex-shrink:0;"><div style="color:#FF6B35;font-size:13px;font-weight:600;margin-bottom:10px;cursor:pointer;" onclick="go('soporte')">← Volver</div><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div><div><div style="font-size:16px;font-weight:800;color:#fff;">Asistente IA</div><div style="font-size:11px;color:rgba(255,255,255,.5);">Puerta a Puerta · Siempre disponible</div></div></div></div>
+  <div style="background:var(--black);padding:16px 18px 18px;flex-shrink:0;"><div style="color:#FF6B35;font-size:13px;font-weight:600;margin-bottom:10px;cursor:pointer;" onclick="go('soporte')">← Volver</div><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:18px;">IA</div><div><div style="font-size:16px;font-weight:800;color:#fff;">Asistente IA</div><div style="font-size:11px;color:rgba(255,255,255,.5);">Puerta a Puerta · Siempre disponible</div></div></div></div>
   <div id="asistente-msgs" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;"></div>
   <div style="background:#fff;padding:12px 16px;display:flex;gap:10px;align-items:center;border-top:1px solid #E0E0E0;"><input id="asistente-input" placeholder="Escribí tu consulta..." style="flex:1;border:1.5px solid #E0E0E0;border-radius:22px;padding:10px 16px;font-size:13px;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')enviarAsistente()"/><button onclick="enviarAsistente()" id="asistente-btn" style="width:40px;height:40px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
 </div>
@@ -304,7 +304,7 @@
     var dbg = document.getElementById('mobile-debug');
     if (dbg) {
       dbg.style.display = 'block';
-      dbg.innerHTML += '❌ ' + msg + ' (L' + line + ')<br>';
+      dbg.innerHTML += '[ERR] ' + msg + ' (L' + line + ')<br>';
     }
     return false;
   };
@@ -312,7 +312,7 @@
     var dbg = document.getElementById('mobile-debug');
     if (dbg) {
       dbg.style.display = 'block';
-      dbg.innerHTML += '⚠️ ' + (e.reason?.message || e.reason || 'Promise rejected') + '<br>';
+      dbg.innerHTML += '[WARN] ' + (e.reason?.message || e.reason || 'Promise rejected') + '<br>';
     }
   });
 </script>

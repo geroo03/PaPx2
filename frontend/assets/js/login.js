@@ -97,7 +97,7 @@ async function handleLogin() {
       sessionStorage.setItem('pap_comercio_nombre', found.nombre || '');
     } catch (_) {}
 
-    showOk('✅ Acceso exitoso. Redirigiendo...');
+    showOk('Acceso exitoso. Redirigiendo...');
     setTimeout(() => { location.href = RUTAS[found.rol] || '/'; }, 700);
     return;
   }
@@ -129,7 +129,7 @@ async function handleLogin() {
 // Consulta la tabla REAL 'perfiles' para obtener el rol del usuario.
 // Embajador: redirige a su dashboard. Sus comercios asociados pueden tener campos NULL.
 async function redirectPorRol(userId, silencioso = false) {
-  // 1️⃣ Consultar tabla 'perfiles' — fuente de verdad para el rol
+  // 1. Consultar tabla 'perfiles' — fuente de verdad para el rol
   // usuario_id es el FK a auth.users; 'id' en perfiles es un UUID random (nueva schema)
   const { data: perfil, error: perfErr } = await sb
     .from('perfiles')
@@ -139,34 +139,34 @@ async function redirectPorRol(userId, silencioso = false) {
 
   let rol = perfil?.rol ?? null;
 
-  // 2️⃣ Fallback: user_metadata.role (asignado por admin en Supabase Dashboard)
+  // 2. Fallback: user_metadata.role (asignado por admin en Supabase Dashboard)
   //    Solo se usa si perfiles aún no tiene la fila (ej: usuario recién creado)
   if (!rol || perfErr) {
     const { data: { user } } = await sb.auth.getUser();
     rol = user?.user_metadata?.role ?? null;
   }
 
-  // 3️⃣ Sin rol → sesión inválida, desloguear
+  // 3. Sin rol → sesión inválida, desloguear
   if (!rol) {
     if (!silencioso) showError('Tu cuenta no tiene un rol asignado. Contactá al administrador.');
     await sb.auth.signOut();
     return;
   }
 
-  // 4️⃣ Verificar que el rol sea conocido
+  // 4. Verificar que el rol sea conocido
   if (!RUTAS[rol]) {
     if (!silencioso) showError(`Rol desconocido: "${rol}". Contactá al administrador.`);
     await sb.auth.signOut();
     return;
   }
 
-  // 5️⃣ Guardar en sessionStorage para consumo downstream
+  // 5. Guardar en sessionStorage para consumo downstream
   try {
     sessionStorage.setItem('pap_rol', rol);
     sessionStorage.setItem('pap_uid', userId);
   } catch (_) {}
 
-  // 6️⃣ Si es comercio → también cargar comercio_id para el panel
+  // 6. Si es comercio → también cargar comercio_id para el panel
   if (rol === 'comercio') {
     const { data: com } = await sb
       .from('comercios')
@@ -181,10 +181,10 @@ async function redirectPorRol(userId, silencioso = false) {
     }
   }
 
-  // 7️⃣ Embajador: sus comercios pueden tener creado_por_embajador_id en NULL
+  // 7. Embajador: sus comercios pueden tener creado_por_embajador_id en NULL
   //    No requiere manejo especial en el login — solo la redirección correcta.
 
-  // 8️⃣ Redirigir
+  // 8. Redirigir
   location.href = RUTAS[rol];
 }
 
