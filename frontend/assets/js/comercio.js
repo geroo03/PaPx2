@@ -6,8 +6,8 @@
 import { supabase as sb } from './config.js';
 
 // ─── CONSTANTES FINANCIERAS ───────────────────────────────────────────────────
-// REGLA INQUEBRANTABLE: 15% es la comisión de PaP, siempre sobre el precio base.
-// subtotal en DB ya incluye el 15% → ingreso del comercio = subtotal / 1.15
+// El 15% se SUMA al precio que pone el comercio para el cliente.
+// El comercio recibe el 100% de su precio. PaP cobra 15% extra al cliente.
 const RECARGO     = 0.15;
 const RECARGO_DIV = 1 + RECARGO; // 1.15
 
@@ -214,7 +214,7 @@ async function loadTablero() {
     sb.from('productos').select('id,disponible').eq('comercio_id', S.cid),
   ]);
   const facturacion = (pedHoy||[]).filter(p => p.estado === 'entregado')
-    .reduce((a, p) => a + (p.total||0)/RECARGO_DIV, 0);
+    .reduce((a, p) => a + (p.total||0), 0);
   setText('dash-pedidos-hoy', (pedHoy||[]).length);
   setText('dash-facturacion', formatARS(facturacion));
   setText('dash-productos',   (productos||[]).filter(p => p.disponible).length);
@@ -266,7 +266,7 @@ function renderPedidosTable(pedidos, advMap = {}, cadetesMap = {}) {
   empty?.classList.add('hidden');
   tbody.innerHTML = pedidos.map(p => {
     const base      = p.subtotal ?? p.total ?? 0;
-    const ingresos  = Math.round(base / RECARGO_DIV);
+    const ingresos  = Math.round(base);
     const advsCount = (advMap[p.id] || []).length;
     const fecha     = new Date(p.created_at);
     const fechaStr  = fecha.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
@@ -624,8 +624,8 @@ async function loadFinanzasEstado() {
   hideLoading('facturas-loading'); showTableBody('tabla-facturas');
   const data = peds||[];
   const totalSum = data.reduce((a,p) => a+(p.total||0), 0);
-  setText('fin-ventas-netas',  formatARS(totalSum / RECARGO_DIV));
-  setText('fin-servicio',      formatARS(totalSum - totalSum / RECARGO_DIV));
+  setText('fin-ventas-netas',  formatARS(totalSum));
+  setText('fin-servicio',      formatARS(Math.round(totalSum * RECARGO)));
   setText('fin-total-pagado',  formatARS(totalSum));
   setText('fin-total-pedidos', data.length);
   renderFacturas(data);
@@ -639,7 +639,7 @@ function renderFacturas(pedidos) {
   tbody.innerHTML = pedidos.map(p => {
     const fecha   = new Date(p.created_at).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
     const base    = p.subtotal ?? p.total ?? 0;
-    const ingreso = Math.round(base / RECARGO_DIV);
+    const ingreso = Math.round(base);
     const numRef  = p.numero ? `#${p.numero}` : `#${(p.id||'').slice(0,6).toUpperCase()}`;
     return `<tr>
       <td class="fw-medium">${numRef}</td>
