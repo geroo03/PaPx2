@@ -80,6 +80,7 @@
     <div class="tab" data-tab="cadetes" onclick="switchTab('cadetes')">Cadetes</div>
     <div class="tab" data-tab="embajadores" onclick="switchTab('embajadores')">Embajadores</div>
     <div class="tab" data-tab="retiros" onclick="switchTab('retiros')">Retiros</div>
+    <div class="tab" data-tab="carrusel" onclick="switchTab('carrusel');loadCarrusel()">Carrusel</div>
     <div class="tab" data-tab="crear" onclick="switchTab('crear')">Crear usuario</div>
   </div>
 
@@ -107,6 +108,15 @@
   <!-- TAB: Retiros -->
   <div class="tab-panel" id="tab-retiros">
     <div class="panel"><h2>Solicitudes de retiro</h2><div id="retiros-list">Cargando...</div></div>
+  </div>
+
+  <!-- TAB: Carrusel -->
+  <div class="tab-panel" id="tab-carrusel">
+    <div class="panel">
+      <h2>Carrusel de patrocinios</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Administra los 3 slots del carrusel que ve el cliente en la pantalla principal.</p>
+      <div id="carrusel-slots">Cargando...</div>
+    </div>
   </div>
 
   <!-- TAB: Crear usuario -->
@@ -407,6 +417,84 @@ document.getElementById('form-crear').addEventListener('submit', async (e) => {
     resEl.style.color = '#dc2626';
   }
 });
+
+// ── CARRUSEL ─────────────────────────────────────────────────────────────────
+window.loadCarrusel = async function() {
+  const el = document.getElementById('carrusel-slots');
+  el.innerHTML = 'Cargando...';
+  try {
+    const { data, error } = await supabase.from('patrocinios').select('*').order('orden', {ascending:true}).limit(3);
+    if (error) throw error;
+    const slots = [0,1,2].map(i => data?.[i] || null);
+    el.innerHTML = slots.map((r, i) => renderSlot(r, i+1)).join('');
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando carrusel.</div>'; console.error(e); }
+};
+
+function renderSlot(row, slot) {
+  const id = row?.id || '';
+  const sub = row?.sub_titulo || '';
+  const titulo = row?.titulo || '';
+  const img = row?.imagen_url || '';
+  const link = row?.link_oferta || '';
+  const activo = row?.activo !== false;
+  const orden = row?.orden ?? (slot - 1);
+  return `
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <strong>Slot ${slot}</strong>
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px;">
+          Activo <input type="checkbox" id="cs-activo-${slot}" ${activo?'checked':''}/>
+        </label>
+      </div>
+      <input type="hidden" id="cs-id-${slot}" value="${id}"/>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:250px;display:flex;flex-direction:column;gap:8px;">
+          <label style="font-size:12px;color:var(--muted);">Sub titulo
+            <input id="cs-sub-${slot}" value="${sub}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:var(--muted);">Titulo
+            <input id="cs-titulo-${slot}" value="${titulo}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:var(--muted);">Link de oferta (URL)
+            <input id="cs-link-${slot}" value="${link}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:var(--muted);">URL de imagen
+            <input id="cs-img-${slot}" value="${img}" placeholder="https://..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:var(--muted);">Orden
+            <input id="cs-orden-${slot}" type="number" value="${orden}" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"/>
+          </label>
+        </div>
+        <div style="flex:0 0 200px;">
+          ${img ? `<img src="${img}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px;" onerror="this.style.display='none'"/>` : '<div style="width:100%;height:120px;background:#f3f4f6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">Sin imagen</div>'}
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px;" onclick="guardarSlot(${slot})">Guardar Slot ${slot}</button>
+    </div>`;
+}
+
+window.guardarSlot = async function(slot) {
+  const id = document.getElementById('cs-id-'+slot).value || null;
+  const payload = {
+    sub_titulo: document.getElementById('cs-sub-'+slot).value.trim(),
+    titulo: document.getElementById('cs-titulo-'+slot).value.trim(),
+    imagen_url: document.getElementById('cs-img-'+slot).value.trim(),
+    link_oferta: document.getElementById('cs-link-'+slot).value.trim(),
+    activo: document.getElementById('cs-activo-'+slot).checked,
+    orden: Number(document.getElementById('cs-orden-'+slot).value || 0),
+  };
+  try {
+    let res;
+    if (id) {
+      res = await supabase.from('patrocinios').update(payload).eq('id', id).select().single();
+    } else {
+      res = await supabase.from('patrocinios').insert([payload]).select().single();
+    }
+    if (res.error) throw res.error;
+    alert('Slot ' + slot + ' guardado');
+    loadCarrusel();
+  } catch(e) { alert('Error: ' + (e.message || e)); console.error(e); }
+};
 </script>
 </body>
 </html>
