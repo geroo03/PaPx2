@@ -85,8 +85,12 @@ let currentTab = 'login';
 let rolSeleccionado = null;
 let sessionActual = null;
 
-// Si la URL incluye ?rol=cadete o ?rol=comercio, preseleccionar registro y fijar rolSeleccionado
-// No URL-based role preselection in production. Roles must be assigned server-side in Supabase.
+// Si la URL incluye ?tab=registro, abrir directo en registro
+const _urlParams = new URLSearchParams(window.location.search);
+if (_urlParams.get('tab') === 'registro') {
+  currentTab = 'registro';
+  document.addEventListener('DOMContentLoaded', () => setTab('registro'));
+}
 
 function setTab(tab) {
   currentTab = tab;
