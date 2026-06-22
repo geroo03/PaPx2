@@ -80,6 +80,7 @@
     <div class="tab" data-tab="cadetes" onclick="switchTab('cadetes')">Cadetes</div>
     <div class="tab" data-tab="embajadores" onclick="switchTab('embajadores')">Embajadores</div>
     <div class="tab" data-tab="retiros" onclick="switchTab('retiros')">Retiros</div>
+    <div class="tab" data-tab="rubros" onclick="switchTab('rubros');loadRubros()">Rubros</div>
     <div class="tab" data-tab="carrusel" onclick="switchTab('carrusel');loadCarrusel()">Carrusel</div>
     <div class="tab" data-tab="crear" onclick="switchTab('crear')">Crear usuario</div>
   </div>
@@ -108,6 +109,15 @@
   <!-- TAB: Retiros -->
   <div class="tab-panel" id="tab-retiros">
     <div class="panel"><h2>Solicitudes de retiro</h2><div id="retiros-list">Cargando...</div></div>
+  </div>
+
+  <!-- TAB: Rubros -->
+  <div class="tab-panel" id="tab-rubros">
+    <div class="panel">
+      <h2>Rubros / Categorias</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Activa o desactiva las categorias que ve el cliente. Solo se muestran las que estan activas.</p>
+      <div id="rubros-list">Cargando...</div>
+    </div>
   </div>
 
   <!-- TAB: Carrusel -->
@@ -417,6 +427,45 @@ document.getElementById('form-crear').addEventListener('submit', async (e) => {
     resEl.style.color = '#dc2626';
   }
 });
+
+// ── RUBROS ───────────────────────────────────────────────────────────────────
+window.loadRubros = async function() {
+  const el = document.getElementById('rubros-list');
+  el.innerHTML = 'Cargando...';
+  try {
+    const { data, error } = await supabase.from('rubros_config').select('*').order('orden');
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin rubros configurados.</div>'; return; }
+
+    // Contar comercios por rubro
+    const { data: comercios } = await supabase.from('comercios').select('categoria');
+    const countMap = {};
+    (comercios||[]).forEach(c => { if(c.categoria) countMap[c.categoria] = (countMap[c.categoria]||0) + 1; });
+
+    el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">${data.map(r => {
+      const count = countMap[r.id] || 0;
+      return `<div style="background:#fff;border:1.5px solid ${r.activo?'#16a34a':'#e5e7eb'};border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700;font-size:14px;">${r.label}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">${count} comercio${count!==1?'s':''} registrado${count!==1?'s':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge ${r.activo?'badge-green':'badge-gray'}">${r.activo?'Activo':'Oculto'}</span>
+          <button class="btn ${r.activo?'btn-outline':'btn-primary'}" style="font-size:12px;padding:6px 12px;"
+            onclick="toggleRubro('${r.id}',${!r.activo})">${r.activo?'Desactivar':'Activar'}</button>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando rubros.</div>'; console.error(e); }
+};
+
+window.toggleRubro = async function(id, activo) {
+  try {
+    const { error } = await supabase.from('rubros_config').update({ activo }).eq('id', id);
+    if (error) throw error;
+    loadRubros();
+  } catch(e) { alert('Error: ' + e.message); }
+};
 
 // ── CARRUSEL ─────────────────────────────────────────────────────────────────
 window.loadCarrusel = async function() {
