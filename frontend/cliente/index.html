@@ -53,6 +53,12 @@
     const role = session.user?.user_metadata?.role || null;
     try { localStorage.setItem('role', role || ''); } catch(e){}
 
+    // Redirigir si el rol no corresponde a esta pagina
+    if (role === 'cadete') { window.location.href = '/cadete/cadete.html'; return; }
+    if (role === 'comercio') { window.location.href = '/comercio/comercio.html'; return; }
+    if (role === 'embajador') { window.location.href = '/embajador/dashboard.html'; return; }
+    if (role === 'admin') { window.location.href = '/admin/admin.html'; return; }
+
     // If the user is a plain 'usuario', show a premium floating card inviting them to
     // become a cadete. We add a confirmation dialog before performing the role update.
     if (role === 'usuario') {

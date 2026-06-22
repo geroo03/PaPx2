@@ -60,21 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession();
   state.user = session?.user || null;
 
-  // Listen for auth state changes (useful for OAuth redirects)
+  // Listen for auth state changes — only handle sign out
   try{
     supabase.auth.onAuthStateChange((event, sess) => {
-      console.log('auth event', event);
-      if (event === 'SIGNED_IN') {
-        const role = sess?.user?.user_metadata?.role || sess?.user?.raw_user_meta_data?.role || null;
-        if (role) {
-          if (role === 'admin') window.location.href = buildUrl('admin/admin.html');
-          else if (role === 'embajador') window.location.href = buildUrl('embajador/dashboard.html');
-          else if (role === 'comercio') window.location.href = buildUrl('comercio/comercio.html');
-          else if (role === 'cadete') window.location.href = buildUrl('cadete/cadete.html');
-          // 'usuario': cliente.js ya maneja la sesión activa — no redirigir aquí
-        }
-        // Sin rol asignado: NO redirigir a login (evita loop para cuentas sin rol)
-      }
     });
   }catch(e){console.warn('Failed to attach auth state listener', e);}
 });
