@@ -486,7 +486,7 @@ window.addEventListener('load', () => {
     return;
   }
 
-  _sb.auth.getSession().then(({data:{session}})=>{
+  _sb.auth.getSession().then(async ({data:{session}})=>{
     if(!session){window.location.href='login-usuario.html';return;}
     const user=session.user;
     let rol=user.user_metadata?.role || null;
