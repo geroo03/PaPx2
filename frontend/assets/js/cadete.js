@@ -147,6 +147,11 @@ function togDisp() {
   if (disp) iniciarReporteGPS();
   else      detenerReporteGPS();
 
+  // Persistir en DB para que el admin y el matching lo vean
+  if (cadeteUserId) {
+    sb.from('cadetes').update({ disponible: disp }).eq('auth_uid', cadeteUserId).then(() => {});
+  }
+
   renderViajes();
 }
 
