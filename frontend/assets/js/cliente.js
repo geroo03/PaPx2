@@ -591,10 +591,12 @@ let patrociniosChannel = null;
 
 function renderBannerSlides(items){
   bannerItems = items || [];
+  const heroEl = document.getElementById('hero-banner');
   const slidesEl = document.getElementById('banner-slides');
   const dotsEl = document.getElementById('banner-dots');
   if(!slidesEl || !dotsEl) return;
-  if(!bannerItems.length){ slidesEl.innerHTML = '<div style="min-width:100%;display:flex;align-items:center;justify-content:center;color:#fff">Sin promociones</div>'; dotsEl.innerHTML=''; return; }
+  if(!bannerItems.length){ if(heroEl) heroEl.style.display='none'; return; }
+  if(heroEl) heroEl.style.display='block';
   slidesEl.innerHTML = bannerItems.map(b=>{
     const title = b.titulo || '';
     const sub = b.sub_titulo || '';
