@@ -67,6 +67,7 @@ app.use('/api/embajadores', embajadorRoutes);
 app.get('/health', (_req, res) => {
   res.json({
     ok:        true,
+    cors:      allowedOrigins,
     service:   'puertaapuerta-backend',
     env:       process.env.NODE_ENV ?? 'development',
     timestamp: new Date().toISOString(),
