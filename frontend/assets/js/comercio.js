@@ -30,16 +30,7 @@ const S = {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  // Modo mock O frontend estático sin Supabase disponible: usar datos simulados, sin redirigir.
-  if (USE_MOCK || !sb || !sb.auth) {
-    S.uid      = sessionStorage.getItem('pap_uid') || 'mock-uid-comercio-001';
-    S.cid      = sessionStorage.getItem('pap_cid') || 'mock-cid-comercio-001';
-    S.comercio = MOCK.comercio;
-    applyComercioToUI(MOCK.comercio);
-    bindAllEvents();
-    navigate('pedidos');
-    return;
-  }
+  if (!sb || !sb.auth) { location.href = './login.html'; return; }
   // ── REAL SUPABASE INIT ─────────────────────────────────────────────────────
   const { data: { session }, error: authErr } = await sb.auth.getSession();
   if (authErr || !session) { location.href = './login.html'; return; }
@@ -200,13 +191,6 @@ function toggleSidebar() {
 }
 
 async function toggleEstado() {
-  if (USE_MOCK) {
-    MOCK.comercio.abierto_ahora = !MOCK.comercio.abierto_ahora;
-    S.comercio = MOCK.comercio;
-    applyComercioToUI(MOCK.comercio);
-    showToast(MOCK.comercio.abierto_ahora ? '✓ Local marcado como Abierto' : 'Local marcado como Cerrado');
-    return;
-  }
   const nuevo = !S.comercio.abierto_ahora;
   const { error } = await sb.from('comercios').update({ abierto_ahora: nuevo }).eq('id', S.cid);
   if (error) { showToast('Error al cambiar estado', 'error'); return; }
@@ -216,11 +200,6 @@ async function toggleEstado() {
 }
 
 async function logout() {
-  if (USE_MOCK) {
-    sessionStorage.clear();
-    location.href = './login.html';
-    return;
-  }
   await sb.auth.signOut();
   location.href = './login.html';
 }
@@ -229,20 +208,6 @@ async function logout() {
 async function loadTablero() {
   setText('tablero-nombre', S.comercio?.nombre);
 
-  if (USE_MOCK) {
-    await md();
-    const hoy    = new Date(); hoy.setHours(0,0,0,0);
-    const pedHoy = MOCK_DATABASE.pedidos.filter(p => new Date(p.created_at) >= hoy);
-    const factuH = pedHoy.filter(p => p.estado === 'entregado')
-                         .reduce((a, p) => a + (p.subtotal || 0) / RECARGO_DIV, 0);
-    const activos = MOCK.productos.filter(p => p.disponible).length;
-    setText('dash-pedidos-hoy', pedHoy.length);
-    setText('dash-facturacion', formatARS(factuH));
-    setText('dash-productos',   activos);
-    setText('dash-deuda',       formatARS(MOCK.comercio.deuda));
-    return;
-  }
-  // real
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const [{ data: pedHoy }, { data: productos }] = await Promise.all([
     sb.from('pedidos').select('total,estado').eq('comercio_id', S.cid).gte('created_at', hoy.toISOString()),
@@ -262,16 +227,6 @@ let pedidosDias = 7;
 async function loadPedidos() {
   showLoading('pedidos-loading'); hideEl('pedidos-empty'); hideTableBody('tabla-pedidos');
 
-  if (USE_MOCK) {
-    await md();
-    S.pedidos      = MOCK_DATABASE.pedidos;
-    S.advertencias = MOCK.advertencias;
-    hideLoading('pedidos-loading'); showTableBody('tabla-pedidos');
-    renderPedidosTable(S.pedidos, {});
-    updateNavBadge();
-    return;
-  }
-  // real
   const desde = new Date(); desde.setDate(desde.getDate() - pedidosDias);
   const [{ data: peds, error: pErr }, { data: advs }] = await Promise.all([
     sb.from('pedidos')
@@ -291,7 +246,7 @@ async function loadPedidos() {
   } catch { /* RLS puede no permitirlo todavía — se muestra sin info de cadete */ }
   hideLoading('pedidos-loading'); showTableBody('tabla-pedidos');
   if (pErr) { showToast('Error al cargar pedidos', 'error'); return; }
-  // Normalizo a forma interna para que los renders funcionen igual que en mock
+  // Normalizo a forma interna para que los renders funcionen con la misma estructura
   S.pedidos = (peds || []).map(p => ({
     ...p,
     subtotal: p.total,
@@ -357,7 +312,7 @@ function accionesPedido(p) {
 }
 
 function detallePedido(p, advs, cadetesMap = {}) {
-  // Soporta tanto mock (p.items) como real (p.productos normalizado a p.items en loadPedidos)
+  // Soporta p.items y p.productos (normalizado a p.items en loadPedidos)
   const items = Array.isArray(p.items) ? p.items
               : Array.isArray(p.productos) ? p.productos
               : [];
@@ -432,17 +387,7 @@ function setDateFilter(period) {
   loadPedidos();
 }
 
-// Acciones sobre pedidos — mock muta el array en memoria + re-renderiza
 async function aceptarPedido(id) {
-  if (USE_MOCK) {
-    const p = MOCK_DATABASE.pedidos.find(x => x.id === id);
-    if (!p) return;
-    p.estado        = 'preparando';
-    p.tipo_delivery = MOCK.comercio.tipo_delivery_defecto || 'app';
-    showToast('✓ Pedido #' + p.numero + ' enviado a cocina');
-    renderPedidosTable(MOCK_DATABASE.pedidos, {}); updateNavBadge();
-    return;
-  }
   const { error } = await sb.from('pedidos').update({ estado: 'preparando' }).eq('id', id).eq('comercio_id', S.cid);
   if (error) { showToast('Error al aceptar: ' + error.message, 'error'); return; }
 
@@ -470,36 +415,19 @@ async function aceptarPedido(id) {
 }
 
 async function rechazarPedido(id) {
-  if (USE_MOCK) {
-    const p = MOCK_DATABASE.pedidos.find(x => x.id === id);
-    if (!p) return;
-    p.estado = 'cancelado';
-    showToast('Pedido #' + p.numero + ' rechazado');
-    renderPedidosTable(MOCK_DATABASE.pedidos, {}); updateNavBadge();
-    return;
-  }
   const { error } = await sb.from('pedidos').update({ estado:'cancelado' }).eq('id', id).eq('comercio_id', S.cid);
   if (error) { showToast('Error al rechazar: ' + error.message, 'error'); return; }
   showToast('Pedido rechazado'); loadPedidos();
 }
 
 async function marcarListo(id) {
-  if (USE_MOCK) {
-    const p = MOCK_DATABASE.pedidos.find(x => x.id === id);
-    if (!p) return;
-    p.estado = 'listo';
-    showToast('✓ Pedido #' + p.numero + ' listo para despacho');
-    renderPedidosTable(MOCK_DATABASE.pedidos, {}); updateNavBadge();
-    return;
-  }
   const { error } = await sb.from('pedidos').update({ estado:'listo' }).eq('id', id).eq('comercio_id', S.cid);
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast('Pedido listo para despachar ✓'); loadPedidos();
 }
 
 function updateNavBadge() {
-  const pedList = USE_MOCK ? MOCK_DATABASE.pedidos : S.pedidos;
-  const nuevos  = pedList.filter(p => p.estado === 'nuevo').length;
+  const nuevos  = S.pedidos.filter(p => p.estado === 'nuevo').length;
   const badge   = g('badge-nuevos-nav');
   if (!badge) return;
   badge.textContent = nuevos;
@@ -512,14 +440,6 @@ let catSelId = null;
 async function loadMenu() {
   g('categorias-list') && (g('categorias-list').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>');
 
-  if (USE_MOCK) {
-    await md();
-    S.categorias = MOCK.categorias;
-    S.productos  = MOCK.productos;
-    renderCategorias();
-    selectCategoria(catSelId || S.categorias[0]?.id || null);
-    return;
-  }
   const [{ data: cats }, { data: prods }] = await Promise.all([
     sb.from('categorias_producto').select('id,comercio_id,nombre').eq('comercio_id', S.cid).order('nombre'),
     sb.from('productos').select('id,comercio_id,categoria_id,nombre,descripcion,precio,precio_base,imagen_url,disponible')
@@ -632,23 +552,6 @@ async function saveProducto() {
   if (!precioRaw) { showToast('Ingresá un precio válido',  'warning'); return; }
   if (!catId)     { showToast('Seleccioná una categoría',  'warning'); return; }
 
-  if (USE_MOCK) {
-    await md(300);
-    if (editId) {
-      const idx = MOCK.productos.findIndex(p => p.id === editId);
-      if (idx >= 0) Object.assign(MOCK.productos[idx], { nombre, descripcion: desc, precio_base: precioRaw, categoria_id: catId });
-      showToast('Producto actualizado ✓');
-    } else {
-      const newProd = {
-        id: 'prod-' + Date.now(), comercio_id: 'mock-cid-comercio-001', categoria_id: catId,
-        nombre, descripcion: desc, precio_base: precioRaw, disponible: true, imagen_url: null, orden: MOCK.productos.length,
-      };
-      MOCK.productos.push(newProd);
-      showToast('✓ Producto agregado — precio cliente: ' + formatARS(Math.round(precioRaw * RECARGO_DIV)));
-    }
-    S.productos = MOCK.productos;
-    closeAllModals(); selectCategoria(catSelId); return;
-  }
   // Subir imagen a Supabase Storage si el usuario seleccionó una
   let imagen_url = null;
   const imgFile = g('input-imagen')?.files[0];
@@ -682,11 +585,6 @@ async function saveProducto() {
 
 async function toggleProducto(inputEl, id) {
   const disponible = inputEl.checked;
-  if (USE_MOCK) {
-    const p = MOCK.productos.find(x => x.id === id);
-    if (p) p.disponible = disponible;
-    showToast(disponible ? 'Producto activado ✓' : 'Producto pausado'); return;
-  }
   const { error } = await sb.from('productos').update({ disponible }).eq('id', id);
   if (error) { inputEl.checked = !disponible; showToast('Error', 'error'); return; }
   const prod = S.productos.find(p => p.id === id); if (prod) prod.disponible = disponible;
@@ -700,13 +598,6 @@ function closeModalCategoria() { g('modal-overlay-categoria')?.classList.add('hi
 async function saveCategoria() {
   const nombre = (g('cat-nombre')?.value||'').trim();
   if (!nombre) { showToast('Ingresá un nombre', 'warning'); return; }
-  if (USE_MOCK) {
-    await md(300);
-    MOCK.categorias.push({ id: 'cat-' + Date.now(), comercio_id: 'mock-cid-comercio-001', nombre, orden: MOCK.categorias.length });
-    S.categorias = MOCK.categorias;
-    showToast('Sección "' + nombre + '" creada ✓');
-    closeModalCategoria(); renderCategorias(); return;
-  }
   const { error } = await sb.from('categorias_producto').insert({ nombre, comercio_id: S.cid, orden: S.categorias.length });
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast('Sección creada ✓'); closeModalCategoria(); await loadMenu();
@@ -724,25 +615,6 @@ async function loadFinanzas() {
 
 async function loadFinanzasEstado() {
   showLoading('facturas-loading'); hideEl('facturas-empty'); hideTableBody('tabla-facturas');
-
-  if (USE_MOCK) {
-    await md();
-    // 3 pedidos entregados: subtotales $2.300 + $1.150 + $3.450 = $6.900
-    const entregados = MOCK_DATABASE.pedidos.filter(p => p.estado === 'entregado');
-    const totalSub   = entregados.reduce((a, p) => a + (p.subtotal||0), 0);   // $6.900
-    const ventasNetas = totalSub / RECARGO_DIV;                               // $6.000
-    const gananciaPaP = totalSub - ventasNetas;                               // $900
-    const totalPagado = entregados.reduce((a, p) => a + (p.total||0), 0);     // con envíos
-
-    setText('fin-ventas-netas',  formatARS(ventasNetas));  // $6.000
-    setText('fin-servicio',      formatARS(gananciaPaP));  // $900
-    setText('fin-total-pagado',  formatARS(totalPagado));
-    setText('fin-total-pedidos', entregados.length);
-
-    hideLoading('facturas-loading'); showTableBody('tabla-facturas');
-    renderFacturas(entregados);
-    return;
-  }
 
   const desde = new Date(); desde.setDate(desde.getDate() - finDias);
   const { data: peds } = await sb.from('pedidos')
@@ -780,7 +652,7 @@ function renderFacturas(pedidos) {
 }
 
 function loadContratoData() {
-  const com = USE_MOCK ? MOCK.comercio : S.comercio;
+  const com = S.comercio;
   if (!com) return;
   const set = (id, val) => { const e = g(id); if (e) e.textContent = val||'—'; };
   set('ct-nombre',     com.nombre); set('ct-razon',    com.nombre);
@@ -811,7 +683,7 @@ async function loadHorarios() { renderHorarios(); }
 
 function renderHorarios() {
   const grid = g('horarios-grid'); if (!grid) return;
-  const com  = USE_MOCK ? MOCK.comercio : S.comercio;
+  const com  = S.comercio;
   const apertura  = (com?.horario_apertura||'').slice(0,5);
   const cierre    = (com?.horario_cierre  ||'').slice(0,5);
   const diasRaw   = Array.isArray(com?.dias_abierto) ? com.dias_abierto : [];
@@ -840,53 +712,11 @@ function saveCierre() {
 }
 
 // ─── VIEW: PROMOCIONES ────────────────────────────────────────────────────────
-// EJEMPLO FINANCIERO EN MOCK (exactamente como lo pidió Gerardo):
+// EJEMPLO FINANCIERO:
 //   Base $1.000 → descuento 20% → base_promo $800 → cliente paga $920 (+15% PaP) → PaP gana $120
 
 async function loadPromociones() {
-  if (USE_MOCK) {
-    await md();
-    // Inyectar la calculadora financiera en el tab de "Crear Promociones"
-    const calcEl = g('promo-calculadora-pap');
-    if (calcEl) {
-      const base      = 1000;
-      const desc      = 0.20;
-      const basePromo = base * (1 - desc);           // $800
-      const precioFin = Math.round(basePromo * RECARGO_DIV); // $920
-      const gananciaPaP = precioFin - basePromo;     // $120
-      calcEl.innerHTML = `
-        <div style="background:#F8F9FA;border:1px solid #E5E5E5;border-radius:12px;padding:20px;margin-bottom:24px">
-          <div style="font-size:13px;font-weight:700;color:#FF6B35;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">
-            Ejemplo de calculo — Regla del 15%
-          </div>
-          <table style="width:100%;font-size:13px;border-collapse:collapse">
-            <tr><td style="padding:5px 0;color:#555">Precio Base del producto</td>
-                <td style="text-align:right;font-weight:600">${formatARS(base)}</td></tr>
-            <tr style="color:#D32F2F"><td style="padding:5px 0">Descuento del comercio (20%)</td>
-                <td style="text-align:right;font-weight:600">− ${formatARS(base * desc)}</td></tr>
-            <tr style="border-top:1px solid #eee"><td style="padding:8px 0 5px;font-weight:700">Precio Base Promocionado</td>
-                <td style="text-align:right;font-weight:700">${formatARS(basePromo)}</td></tr>
-            <tr style="color:#1565C0"><td style="padding:5px 0">+ Recargo PaP (15% sobre $${formatNum(basePromo)})</td>
-                <td style="text-align:right;font-weight:600">+ ${formatARS(gananciaPaP)}</td></tr>
-            <tr style="border-top:2px solid #111"><td style="padding:8px 0 5px;font-weight:800;font-size:15px">Precio Final que paga el cliente</td>
-                <td style="text-align:right;font-weight:800;font-size:15px;color:#FF6B35">${formatARS(precioFin)}</td></tr>
-          </table>
-          <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div style="background:#E8F5E9;padding:10px;border-radius:8px;text-align:center">
-              <div style="font-size:11px;font-weight:600;color:#2E7D32;text-transform:uppercase">Tu ingreso neto</div>
-              <div style="font-size:18px;font-weight:800;color:#2E7D32;margin-top:2px">${formatARS(basePromo)}</div>
-            </div>
-            <div style="background:#EDE7F6;padding:10px;border-radius:8px;text-align:center">
-              <div style="font-size:11px;font-weight:600;color:#5E35B1;text-transform:uppercase">Ganancia PaP</div>
-              <div style="font-size:18px;font-weight:800;color:#5E35B1;margin-top:2px">${formatARS(gananciaPaP)}</div>
-            </div>
-          </div>
-          <p style="font-size:11px;color:#888;margin-top:10px;line-height:1.5">
-            El descuento lo absorbés vos. La plataforma siempre cobra el 15% sobre el precio base promocionado.
-          </p>
-        </div>`;
-    }
-  }
+  // Promociones view — real data loaded via switchPromoTab -> loadMisPromociones
 }
 
 function switchPromoTab(tab) {
@@ -898,38 +728,6 @@ function switchPromoTab(tab) {
 async function loadMisPromociones() {
   const list = g('mis-promociones-list'); if (!list) return;
   list.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-
-  if (USE_MOCK) {
-    await md();
-    if (!MOCK.promociones.length) {
-      list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>No tenés promociones creadas.</p></div>'; return;
-    }
-    list.innerHTML = `<div class="table-wrap"><table class="pap-table">
-      <thead><tr><th>Estado</th><th>Producto</th><th>Tipo</th><th>Descuento</th><th>Precio cliente</th><th>Vence</th><th></th></tr></thead>
-      <tbody>${MOCK.promociones.map(p => {
-        const activa    = p.activa && new Date(p.fecha_fin) > new Date();
-        const descPct   = parseFloat(p.valor||0)/100;
-        const base      = 1000; // ejemplo con prod-001 ($1.000)
-        const basePromo = base * (1 - descPct);
-        const precioFin = Math.round(basePromo * RECARGO_DIV);
-        const prod      = MOCK.productos.find(x => x.id === p.producto_id);
-        return `<tr>
-          <td><span class="badge ${activa ? 'badge-listo' : 'badge-cancelado'}">${activa ? 'ACTIVA' : 'VENCIDA'}</span></td>
-          <td>${esc(prod?.nombre||'—')}</td>
-          <td>${promoLabel(p.tipo)}</td>
-          <td>${p.valor ? p.valor+'%' : '—'}</td>
-          <td style="font-size:12px;color:var(--text-secondary)" title="base $1.000 → promo $${formatNum(basePromo)} → cliente $${formatNum(precioFin)}">
-            $1.000 → <strong>$${formatNum(precioFin)}</strong>
-          </td>
-          <td>${p.fecha_fin ? new Date(p.fecha_fin).toLocaleDateString('es-AR') : '—'}</td>
-          <td><div class="pedido-actions">
-            ${activa ? `<button class="btn btn-outline btn-sm" data-action="pausar-promo" data-id="${p.id}">Pausar</button>` : ''}
-            <button class="btn btn-danger btn-sm" data-action="eliminar-promo" data-id="${p.id}">Eliminar</button>
-          </div></td>
-        </tr>`;
-      }).join('')}</tbody></table></div>`;
-    return;
-  }
 
   const { data } = await sb.from('promociones').select('*').eq('comercio_id', S.cid).order('created_at', { ascending: false });
   if (!data?.length) { list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>No tenés promociones creadas.</p></div>'; return; }
@@ -954,21 +752,12 @@ function promoLabel(tipo) {
 }
 
 async function pausarPromo(id) {
-  if (USE_MOCK) {
-    const p = MOCK.promociones.find(x => x.id === id); if (p) p.activa = false;
-    showToast('Promoción pausada'); loadMisPromociones(); return;
-  }
   const { error } = await sb.from('promociones').update({ activa: false }).eq('id', id);
   if (error) { showToast('Error', 'error'); return; }
   showToast('Promoción pausada'); loadMisPromociones();
 }
 
 async function eliminarPromo(id) {
-  if (USE_MOCK) {
-    const idx = MOCK.promociones.findIndex(x => x.id === id);
-    if (idx >= 0) MOCK.promociones.splice(idx, 1);
-    showToast('Promoción eliminada'); loadMisPromociones(); return;
-  }
   const { error } = await sb.from('promociones').delete().eq('id', id);
   if (error) { showToast('Error', 'error'); return; }
   showToast('Promoción eliminada'); loadMisPromociones();
@@ -979,14 +768,6 @@ async function eliminarPromo(id) {
 async function loadResenas() {
   const list = g('resenas-list');
   if (list) list.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-
-  if (USE_MOCK) {
-    await md();
-    S.ratings = MOCK.ratings;
-    renderResumenResenas(MOCK.ratings);
-    renderListaResenas(MOCK.ratings);
-    return;
-  }
 
   const { data, error } = await sb.from('ratings')
     .select('id,pedido_id,comercio_id,puntaje_comercio,puntaje_cadete,comentario,created_at')
@@ -1044,9 +825,8 @@ function handleConfigSeccion(sec) {
   showToast({ local:'Administración del Local — próximamente', usuarios:'Administración de Usuarios — próximamente', procesamiento:'Permiso procesamiento — próximamente', portada:'Foto de portada — próximamente' }[sec] || 'Próximamente', 'info');
 }
 
-// ─── REALTIME — solo cuando USE_MOCK = false ──────────────────────────────────
+// ─── REALTIME ────────────────────────────────────────────────────────────────
 function setupRealtime() {
-  if (USE_MOCK) return; // En mock mode, no hace falta canal real
   S.realtimeChannel?.unsubscribe();
   S.realtimeChannel = sb
     .channel('comercio-pedidos-' + S.cid)
