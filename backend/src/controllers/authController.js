@@ -15,6 +15,70 @@ const ROLES_AUTOREGISTRO = new Set(['cliente', 'usuario', 'comercio', 'cadete'])
  * Body: { role: string }
  * Requiere: Bearer token válido (req.user inyectado por authMiddleware)
  */
+/**
+ * POST /api/auth/register
+ *
+ * Crea un usuario nuevo usando admin.createUser (sin confirmacion de email).
+ * Body: { email, password, full_name?, role? }
+ * Role permitido: cliente, usuario, comercio, cadete. Default: cliente.
+ */
+export async function register(req, res) {
+  const { email, password, full_name, role } = req.body ?? {};
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email y password son requeridos.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  const rolFinal = (role && ROLES_AUTOREGISTRO.has(role)) ? role : 'cliente';
+  const rolNormalizado = rolFinal === 'usuario' ? 'cliente' : rolFinal;
+
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { role: rolNormalizado, full_name: full_name ?? '' },
+    });
+
+    if (error) {
+      console.error('[register] Error:', error.message);
+      if (error.message.includes('already')) {
+        return res.status(409).json({ error: 'Este email ya tiene una cuenta registrada.' });
+      }
+      return res.status(400).json({ error: error.message });
+    }
+
+    // Sincronizar en perfiles
+    await supabaseAdmin.from('perfiles').upsert(
+      { usuario_id: data.user.id, email, rol: rolNormalizado, nombre: full_name ?? '' },
+      { onConflict: 'usuario_id', ignoreDuplicates: false },
+    );
+
+    // Para cadetes: crear fila placeholder
+    if (rolNormalizado === 'cadete') {
+      await supabaseAdmin.from('cadetes').upsert(
+        { auth_uid: data.user.id, email, nombre: full_name ?? '' },
+        { onConflict: 'auth_uid', ignoreDuplicates: true },
+      );
+    }
+
+    console.log(`[register] ${email} → rol '${rolNormalizado}'`);
+    return res.status(201).json({ ok: true, user: { id: data.user.id, email, role: rolNormalizado } });
+
+  } catch (err) {
+    console.error('[register] Excepción:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
 export async function setRole(req, res) {
   const { role } = req.body ?? {};
 

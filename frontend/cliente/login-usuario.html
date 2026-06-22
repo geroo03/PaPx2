@@ -181,35 +181,30 @@ async function submitForm() {
       try { localStorage.setItem('role', rol); } catch(e) {}
       redirigirSegunRol(rol);
     } else {
-        // Create account and automatically assign the default role 'usuario'
-        // Uses a client-side update of user_metadata; if your Supabase requires
-        // email confirmation this may not immediately apply.
-        // We use the helper exposed on the global supabase client if available.
-        if (window.authService && typeof window.authService.signUpAndAssignRole === 'function') {
-          const res = await window.authService.signUpAndAssignRole({ email, password: pass, full_name: nombre, role: 'usuario' });
-          if (res.error) throw res.error;
-          sessionActual = res.data?.session || null;
-          try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', (res.data?.signUp?.user?.id) || ''); localStorage.setItem('user_email', (res.data?.signUp?.user?.email) || ''); } catch(e) {}
-          // After auto-assign, redirect to public index
-          window.location.href = '../index.html';
-          return;
-        }
-
-        // Fallback: signup con rol 'usuario' en user_metadata para acceso inmediato
-        const { data, error } = await sb.auth.signUp({
-          email, password: pass,
-          options: { data: { full_name: nombre, role: 'usuario' } },
+        // Registro via backend (usa admin.createUser, sin confirmacion de email)
+        const backendUrl = window.BACKEND_URL || '';
+        const res = await fetch(`${backendUrl}/api/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass, full_name: nombre, role: 'cliente' }),
         });
-        if (error) throw error;
-        sessionActual = data.session;
-        try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', data.user?.id || ''); localStorage.setItem('user_email', data.user?.email || ''); } catch(e) {}
-        if (data.session) {
-          showOk('Cuenta creada. Ingresando...');
-          setTimeout(() => { window.location.href = 'index.html'; }, 800);
-        } else {
-          showOk('Cuenta creada. Revisá tu email para confirmar tu cuenta antes de ingresar.');
-          btn.disabled = false; btn.textContent = 'Crear cuenta';
-        }
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Error al crear la cuenta');
+
+        // Login automatico despues del registro
+        const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (loginErr) throw loginErr;
+
+        sessionActual = loginData.session;
+        try {
+          localStorage.setItem('access_token', sessionActual?.access_token || '');
+          localStorage.setItem('user_id', loginData.user?.id || '');
+          localStorage.setItem('user_email', loginData.user?.email || '');
+          localStorage.setItem('role', 'cliente');
+        } catch(e) {}
+
+        showOk('Cuenta creada. Ingresando...');
+        setTimeout(() => { window.location.href = 'index.html'; }, 800);
     }
   } catch(e) {
     const msg = (e && e.message) ? e.message : 'Algo salió mal. Intentá de nuevo.';
