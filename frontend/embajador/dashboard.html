@@ -153,6 +153,11 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/env.js"></script>
+  <script>
+    if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase?.createClient) {
+      window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    }
+  </script>
   <script type="module" src="/assets/js/main.js"></script>
   <script type="module" src="/assets/js/embajador.js"></script>
 </body>
