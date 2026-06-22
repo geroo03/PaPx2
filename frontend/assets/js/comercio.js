@@ -478,7 +478,7 @@ function renderProductos(prods, catId) {
     cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>Sin productos en esta sección.</p></div>'; return;
   }
   cont.innerHTML = prods.map(p => {
-    const precioCliente = Math.round(((p.precio_base ?? p.precio) || 0) * RECARGO_DIV);
+    const precioBase = (p.precio_base ?? p.precio) || 0;
     return `<div class="product-row" data-product-id="${p.id}">
       <div class="product-thumb">${p.imagen_url ? `<img src="${esc(p.imagen_url)}" alt="${esc(p.nombre)}" loading="lazy">` : '<div class="thumb-placeholder"></div>'}</div>
       <div class="product-info">
@@ -491,7 +491,7 @@ function renderProductos(prods, catId) {
           <input type="checkbox" ${p.disponible ? 'checked' : ''} data-action="toggle-producto" data-id="${p.id}">
           <span class="toggle-slider"></span>
         </label>
-        <div class="product-price">${formatARS(precioCliente)}</div>
+        <div class="product-price">${formatARS(precioBase)}</div>
       </div>
     </div>`;
   }).join('');
