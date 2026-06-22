@@ -24,13 +24,8 @@ const RUTAS = {
 };
 
 
-// ─── BOOT: auto-redirect si ya hay sesión activa ───────────────────────────────
-(async function checkExistingSession() {
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) await redirectPorRol(session.user.id, true);
-  } catch (_) {}
-})();
+// No auto-redirect: si el usuario está en login.html, quiere loguearse.
+// El redirect solo ocurre después de un login exitoso.
 
 // ─── BIND: cuando el DOM esté listo ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {

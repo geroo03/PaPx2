@@ -226,12 +226,9 @@ async function olvideClave() {
 const __loginForm = document.getElementById('loginForm');
 if (__loginForm) { __loginForm.addEventListener('submit', function(e){ e.preventDefault(); submitForm(); }); }
 
+// No auto-redirect: si el usuario está en la página de login, quiere loguearse.
 sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    sessionActual = session;
-    const rol = session.user?.user_metadata?.role || 'usuario';
-    redirigirSegunRol(rol);
-  }
+  if (session) { sessionActual = session; }
 });
 </script>
 </body>
