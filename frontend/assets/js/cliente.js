@@ -489,9 +489,33 @@ window.addEventListener('load', () => {
   _sb.auth.getSession().then(({data:{session}})=>{
     if(!session){window.location.href='login-usuario.html';return;}
     const user=session.user;
-    const rol=user.user_metadata?.role || null;
+    let rol=user.user_metadata?.role || null;
+
+    // Si no tiene rol, consultar perfiles (fuente de verdad)
     if(!rol){
-      // No role assigned in the DB; show selector or instruct user to contact admin
+      try{
+        const{data:perfil}=await sb.from('perfiles').select('rol').eq('usuario_id',user.id).maybeSingle();
+        if(perfil?.rol) rol=perfil.rol;
+      }catch{}
+    }
+
+    // Si sigue sin rol, asignar 'cliente' automaticamente via backend
+    if(!rol){
+      try{
+        const sess=await sb.auth.getSession();
+        const token=sess.data?.session?.access_token;
+        if(token){
+          await fetch((window.BACKEND_URL||'')+'/api/auth/set-role',{
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body:JSON.stringify({role:'cliente'}),
+          });
+          rol='cliente';
+        }
+      }catch(e){console.error('Auto-assign role failed:',e);}
+    }
+
+    if(!rol){
       mostrarSelectorRol(user);
       return;
     }
@@ -506,12 +530,30 @@ window.addEventListener('load', () => {
 function mostrarSelectorRol(user){const overlay=document.createElement('div');overlay.id='rol-overlay';overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center;';overlay.innerHTML=`<div style="background:#fff;border-radius:28px 28px 0 0;padding:32px 24px 48px;width:100%;max-width:430px;"><div style="font-size:22px;font-weight:800;color:#0D0D0D;margin-bottom:8px;text-align:center;">¡Bienvenido! ¿Quién sos?</div><div style="font-size:14px;color:#A0A0A0;margin-bottom:28px;text-align:center;line-height:1.5;">Elegí tu tipo de cuenta para continuar.</div><div style="display:flex;flex-direction:column;gap:12px;"><button onclick="elegirRol('usuario')" style="display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:16px;border:2px solid #E0E0E0;background:#fff;cursor:pointer;text-align:left;width:100%;"><div style="width:48px;height:48px;border-radius:14px;background:#FFF3EE;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;"></div><div><div style="font-size:15px;font-weight:700;color:#0D0D0D;">Usuario</div><div style="font-size:12px;color:#A0A0A0;margin-top:3px;">Quiero pedir delivery a domicilio</div></div></button><button onclick="elegirRol('comercio')" style="display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:16px;border:2px solid #E0E0E0;background:#fff;cursor:pointer;text-align:left;width:100%;"><div style="width:48px;height:48px;border-radius:14px;background:#EEF3FF;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;"></div><div><div style="font-size:15px;font-weight:700;color:#0D0D0D;">Comercio</div><div style="font-size:12px;color:#A0A0A0;margin-top:3px;">Tengo un negocio y quiero vender</div></div></button><button onclick="elegirRol('cadete')" style="display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:16px;border:2px solid #E0E0E0;background:#fff;cursor:pointer;text-align:left;width:100%;"><div style="width:48px;height:48px;border-radius:14px;background:#EEFFF5;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;"></div><div><div style="font-size:15px;font-weight:700;color:#0D0D0D;">Cadete</div><div style="font-size:12px;color:#A0A0A0;margin-top:3px;">Quiero repartir y ganar dinero</div></div></button></div></div>`;document.body.appendChild(overlay);window._rolUser=user;}
 
 async function elegirRol(rol){
-  // Do NOT allow client-side role assignment. Roles must be assigned by an administrator in Supabase.
-  // Inform the user and remove the selector.
   try{ document.getElementById('rol-overlay')?.remove(); }catch(e){}
-  alert('Para asignar un rol (comercio/cadete/usuario) tu cuenta debe ser actualizada por un administrador. Por favor contactá al soporte o al administrador para continuar.');
-  // Optionally reload so UI reflects current session state
-  try{ window.location.reload(); }catch(e){}
+
+  if (rol === 'cadete') {
+    window.location.href = '/cadete/cadete.html';
+    return;
+  }
+  if (rol === 'comercio') {
+    window.location.href = '/comercio/registro-comercio.html';
+    return;
+  }
+
+  // Usuario/cliente: asignar rol via backend y recargar
+  try {
+    const sess = await sb.auth.getSession();
+    const token = sess.data?.session?.access_token;
+    if (token) {
+      await fetch((window.BACKEND_URL||'') + '/api/auth/set-role', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+        body: JSON.stringify({ role: 'cliente' }),
+      });
+    }
+  } catch(e) { console.error('Error asignando rol:', e); }
+  window.location.reload();
 }
 
 function cargarPerfil(user){const nombre=user.user_metadata?.full_name||user.email?.split('@')[0]||'Usuario';const inicial=nombre.charAt(0).toUpperCase();document.querySelectorAll('.perfil-av').forEach(el=>el.textContent=inicial);const elAv=document.getElementById('perfil-av');const elNombre=document.getElementById('perfil-nombre');const elEmail=document.getElementById('perfil-email');if(elAv)elAv.textContent=inicial;if(elNombre)elNombre.textContent=nombre;if(elEmail)elEmail.textContent=user.email||'';}
