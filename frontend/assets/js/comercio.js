@@ -357,17 +357,36 @@ function detallePedido(p, advs, cadetesMap = {}) {
     ? `<span>Propina cadete: ${formatARS(p.propina_cadete)}</span>`
     : '';
 
+  const notasHTML = `
+    <div style="margin-top:10px;">
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:4px;">Notas del pedido</div>
+      <div style="display:flex;gap:8px;">
+        <input id="nota-ped-${p.id}" value="${esc(p.notas||'')}" placeholder="Agregar nota..." style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;"/>
+        <button onclick="guardarNotaPedido('${p.id}')" style="padding:8px 14px;background:#FF6B35;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;">Guardar</button>
+      </div>
+    </div>`;
+
   return `<div class="pedido-detail">
     <div class="detail-items">${filas}</div>
     <div class="detail-meta">
       ${p.tipo_delivery ? `<span>Entrega: ${p.tipo_delivery === 'app' ? 'Cadete PaP' : 'Cadete propio'}</span>` : ''}
       ${p.metodo_pago   ? `<span>Pago: ${esc(p.metodo_pago)}</span>` : ''}
       ${p.direccion_entrega ? `<span>Dir: ${esc(p.direccion_entrega)}</span>` : ''}
-      ${p.costo_envio   ? `<span>Envío: ${formatARS(p.costo_envio)}</span>` : ''}
+      ${p.costo_envio   ? `<span>Envio: ${formatARS(p.costo_envio)}</span>` : ''}
       ${propinaHTML}
       <span><strong>Total: ${formatARS(p.total ?? p.subtotal ?? 0)}</strong></span>
-    </div>${cadeteHTML}${advsHTML}</div>`;
+    </div>${cadeteHTML}${notasHTML}${advsHTML}</div>`;
 }
+
+// Guardar nota del pedido — expuesta como global para onclick inline
+window.guardarNotaPedido = async function(pedidoId) {
+  const input = g('nota-ped-' + pedidoId);
+  if (!input) return;
+  const notas = input.value.trim();
+  const { error } = await sb.from('pedidos').update({ notas }).eq('id', pedidoId).eq('comercio_id', S.cid);
+  if (error) { showToast('Error guardando nota: ' + error.message, 'error'); return; }
+  showToast('Nota guardada');
+};
 
 function togglePedidoRow(id) { g('detail-' + id)?.classList.toggle('hidden'); }
 function filterPedidosTable(query) {
