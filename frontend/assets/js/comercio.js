@@ -169,6 +169,7 @@ function dispatchAction(t, originalEvent) {
     case 'toggle-producto':      toggleProducto(t, id); break;
     case 'menu-subtab':          switchMenuSubTab(t.dataset.tab); break;
     case 'edit-producto':        openModalProducto(id); break;
+    case 'eliminar-producto':    eliminarProducto(id); break;
     case 'agregar-seccion':      openModalCategoria(); break;
     case 'save-categoria':       saveCategoria(); break;
     case 'close-modal-categoria':closeModalCategoria(); break;
@@ -492,6 +493,10 @@ function renderProductos(prods, catId) {
           <span class="toggle-slider"></span>
         </label>
         <div class="product-price">${formatARS(precioBase)}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button class="btn-ghost btn-sm" data-action="edit-producto" data-id="${p.id}" style="font-size:12px;padding:4px 8px;color:var(--brand-color,#FF6B35);cursor:pointer;border:1px solid #eee;border-radius:6px;background:#fff;">Editar</button>
+          <button class="btn-ghost btn-sm" data-action="eliminar-producto" data-id="${p.id}" style="font-size:12px;padding:4px 8px;color:#DC2626;cursor:pointer;border:1px solid #fee2e2;border-radius:6px;background:#fff;">Eliminar</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -581,6 +586,14 @@ async function saveProducto() {
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast(editId ? 'Producto actualizado ✓' : 'Producto agregado ✓');
   closeAllModals(); await loadMenu();
+}
+
+async function eliminarProducto(id) {
+  if (!confirm('Eliminar este producto? Esta accion no se puede deshacer.')) return;
+  const { error } = await sb.from('productos').delete().eq('id', id).eq('comercio_id', S.cid);
+  if (error) { showToast('Error al eliminar: ' + error.message, 'error'); return; }
+  showToast('Producto eliminado');
+  await loadMenu();
 }
 
 async function toggleProducto(inputEl, id) {
