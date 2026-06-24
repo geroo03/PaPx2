@@ -693,15 +693,95 @@ function renderFacturas(pedidos) {
 function loadContratoData() {
   const com = S.comercio;
   if (!com) return;
-  const set = (id, val) => { const e = g(id); if (e) e.textContent = val||'—'; };
-  set('ct-nombre',     com.nombre); set('ct-razon',    com.nombre);
-  set('ct-direccion',  com.direccion||'—');
-  set('ct-ciudad',     'Santiago del Estero'); set('ct-barrio', 'Santiago del Estero'); set('ct-cp','G4200');
-  set('ct-email',      com.email||'—');
-  set('ct-titular',    com.nombre); set('ct-cuit','—');
-  set('ct-cuenta',     com.cbu_alias ? com.cbu_alias.slice(-4) : '—');
-  set('ct-tipo-cuenta','CBU/Alias'); set('ct-banco', com.banco||'—');
+  const cont = g('fin-tab-contrato');
+  if (!cont) return;
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0;">
+      <!-- Contrato -->
+      <div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:20px;">
+        <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">Contrato</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <label style="font-size:12px;color:#666;">Nombre de referencia
+            <input id="ct-nombre" value="${esc(com.nombre||'')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;background:#f9f9f9;" readonly/>
+          </label>
+          <label style="font-size:12px;color:#666;">Razon social
+            <input id="ct-razon" value="${esc(com.razon_social||'')}" placeholder="Ej: SIGOTTO NESTOR LUIS" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:#666;">CUIT
+            <input id="ct-cuit" value="${esc(com.cuit||'')}" placeholder="Ej: 20370290122" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:#666;">Direccion
+            <input id="ct-direccion" value="${esc(com.direccion||'')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <div style="display:flex;gap:10px;">
+            <label style="font-size:12px;color:#666;flex:1;">Ciudad
+              <input id="ct-ciudad" value="${esc(com.ciudad||'Santiago del Estero')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+            </label>
+            <label style="font-size:12px;color:#666;flex:1;">Codigo postal
+              <input id="ct-cp" value="${esc(com.codigo_postal||'')}" placeholder="Ej: G4200" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+            </label>
+          </div>
+          <label style="font-size:12px;color:#666;">Barrio
+            <input id="ct-barrio" value="${esc(com.barrio||'')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:#666;">Email de facturacion
+            <input id="ct-email" type="email" value="${esc(com.email_facturacion||com.email||'')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+        </div>
+      </div>
+
+      <!-- Datos Bancarios -->
+      <div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:20px;">
+        <h3 style="font-size:15px;font-weight:800;margin-bottom:16px;">Datos Bancarios</h3>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <label style="font-size:12px;color:#666;">Titular
+            <input id="ct-titular" value="${esc(com.titular_bancario||com.razon_social||com.nombre||'')}" placeholder="Nombre del titular" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:#666;">CUIT
+            <input id="ct-cuit-banco" value="${esc(com.cuit||'')}" placeholder="20370290122" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:#666;">CBU / Alias
+            <input id="ct-cbu" value="${esc(com.cbu_alias||'')}" placeholder="Ej: mi.alias.mp o CBU completo" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+          <label style="font-size:12px;color:#666;">Tipo de cuenta
+            <select id="ct-tipo-cuenta" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;">
+              <option value="caja_ahorro" ${(com.tipo_cuenta||'')==='caja_ahorro'?'selected':''}>Caja de ahorro</option>
+              <option value="cuenta_corriente" ${(com.tipo_cuenta||'')==='cuenta_corriente'?'selected':''}>Cuenta corriente</option>
+            </select>
+          </label>
+          <label style="font-size:12px;color:#666;">Banco
+            <input id="ct-banco" value="${esc(com.banco||'')}" placeholder="Ej: Banco Galicia" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="window.guardarContrato()" style="background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:14px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;">Guardar datos</button>
+    <span id="ct-msg" style="margin-left:12px;font-size:13px;color:#16a34a;"></span>
+  `;
 }
+
+window.guardarContrato = async function() {
+  const payload = {
+    razon_social:      g('ct-razon')?.value?.trim() || null,
+    cuit:              g('ct-cuit')?.value?.trim() || null,
+    direccion:         g('ct-direccion')?.value?.trim() || null,
+    ciudad:            g('ct-ciudad')?.value?.trim() || null,
+    codigo_postal:     g('ct-cp')?.value?.trim() || null,
+    barrio:            g('ct-barrio')?.value?.trim() || null,
+    email_facturacion: g('ct-email')?.value?.trim() || null,
+    titular_bancario:  g('ct-titular')?.value?.trim() || null,
+    cbu_alias:         g('ct-cbu')?.value?.trim() || null,
+    tipo_cuenta:       g('ct-tipo-cuenta')?.value || null,
+    banco:             g('ct-banco')?.value?.trim() || null,
+  };
+  const { error } = await sb.from('comercios').update(payload).eq('id', S.cid);
+  if (error) { showToast('Error guardando: ' + error.message, 'error'); return; }
+  S.comercio = { ...S.comercio, ...payload };
+  const msg = g('ct-msg'); if (msg) { msg.textContent = 'Datos guardados'; setTimeout(() => msg.textContent = '', 3000); }
+  showToast('Datos del contrato guardados');
+};
 
 function setFinFilter(period) {
   finDias = parseInt(period, 10);
