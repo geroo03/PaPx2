@@ -57,9 +57,9 @@
     </div>
     <div class="top-controls">
       <input id="search" class="search" placeholder="Buscar..." oninput="filtrarAdmin(this.value)"/>
-      <button class="btn btn-primary" onclick="refreshAll()">Actualizar</button>
+      <button class="btn btn-primary" onclick="window.refreshAll?.()">Actualizar</button>
       <button class="btn btn-outline" onclick="location.href='/login.html'">Volver</button>
-      <button class="btn btn-danger" onclick="signOutAdmin()">Cerrar sesion</button>
+      <button class="btn btn-danger" onclick="window.signOutAdmin?.()">Cerrar sesion</button>
     </div>
   </header>
 

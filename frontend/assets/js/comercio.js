@@ -459,15 +459,22 @@ let catSelId = null;
 
 async function loadMenu() {
   g('categorias-list') && (g('categorias-list').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>');
-
-  const [{ data: cats }, { data: prods }] = await Promise.all([
-    sb.from('categorias_producto').select('id,comercio_id,nombre').eq('comercio_id', S.cid).order('nombre'),
-    sb.from('productos').select('id,comercio_id,categoria_id,nombre,descripcion,precio,precio_base,imagen_url,disponible')
-      .eq('comercio_id', S.cid).order('nombre'),
-  ]);
-  S.categorias = cats||[]; S.productos = prods||[];
-  renderCategorias();
-  selectCategoria(catSelId || S.categorias[0]?.id || null);
+  try {
+    const [{ data: cats, error: e1 }, { data: prods, error: e2 }] = await Promise.all([
+      sb.from('categorias_producto').select('id,comercio_id,nombre').eq('comercio_id', S.cid).order('nombre'),
+      sb.from('productos').select('id,comercio_id,categoria_id,nombre,descripcion,precio,precio_base,imagen_url,disponible')
+        .eq('comercio_id', S.cid).order('nombre'),
+    ]);
+    if (e1) console.error('Error cargando categorias:', e1.message);
+    if (e2) console.error('Error cargando productos:', e2.message);
+    S.categorias = cats||[]; S.productos = prods||[];
+    renderCategorias();
+    selectCategoria(catSelId || S.categorias[0]?.id || null);
+  } catch (err) {
+    console.error('Error en loadMenu:', err);
+    showToast('Error cargando el menu', 'error');
+    g('categorias-list') && (g('categorias-list').innerHTML = '<div class="empty-state"><p>Error al cargar. Recarga la pagina.</p></div>');
+  }
 }
 
 function renderCategorias() {
