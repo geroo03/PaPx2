@@ -245,6 +245,57 @@
   </button>
 </div>
 
+<!-- TUTORIAL — se muestra la primera vez que el cadete entra -->
+<div id="tutorial-overlay" style="display:none;position:fixed;inset:0;background:#0d0d0d;z-index:9500;overflow:hidden;">
+  <div id="tutorial-slides" style="display:flex;transition:transform .4s ease;height:100%;">
+    <!-- Slide 1 -->
+    <div style="min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--brand,#FF6B35);display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h2 style="font-size:24px;font-weight:800;color:#fff;margin-bottom:12px;">Recibir viajes</h2>
+      <p style="font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;max-width:300px;">Activa "Disponible" y los pedidos cercanos te van a llegar automaticamente. Tenes 20 segundos para aceptar cada oferta.</p>
+    </div>
+    <!-- Slide 2 -->
+    <div style="min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+      <div style="width:80px;height:80px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <h2 style="font-size:24px;font-weight:800;color:#fff;margin-bottom:12px;">Retirar el pedido</h2>
+      <p style="font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;max-width:300px;">Anda al comercio, decile al empleado tu codigo de retiro de 4 digitos. El te lo va a confirmar y te entrega el pedido.</p>
+    </div>
+    <!-- Slide 3 -->
+    <div style="min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+      <div style="width:80px;height:80px;border-radius:50%;background:#3b82f6;display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </div>
+      <h2 style="font-size:24px;font-weight:800;color:#fff;margin-bottom:12px;">Entregar al cliente</h2>
+      <p style="font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;max-width:300px;">El cliente te va a mostrar su codigo de entrega de 4 digitos en su celular. Ingresalo en la app para confirmar la entrega.</p>
+    </div>
+    <!-- Slide 4 -->
+    <div style="min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+      <div style="width:80px;height:80px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;margin-bottom:28px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <h2 style="font-size:24px;font-weight:800;color:#fff;margin-bottom:12px;">Cobrar tu ganancia</h2>
+      <p style="font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;max-width:300px;">Tu ganancia se calcula por distancia: $1.200 base (bici) o $1.800 (moto) + $250/km. Se acumula y se paga semanalmente a tu CVU.</p>
+    </div>
+  </div>
+  <!-- Dots + buttons -->
+  <div style="position:absolute;bottom:40px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:20px;">
+    <div id="tutorial-dots" style="display:flex;gap:8px;">
+      <div class="t-dot active" style="width:8px;height:8px;border-radius:50%;background:#fff;transition:.2s;"></div>
+      <div class="t-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:.2s;"></div>
+      <div class="t-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:.2s;"></div>
+      <div class="t-dot" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:.2s;"></div>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button id="tutorial-skip" onclick="cerrarTutorial()" style="padding:14px 28px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);font-size:14px;font-weight:600;cursor:pointer;">Saltar</button>
+      <button id="tutorial-next" onclick="siguienteSlideTutorial()" style="padding:14px 36px;border-radius:12px;border:none;background:var(--brand,#FF6B35);color:#fff;font-size:14px;font-weight:800;cursor:pointer;">Siguiente</button>
+    </div>
+  </div>
+</div>
+
 <!-- ONBOARDING OVERLAY — se muestra si el cadete no completó datos obligatorios -->
 <div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:#0d0d0d;z-index:9000;overflow-y:auto;padding:24px 16px 48px;">
   <div style="max-width:480px;margin:0 auto;">

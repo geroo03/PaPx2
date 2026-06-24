@@ -1328,6 +1328,9 @@ if ('Notification' in window && Notification.permission === 'default') {
 
     cadeteUserId = user.id;
 
+    // Tutorial para cadetes nuevos (se muestra una sola vez)
+    mostrarTutorial();
+
     // Verificar si necesita completar onboarding antes de operar
     await verificarOnboarding();
     bindOnboardingForm();
@@ -1358,6 +1361,36 @@ if ('Notification' in window && Notification.permission === 'default') {
 setInterval(cargarOfertas, 30000);
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// TUTORIAL — slideshow de 4 pantallas para cadetes nuevos
+// ═══════════════════════════════════════════════════════════════════════════════
+let _tutorialSlide = 0;
+
+function mostrarTutorial() {
+  if (localStorage.getItem('pap_tutorial_visto') === 'true') return;
+  const overlay = document.getElementById('tutorial-overlay');
+  if (overlay) overlay.style.display = 'block';
+}
+
+function siguienteSlideTutorial() {
+  _tutorialSlide++;
+  if (_tutorialSlide >= 4) { cerrarTutorial(); return; }
+  const slides = document.getElementById('tutorial-slides');
+  if (slides) slides.style.transform = `translateX(-${_tutorialSlide * 100}%)`;
+  const dots = document.querySelectorAll('#tutorial-dots .t-dot');
+  dots.forEach((d, i) => { d.style.background = i === _tutorialSlide ? '#fff' : 'rgba(255,255,255,.3)'; });
+  if (_tutorialSlide === 3) {
+    const btn = document.getElementById('tutorial-next');
+    if (btn) btn.textContent = 'Empezar';
+  }
+}
+
+function cerrarTutorial() {
+  localStorage.setItem('pap_tutorial_visto', 'true');
+  const overlay = document.getElementById('tutorial-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // EXPORTS AL SCOPE GLOBAL — necesarios para onclick inline del HTML
 // ═══════════════════════════════════════════════════════════════════════════════
 Object.assign(window, {
@@ -1380,5 +1413,7 @@ Object.assign(window, {
   copiarCodigo,
   iniciarTimerNoShow,
   cancelarPorNoShow,
+  siguienteSlideTutorial,
+  cerrarTutorial,
   toast,
 });
