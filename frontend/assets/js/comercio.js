@@ -220,6 +220,59 @@ async function loadTablero() {
   setText('dash-facturacion', formatARS(facturacion));
   setText('dash-productos',   (productos||[]).filter(p => p.disponible).length);
   setText('dash-deuda',       formatARS(S.comercio?.deuda||0));
+
+  // Alertas de completitud
+  const alertas = [];
+  const com = S.comercio || {};
+  const prodsActivos = (productos||[]).filter(p => p.disponible).length;
+
+  if (!com.lat || !com.lng) {
+    alertas.push({
+      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+      color: '#DC2626', bg: '#FEF2F2', border: '#FECACA',
+      text: 'Tu comercio no tiene ubicacion configurada. Sin ubicacion los cadetes no pueden encontrarte.',
+      action: 'configuracion', label: 'Configurar ubicacion',
+    });
+  }
+  if (prodsActivos === 0) {
+    alertas.push({
+      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>',
+      color: '#D97706', bg: '#FFFBEB', border: '#FDE68A',
+      text: 'Tu menu esta vacio. Agrega productos para empezar a recibir pedidos.',
+      action: 'menu', label: 'Agregar productos',
+    });
+  }
+  if (!com.telefono) {
+    alertas.push({
+      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 013.09 5.18 2 2 0 015.11 3h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 11.91a16 16 0 006 6l2.27-2.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>',
+      color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE',
+      text: 'No tenes telefono de contacto. Los clientes y cadetes no pueden comunicarse con vos.',
+      action: 'configuracion', label: 'Agregar telefono',
+    });
+  }
+  if (!com.cbu_alias && !com.titular_bancario) {
+    alertas.push({
+      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+      color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE',
+      text: 'Datos bancarios incompletos. Necesitas CBU/alias para recibir pagos.',
+      action: 'finanzas', label: 'Completar datos bancarios',
+    });
+  }
+
+  const container = g('alertas-setup');
+  if (container) {
+    if (!alertas.length) {
+      container.innerHTML = '';
+    } else {
+      container.innerHTML = alertas.map(a => `
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${a.bg};border:1px solid ${a.border};border-radius:10px;">
+          <div style="flex-shrink:0;">${a.icon}</div>
+          <div style="flex:1;font-size:12px;color:${a.color};font-weight:500;line-height:1.4;">${a.text}</div>
+          <button data-action="nav" data-view="${a.action}" style="flex-shrink:0;background:${a.color};color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${a.label}</button>
+        </div>
+      `).join('');
+    }
+  }
 }
 
 // ─── VIEW: PEDIDOS ────────────────────────────────────────────────────────────
