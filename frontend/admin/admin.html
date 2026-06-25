@@ -4,6 +4,8 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>PaP — Panel de Administracion</title>
+  <link rel="preconnect" href="https://fmqlpgerqdiplnvjjarl.supabase.co">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/env.js"></script>
   <style>
@@ -99,6 +101,10 @@
   <!-- TAB: Cadetes -->
   <div class="tab-panel" id="tab-cadetes">
     <div class="panel"><h2>Cadetes registrados</h2><div id="cadetes-list">Cargando...</div></div>
+    <div class="panel" style="margin-top:var(--gap);">
+      <h2>Liquidaciones pendientes</h2>
+      <div id="liquidaciones-list">Cargando...</div>
+    </div>
   </div>
 
   <!-- TAB: Embajadores -->
@@ -179,7 +185,7 @@ window.switchTab = function(tab) {
 
 // ── REFRESH ALL ──────────────────────────────────────────────────────────────
 window.refreshAll = async function() {
-  loadKPIs(); loadPedidos(); loadComercios(); loadPendientes(); loadCadetes(); loadEmbajadores(); loadRetiros();
+  loadKPIs(); loadPedidos(); loadComercios(); loadPendientes(); loadCadetes(); loadLiquidaciones(); loadEmbajadores(); loadRetiros();
 };
 
 // ── SIGN OUT ─────────────────────────────────────────────────────────────────
@@ -288,19 +294,131 @@ async function loadCadetes() {
   try {
     const { data, error } = await supabase
       .from('cadetes')
-      .select('auth_uid, nombre, email, telefono, vehiculo, cvu, foto_dni_url, onboarding_completo, disponible, created_at')
+      .select('auth_uid, nombre, email, telefono, vehiculo, cvu, foto_dni_url, onboarding_completo, disponible, deuda_efectivo, limite_efectivo, created_at')
       .order('created_at',{ascending:false});
     if (error) throw error;
     if (!data?.length) { el.innerHTML = '<div class="empty">Sin cadetes.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Email</th><th>Tel</th><th>Vehiculo</th><th>CVU</th><th>DNI</th><th>Estado</th></tr></thead><tbody>${data.map(c => {
+    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Email</th><th>Vehiculo</th><th>Estado</th><th>Deuda Efectivo</th><th>Limite</th><th>Acciones</th></tr></thead><tbody>${data.map(c => {
       const estado = !c.onboarding_completo ? '<span class="badge badge-yellow">Pendiente</span>'
         : c.disponible ? '<span class="badge badge-green">Disponible</span>'
         : '<span class="badge badge-gray">Inactivo</span>';
-      const dni = c.foto_dni_url ? '<span class="badge badge-green">Si</span>' : '<span class="badge badge-red">No</span>';
-      return `<tr><td style="font-weight:600;">${c.nombre||'—'}</td><td>${c.email||'—'}</td><td>${c.telefono||'—'}</td><td>${c.vehiculo||'—'}</td><td style="font-size:11px;">${c.cvu||'—'}</td><td>${dni}</td><td>${estado}</td></tr>`;
+      const deuda = Number(c.deuda_efectivo||0);
+      const limite = Number(c.limite_efectivo||15000);
+      const pct = limite > 0 ? Math.round((deuda/limite)*100) : 0;
+      const barColor = pct > 80 ? '#EF4444' : pct > 50 ? '#F59E0B' : '#22C55E';
+      return `<tr>
+        <td style="font-weight:600;">${c.nombre||'—'}</td>
+        <td style="font-size:12px;">${c.email||'—'}</td>
+        <td>${c.vehiculo||'—'}</td>
+        <td>${estado}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="flex:1;height:6px;background:#e5e7eb;border-radius:4px;overflow:hidden;min-width:60px;">
+              <div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;"></div>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:${barColor};">$${deuda.toLocaleString('es-AR')}</span>
+          </div>
+        </td>
+        <td>
+          <input type="number" value="${limite}" style="width:80px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:right;"
+            onchange="adminUpdateEfectivo('${c.auth_uid}',null,this.value)" />
+        </td>
+        <td>
+          <button class="btn btn-outline" style="font-size:11px;padding:4px 8px;" onclick="adminEditarDeuda('${c.auth_uid}',${deuda})">Editar deuda</button>
+        </td>
+      </tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando cadetes.</div>'; console.error(e); }
 }
+
+window.adminEditarDeuda = function(cadeteId, deudaActual) {
+  const nuevo = prompt('Nueva deuda en efectivo para este cadete.\nActual: $' + deudaActual.toLocaleString('es-AR'), deudaActual);
+  if (nuevo === null) return;
+  const val = Number(nuevo);
+  if (isNaN(val) || val < 0) { alert('Monto invalido'); return; }
+  adminUpdateEfectivo(cadeteId, val, null);
+};
+
+window.adminUpdateEfectivo = async function(cadeteId, deuda, limite) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+    const body = {};
+    if (deuda !== null && deuda !== undefined)  body.deuda_efectivo  = Number(deuda);
+    if (limite !== null && limite !== undefined) body.limite_efectivo = Number(limite);
+    const r = await fetch(`${window.BACKEND_URL||''}/api/cadete/${cadeteId}/efectivo`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) { alert('Error: ' + (data.error||'desconocido')); return; }
+    loadCadetes();
+  } catch(e) { alert('Error: ' + e.message); }
+};
+
+async function loadLiquidaciones() {
+  const el = document.getElementById('liquidaciones-list');
+  if (!el) return;
+  try {
+    const { data, error } = await supabase
+      .from('liquidaciones')
+      .select('id, cadete_id, monto, metodo, estado, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) throw error;
+    if (!data?.length) { el.innerHTML = '<div class="empty">Sin liquidaciones.</div>'; return; }
+
+    // Resolver nombres de cadetes
+    const cadIds = [...new Set(data.map(l => l.cadete_id))];
+    const { data: cadetes } = await supabase.from('cadetes').select('auth_uid, nombre').in('auth_uid', cadIds);
+    const cadMap = Object.fromEntries((cadetes||[]).map(c => [c.auth_uid, c.nombre]));
+
+    el.innerHTML = `<table><thead><tr><th>Cadete</th><th>Monto</th><th>Metodo</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>${data.map(l => {
+      const fecha = new Date(l.created_at).toLocaleDateString('es-AR');
+      const nombre = cadMap[l.cadete_id] || l.cadete_id.slice(0,8) + '...';
+      const badgeColor = l.estado === 'pendiente' ? 'badge-yellow' : l.estado === 'confirmada' ? 'badge-green' : 'badge-red';
+      const acciones = l.estado === 'pendiente'
+        ? `<button class="btn btn-primary" style="font-size:11px;padding:4px 8px;margin-right:4px;" onclick="adminConfirmarLiq('${l.id}')">Confirmar</button>
+           <button class="btn btn-danger" style="font-size:11px;padding:4px 8px;" onclick="adminRechazarLiq('${l.id}')">Rechazar</button>`
+        : '—';
+      return `<tr>
+        <td style="font-weight:600;">${nombre}</td>
+        <td style="font-weight:700;">$${Number(l.monto).toLocaleString('es-AR')}</td>
+        <td>${l.metodo}</td>
+        <td><span class="badge ${badgeColor}">${l.estado}</span></td>
+        <td style="font-size:12px;">${fecha}</td>
+        <td>${acciones}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando liquidaciones.</div>'; console.error(e); }
+}
+
+window.adminConfirmarLiq = async function(liqId) {
+  if (!confirm('Confirmar esta liquidacion? Se descontara de la deuda del cadete.')) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const r = await fetch(`${window.BACKEND_URL||''}/api/cadete/liquidacion/${liqId}/confirmar`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    });
+    if (!r.ok) { const d = await r.json(); alert('Error: ' + (d.error||'')); return; }
+    loadLiquidaciones(); loadCadetes();
+  } catch(e) { alert('Error: ' + e.message); }
+};
+
+window.adminRechazarLiq = async function(liqId) {
+  if (!confirm('Rechazar esta liquidacion?')) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const r = await fetch(`${window.BACKEND_URL||''}/api/cadete/liquidacion/${liqId}/rechazar`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    });
+    if (!r.ok) { const d = await r.json(); alert('Error: ' + (d.error||'')); return; }
+    loadLiquidaciones();
+  } catch(e) { alert('Error: ' + e.message); }
+};
 
 // ── EMBAJADORES ──────────────────────────────────────────────────────────────
 async function loadEmbajadores() {

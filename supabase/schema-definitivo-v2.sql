@@ -146,6 +146,16 @@ ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS mp_account_id           te
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS lat                     numeric;
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS lng                     numeric;
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS imagen_url              text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS titular_bancario        text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS tipo_cuenta             text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS cbu_alias               text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS cuit                    text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS razon_social            text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS ciudad                  text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS codigo_postal           text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS barrio                  text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS email_facturacion       text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS banco                   text;
 
 -- Constraints (en DO blocks para tolerar constraints inline preexistentes)
 DO $$
@@ -211,6 +221,8 @@ ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS onboarding_completo  bool DE
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS cobro_frecuencia     text DEFAULT 'semanal';
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS codigo_referido      text;
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS referido_por         text;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS deuda_efectivo       numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS limite_efectivo      numeric(12,2) NOT NULL DEFAULT 15000;
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS zona              text;
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS updated_at        timestamptz DEFAULT now();
 
@@ -343,6 +355,8 @@ ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS codigo_retiro      text;
 ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS codigo_entrega     text;
 ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS distancia_estimada numeric(10,2);
 ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS pago_cadete        int4;
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS cobrado_efectivo   bool NOT NULL DEFAULT false;
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS liquidado          bool NOT NULL DEFAULT false;
 
 -- ⚠️ PASO 2: Constraints DESPUÉS de que las columnas existen
 -- Envueltos en DO blocks para tolerar datos legacy (ej: estado='listo')
@@ -618,7 +632,75 @@ CREATE TABLE IF NOT EXISTS public.patrocinios (
 
 
 -- ──────────────────────────────────────────────────────────────
--- A-20. comercios_historial
+-- A-20. liquidaciones (efectivo cadete)
+-- ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.liquidaciones (
+  id              uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  cadete_id       uuid          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  monto           numeric(12,2) NOT NULL,
+  metodo          text          NOT NULL DEFAULT 'transferencia',
+  estado          text          NOT NULL DEFAULT 'pendiente',
+  comprobante_url text,
+  notas           text,
+  created_at      timestamptz   DEFAULT now(),
+  confirmado_at   timestamptz
+);
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE public.liquidaciones ADD CONSTRAINT liquidaciones_estado_check
+      CHECK (estado IN ('pendiente','confirmada','rechazada'));
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+  BEGIN
+    ALTER TABLE public.liquidaciones ADD CONSTRAINT liquidaciones_metodo_check
+      CHECK (metodo IN ('transferencia','efectivo','mercadopago'));
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END;
+$$;
+
+
+-- ──────────────────────────────────────────────────────────────
+-- A-21. referidos_cadete
+-- ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.referidos_cadete (
+  id                uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  referente_id      uuid          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  referido_id       uuid          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  codigo_usado      text          NOT NULL,
+  bonificacion      numeric(12,2) NOT NULL DEFAULT 500,
+  viajes_contados   int4          NOT NULL DEFAULT 0,
+  comision_acumulada numeric(12,2) NOT NULL DEFAULT 0,
+  viajes_limite     int4          NOT NULL DEFAULT 50,
+  estado            text          NOT NULL DEFAULT 'pendiente',
+  created_at        timestamptz   DEFAULT now()
+);
+
+ALTER TABLE public.referidos_cadete ADD COLUMN IF NOT EXISTS viajes_contados    int4 NOT NULL DEFAULT 0;
+ALTER TABLE public.referidos_cadete ADD COLUMN IF NOT EXISTS comision_acumulada numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.referidos_cadete ADD COLUMN IF NOT EXISTS viajes_limite      int4 NOT NULL DEFAULT 50;
+
+DO $$
+BEGIN
+  BEGIN
+    ALTER TABLE public.referidos_cadete
+      ADD CONSTRAINT referidos_cadete_referido_key UNIQUE (referido_id);
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+  BEGIN
+    ALTER TABLE public.referidos_cadete DROP CONSTRAINT IF EXISTS referidos_cadete_estado_check;
+    ALTER TABLE public.referidos_cadete ADD CONSTRAINT referidos_cadete_estado_check
+      CHECK (estado IN ('pendiente','acreditado','completado'));
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END;
+$$;
+
+
+-- ──────────────────────────────────────────────────────────────
+-- A-22. comercios_historial
 -- ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.comercios_historial (
   id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -652,6 +734,10 @@ CREATE INDEX IF NOT EXISTS idx_ratings_comercio_id       ON public.ratings (come
 CREATE INDEX IF NOT EXISTS idx_billetera_embajador       ON public.billetera_embajadores (embajador_id);
 CREATE INDEX IF NOT EXISTS idx_patrocinios_orden         ON public.patrocinios (orden);
 CREATE INDEX IF NOT EXISTS idx_historial_comercio_id     ON public.comercios_historial (comercio_id);
+CREATE INDEX IF NOT EXISTS idx_liquidaciones_cadete      ON public.liquidaciones (cadete_id);
+CREATE INDEX IF NOT EXISTS idx_liquidaciones_estado      ON public.liquidaciones (estado);
+CREATE INDEX IF NOT EXISTS idx_referidos_referente       ON public.referidos_cadete (referente_id);
+CREATE INDEX IF NOT EXISTS idx_referidos_codigo          ON public.referidos_cadete (codigo_usado);
 
 
 -- ============================================================
@@ -670,6 +756,8 @@ ALTER TABLE public.ratings               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reportes              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.billetera_embajadores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promociones           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.liquidaciones         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.referidos_cadete      ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================
@@ -971,6 +1059,37 @@ CREATE POLICY ratings_usuario_insert
   ON public.ratings FOR INSERT
   WITH CHECK (usuario_id = auth.uid());
 
+-- ── liquidaciones ────────────────────────────────────────────
+DROP POLICY IF EXISTS liquidaciones_cadete_select ON public.liquidaciones;
+DROP POLICY IF EXISTS liquidaciones_cadete_insert ON public.liquidaciones;
+DROP POLICY IF EXISTS liquidaciones_admin_all     ON public.liquidaciones;
+
+CREATE POLICY liquidaciones_cadete_select
+  ON public.liquidaciones FOR SELECT
+  USING (cadete_id = auth.uid());
+
+CREATE POLICY liquidaciones_cadete_insert
+  ON public.liquidaciones FOR INSERT
+  WITH CHECK (cadete_id = auth.uid());
+
+CREATE POLICY liquidaciones_admin_all
+  ON public.liquidaciones FOR ALL
+  USING ((SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin')
+  WITH CHECK ((SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin');
+
+-- ── referidos_cadete ─────────────────────────────────────────
+DROP POLICY IF EXISTS referidos_cadete_select ON public.referidos_cadete;
+DROP POLICY IF EXISTS referidos_admin_all     ON public.referidos_cadete;
+
+CREATE POLICY referidos_cadete_select
+  ON public.referidos_cadete FOR SELECT
+  USING (referente_id = auth.uid() OR referido_id = auth.uid());
+
+CREATE POLICY referidos_admin_all
+  ON public.referidos_cadete FOR ALL
+  USING ((SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin')
+  WITH CHECK ((SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin');
+
 
 -- ============================================================
 -- SECCIÓN E — FUNCIONES Y TRIGGERS
@@ -1120,7 +1239,79 @@ CREATE TRIGGER trg_pedidos_acumular_deuda
   EXECUTE FUNCTION public.pedidos_acumular_deuda_propio();
 
 
--- E-8. Comisión al embajador al entregar
+-- E-8. Acumular deuda efectivo al cadete
+CREATE OR REPLACE FUNCTION public.pedidos_acumular_deuda_efectivo()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NEW.metodo_pago = 'efectivo' AND NEW.cadete_id IS NOT NULL THEN
+    NEW.cobrado_efectivo := true;
+    UPDATE public.cadetes
+    SET deuda_efectivo = COALESCE(deuda_efectivo, 0) + COALESCE(NEW.total, 0)
+    WHERE auth_uid = NEW.cadete_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_pedidos_deuda_efectivo ON public.pedidos;
+CREATE TRIGGER trg_pedidos_deuda_efectivo
+  BEFORE UPDATE ON public.pedidos
+  FOR EACH ROW
+  WHEN (OLD.estado IS DISTINCT FROM NEW.estado AND NEW.estado = 'entregado')
+  EXECUTE FUNCTION public.pedidos_acumular_deuda_efectivo();
+
+
+-- E-9. Comisión 2% al referente por viaje del referido (primeros 50 viajes)
+CREATE OR REPLACE FUNCTION public.pedidos_comision_referido()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_ref        record;
+  v_comision   numeric(12,2);
+BEGIN
+  IF NEW.cadete_id IS NULL OR COALESCE(NEW.pago_cadete, 0) <= 0 THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT id, referente_id, viajes_contados, viajes_limite, estado
+  INTO v_ref
+  FROM public.referidos_cadete
+  WHERE referido_id = NEW.cadete_id
+    AND estado IN ('pendiente', 'acreditado')
+  LIMIT 1;
+
+  IF NOT FOUND THEN RETURN NEW; END IF;
+
+  IF v_ref.viajes_contados >= v_ref.viajes_limite THEN
+    UPDATE public.referidos_cadete
+    SET estado = 'completado'
+    WHERE id = v_ref.id AND estado != 'completado';
+    RETURN NEW;
+  END IF;
+
+  v_comision := ROUND(COALESCE(NEW.pago_cadete, 0) * 0.02, 2);
+
+  UPDATE public.referidos_cadete
+  SET viajes_contados = viajes_contados + 1,
+      comision_acumulada = COALESCE(comision_acumulada, 0) + v_comision,
+      estado = CASE
+        WHEN viajes_contados + 1 >= viajes_limite THEN 'completado'
+        ELSE 'acreditado'
+      END
+  WHERE id = v_ref.id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_pedidos_comision_referido ON public.pedidos;
+CREATE TRIGGER trg_pedidos_comision_referido
+  AFTER UPDATE ON public.pedidos
+  FOR EACH ROW
+  WHEN (OLD.estado IS DISTINCT FROM NEW.estado AND NEW.estado = 'entregado')
+  EXECUTE FUNCTION public.pedidos_comision_referido();
+
+
+-- E-10. Comisión al embajador al entregar
 CREATE OR REPLACE FUNCTION public.pedidos_comision_embajador()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE

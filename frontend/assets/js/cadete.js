@@ -1074,13 +1074,28 @@ function bindOnboardingForm() {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
             body: JSON.stringify({ role: 'cadete' }),
           });
+
+          // Validar referido via backend (si ingresó uno)
+          if (referidoPor) {
+            try {
+              const refRes = await fetch(`${base}/api/cadete/validar-referido`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                body: JSON.stringify({ codigo: referidoPor }),
+              });
+              const refData = await refRes.json();
+              if (refRes.ok && refData.referente_nombre) {
+                toast(`Referido por ${refData.referente_nombre} — bonificacion de $${refData.bonificacion}`, 4000);
+              }
+            } catch {}
+          }
         }
       } catch {}
 
       cadeteVehiculo = _obVehiculo;
       document.getElementById('onboarding-overlay').style.display = 'none';
       actualizarSelectorVehiculo();
-      toast(`${ICONS.confetti} ¡Perfil completo! Ya podés recibir viajes`);
+      toast(`${ICONS.confetti} ¡Perfil completo! Ya podes recibir viajes`);
 
     } catch (err) {
       errEl.textContent = err.message; errEl.style.display = 'block';
@@ -1218,6 +1233,15 @@ async function cargarCodigoReferido() {
     }
     const el = document.getElementById('mi-codigo-referido');
     if (el) el.textContent = codigo;
+
+    // Contar referidos
+    const { count } = await sb.from('referidos_cadete').select('id', { count: 'exact', head: true }).eq('referente_id', cadeteUserId);
+    if (count > 0) {
+      const countEl = document.getElementById('referidos-count');
+      const numEl   = document.getElementById('referidos-num');
+      if (countEl) countEl.style.display = 'block';
+      if (numEl) numEl.textContent = count;
+    }
   } catch {}
 }
 
@@ -1229,6 +1253,104 @@ function copiarCodigo() {
   }).catch(() => {
     toast(el.textContent);
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EFECTIVO ACUMULADO — barra de progreso + liquidaciones
+// ═══════════════════════════════════════════════════════════════════════════════
+async function cargarEfectivo() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) return;
+    const base = window.BACKEND_URL || '';
+    const r = await fetch(`${base}/api/cadete/efectivo`, {
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    });
+    const data = r.ok ? await r.json() : null;
+    if (!data) return;
+
+    const deuda  = data.deuda_efectivo ?? 0;
+    const limite = data.limite_efectivo ?? 15000;
+    const pct    = limite > 0 ? Math.min(100, (deuda / limite) * 100) : 0;
+
+    const card = document.getElementById('efectivo-card');
+    if (card) card.style.display = 'block';
+
+    const bar = document.getElementById('efect-bar');
+    if (bar) {
+      bar.style.width = `${pct}%`;
+      bar.style.background = pct > 80
+        ? 'linear-gradient(90deg,#EF4444,#DC2626)'
+        : pct > 50
+          ? 'linear-gradient(90deg,#F59E0B,#D97706)'
+          : 'linear-gradient(90deg,#22C55E,#16A34A)';
+    }
+
+    const ratioEl = document.getElementById('efect-ratio');
+    if (ratioEl) ratioEl.textContent = `$${deuda.toLocaleString('es-AR')} / $${limite.toLocaleString('es-AR')}`;
+
+    const deudaEl = document.getElementById('efect-deuda');
+    if (deudaEl) deudaEl.textContent = `$${deuda.toLocaleString('es-AR')}`;
+
+    // Historial de liquidaciones
+    if (data.liquidaciones?.length) {
+      const histEl = document.getElementById('liq-historial');
+      const listaEl = document.getElementById('liq-lista');
+      if (histEl) histEl.style.display = 'block';
+      if (listaEl) {
+        const estadoColor = { pendiente: '#F59E0B', confirmada: '#22C55E', rechazada: '#EF4444' };
+        listaEl.innerHTML = data.liquidaciones.map(l => {
+          const fecha = new Date(l.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+          const color = estadoColor[l.estado] || '#888';
+          return `<div style="background:#fff;border-radius:10px;padding:12px;margin-bottom:6px;border:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:14px;font-weight:700;">$${Number(l.monto).toLocaleString('es-AR')}</div>
+              <div style="font-size:11px;color:#888;">${fecha} · ${l.metodo}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${color}22;color:${color};">${l.estado}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+  } catch {}
+}
+
+function abrirLiquidacion() {
+  const modal = document.getElementById('liq-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function cerrarLiquidacion() {
+  const modal = document.getElementById('liq-modal');
+  if (modal) modal.style.display = 'none';
+  const errEl = document.getElementById('liq-err');
+  if (errEl) errEl.style.display = 'none';
+}
+
+async function enviarLiquidacion() {
+  const monto  = document.getElementById('liq-monto')?.value;
+  const metodo = document.getElementById('liq-metodo')?.value || 'transferencia';
+  const btn    = document.getElementById('liq-btn');
+  const errEl  = document.getElementById('liq-err');
+
+  if (!monto || Number(monto) <= 0) {
+    if (errEl) { errEl.textContent = 'Ingresa un monto valido'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  if (errEl) errEl.style.display = 'none';
+
+  try {
+    await apiPost('/api/cadete/solicitar-liquidacion', { monto: Number(monto), metodo });
+    cerrarLiquidacion();
+    toast('Liquidacion solicitada. Un admin la va a confirmar.');
+    cargarEfectivo();
+  } catch (err) {
+    if (errEl) { errEl.textContent = err.message || 'Error al solicitar'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1338,6 +1460,7 @@ if ('Notification' in window && Notification.permission === 'default') {
     cargarCodigoReferido();
 
     await cargarOfertas();
+    cargarEfectivo();
     iniciarRealtimeCadete();
 
     // Sincronizar UI del toggle con el estado guardado
@@ -1415,5 +1538,9 @@ Object.assign(window, {
   cancelarPorNoShow,
   siguienteSlideTutorial,
   cerrarTutorial,
+  abrirLiquidacion,
+  cerrarLiquidacion,
+  enviarLiquidacion,
+  cargarEfectivo,
   toast,
 });

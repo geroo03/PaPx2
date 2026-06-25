@@ -4,6 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>Puerta a Puerta — Panel del Cadete</title>
+<link rel="preconnect" href="https://fmqlpgerqdiplnvjjarl.supabase.co">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="../assets/css/cadete.css">
 <script src="/env.js"></script>
@@ -83,8 +85,51 @@
       <div class="eg"><div class="eg-val" id="eg-prom">$0</div><div class="eg-lbl">Promedio por viaje</div></div>
     </div>
   </div>
-  <div style="font-size:13px;font-weight:700;color:#111;margin:4px 0 10px;">Últimos viajes</div>
-  <div id="hist-container"><div class="empty"><div class="big"></div><p>Todavía no hiciste viajes.</p></div></div>
+
+  <!-- Efectivo acumulado -->
+  <div id="efectivo-card" style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:14px;display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#fff;">Efectivo acumulado</div>
+      <div style="font-size:11px;color:#9CA3AF;" id="efect-ratio">$0 / $15.000</div>
+    </div>
+    <div style="height:8px;background:rgba(255,255,255,0.1);border-radius:8px;overflow:hidden;margin-bottom:10px;">
+      <div id="efect-bar" style="height:100%;width:0%;border-radius:8px;transition:width .4s;background:linear-gradient(90deg,#22C55E,#16A34A);"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:20px;font-weight:800;color:#FF6B35;" id="efect-deuda">$0</div>
+      <button onclick="abrirLiquidacion()" style="background:linear-gradient(135deg,#FF6B35,#E55A27);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;">Liquidar</button>
+    </div>
+    <div style="font-size:11px;color:#666;margin-top:8px;">El efectivo cobrado se devuelve cada 4 dias. Si llegas al limite no podes aceptar pedidos en efectivo.</div>
+  </div>
+
+  <!-- Modal liquidación -->
+  <div id="liq-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:none;align-items:center;justify-content:center;">
+    <div style="background:#1a1a1a;border-radius:16px;padding:24px;width:90%;max-width:360px;margin:auto;">
+      <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:16px;">Solicitar liquidacion</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-bottom:14px;">Indica cuanto vas a devolver. Un admin va a confirmar el pago.</div>
+      <input id="liq-monto" type="number" inputmode="decimal" placeholder="Monto a liquidar"
+        style="width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;font-size:16px;font-weight:700;margin-bottom:12px;box-sizing:border-box;font-family:inherit;"/>
+      <select id="liq-metodo" style="width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;font-size:14px;margin-bottom:16px;box-sizing:border-box;font-family:inherit;">
+        <option value="transferencia">Transferencia bancaria</option>
+        <option value="mercadopago">MercadoPago</option>
+        <option value="efectivo">Efectivo en mano</option>
+      </select>
+      <div style="display:flex;gap:10px;">
+        <button onclick="cerrarLiquidacion()" style="flex:1;padding:12px;border-radius:10px;background:transparent;border:1px solid #333;color:#9CA3AF;font-weight:700;cursor:pointer;font-family:inherit;">Cancelar</button>
+        <button onclick="enviarLiquidacion()" id="liq-btn" style="flex:2;padding:12px;border-radius:10px;background:linear-gradient(135deg,#FF6B35,#E55A27);color:#fff;border:none;font-weight:800;cursor:pointer;font-family:inherit;">Enviar</button>
+      </div>
+      <div id="liq-err" style="display:none;font-size:12px;color:#F87171;margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Historial liquidaciones -->
+  <div id="liq-historial" style="display:none;margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:8px;">Liquidaciones</div>
+    <div id="liq-lista"></div>
+  </div>
+
+  <div style="font-size:13px;font-weight:700;color:#111;margin:4px 0 10px;">Ultimos viajes</div>
+  <div id="hist-container"><div class="empty"><div class="big"></div><p>Todavia no hiciste viajes.</p></div></div>
 </div>
 
 <!-- ASISTENTE IA -->
@@ -232,9 +277,12 @@
   <div style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
     <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;">Invitá a otros cadetes</div>
     <div style="font-size:12px;color:#888;margin-bottom:12px;">Compartí tu código con amigos. Cuando se registren con tu código, ambos ganan.</div>
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       <div id="mi-codigo-referido" style="flex:1;background:#111;border:1.5px solid #FF6B35;border-radius:10px;padding:12px;text-align:center;font-size:18px;font-weight:800;color:#FF6B35;letter-spacing:2px;">—</div>
       <button onclick="copiarCodigo()" style="background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Copiar</button>
+    </div>
+    <div id="referidos-count" style="font-size:12px;color:#9CA3AF;display:none;">
+      Cadetes invitados: <strong id="referidos-num" style="color:#FF6B35;">0</strong>
     </div>
   </div>
 

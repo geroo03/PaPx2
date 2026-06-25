@@ -9,8 +9,9 @@
  */
 
 import 'dotenv/config';   // Carga .env antes de cualquier otro módulo
-import express from 'express';
-import cors    from 'cors';
+import express     from 'express';
+import cors        from 'cors';
+import compression from 'compression';
 
 import pedidoRoutes   from './routes/pedidoRoutes.js';
 import authRoutes     from './routes/authRoutes.js';
@@ -32,6 +33,8 @@ const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:5173')
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 const app = express();
+
+app.use(compression());
 
 // CORS — solo acepta peticiones de los orígenes configurados
 app.use(cors({

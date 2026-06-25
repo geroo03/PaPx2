@@ -1,10 +1,28 @@
 import { Router } from 'express';
 import { requireAuth } from '../middlewares/authMiddleware.js';
-import { actualizarUbicacion } from '../controllers/cadeteController.js';
+import {
+  actualizarUbicacion,
+  getEfectivo,
+  solicitarLiquidacion,
+  validarReferido,
+  confirmarLiquidacion,
+  rechazarLiquidacion,
+  adminActualizarEfectivo,
+  adminListaCadetes,
+} from '../controllers/cadeteController.js';
 
 const router = Router();
 
-// GPS: el cadete reporta su posición periódicamente
-router.post('/actualizar-ubicacion', requireAuth, actualizarUbicacion);
+// Cadete
+router.post('/actualizar-ubicacion',           requireAuth, actualizarUbicacion);
+router.get('/efectivo',                        requireAuth, getEfectivo);
+router.post('/solicitar-liquidacion',          requireAuth, solicitarLiquidacion);
+router.post('/validar-referido',               requireAuth, validarReferido);
+
+// Admin
+router.patch('/liquidacion/:id/confirmar',     requireAuth, confirmarLiquidacion);
+router.patch('/liquidacion/:id/rechazar',      requireAuth, rechazarLiquidacion);
+router.patch('/:id/efectivo',                  requireAuth, adminActualizarEfectivo);
+router.get('/admin/lista',                     requireAuth, adminListaCadetes);
 
 export default router;
