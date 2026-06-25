@@ -247,8 +247,7 @@ async function confirmarPedido(){
   const comercioId=currentComercio?.id;
   const _UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if(!comercioId||!_UUID_RE.test(comercioId)){showToast('Recargá la página y volvé a intentar el pedido.',5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
-  // Solo columnas que existen en public.pedidos: cliente_id, comercio_id, productos, total, estado, direccion_entrega
-  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0};
+  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);}else{console.log('Pedido guardado:',data);}currentPedido=data||{...pedido,numero:Math.floor(Math.random()*9000)+1000};}catch(e){console.error('Excepcion:',e);currentPedido={...pedido,numero:Math.floor(Math.random()*9000)+1000};}
   const itemsParaPago=[...items];window.state.cart={};actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
@@ -275,6 +274,14 @@ async function confirmarPedido(){
   }
 
   if(payMethod==='mercadopago'){const cartSub=itemsParaPago.reduce((s,i)=>s+i.precio*i.qty,0);localStorage.setItem('pap_pedido_pago',JSON.stringify({items:itemsParaPago.map(i=>({nombre:i.nombre,qty:i.qty,precio:i.precio,quantity:i.qty,unit_price:i.precio,title:i.nombre})),total:cartSub+800+propinaSeleccionada,propina_cadete:propinaSeleccionada||0,envio:800,comercio:currentComercio?.nombre||'Comercio'}));localStorage.setItem('pap_pedido_actual',currentPedido?.id||'');window.location.href='pago.html';return;}
+  if(payMethod==='efectivo'){
+    mostrarConfirmado(currentPedido?.numero||Math.floor(Math.random()*9000)+1000);
+    setTimeout(()=>{
+      const confMsg=document.getElementById('conf-msg');
+      if(confMsg) confMsg.innerHTML='Tene preparado <strong>$'+total.toLocaleString('es-AR')+'</strong> en efectivo para pagarle al cadete cuando llegue.';
+    },100);
+    return;
+  }
   mostrarConfirmado(currentPedido?.numero||Math.floor(Math.random()*9000)+1000);
 }
 
