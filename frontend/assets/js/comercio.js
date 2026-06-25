@@ -941,8 +941,104 @@ function renderListaResenas(ratings) {
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 function handleConfigSeccion(sec) {
-  showToast({ local:'Administración del Local — próximamente', usuarios:'Administración de Usuarios — próximamente', procesamiento:'Permiso procesamiento — próximamente', portada:'Foto de portada — próximamente' }[sec] || 'Próximamente', 'info');
+  if (sec === 'local') { abrirModalUbicacion(); return; }
+  showToast({ usuarios:'Administracion de Usuarios — proximamente', procesamiento:'Permiso procesamiento — proximamente', portada:'Foto de portada — proximamente' }[sec] || 'Proximamente', 'info');
 }
+
+// ─── UBICACIÓN DEL COMERCIO ──────────────────────────────────────────────────
+let _ubMap = null, _ubMarker = null;
+
+function abrirModalUbicacion() {
+  const overlay = g('modal-overlay-ubicacion');
+  if (overlay) overlay.classList.remove('hidden');
+
+  const com = S.comercio;
+  if (com?.direccion) { const el = g('ub-direccion'); if (el) el.value = com.direccion; }
+  if (com?.ciudad)    { const el = g('ub-ciudad'); if (el) el.value = com.ciudad; }
+  if (com?.provincia) { const el = g('ub-provincia'); if (el) el.value = com.provincia; }
+
+  const lat = Number(com?.lat) || -27.7951;
+  const lng = Number(com?.lng) || -64.2615;
+
+  setTimeout(() => {
+    const mapEl = g('mapa-ubicacion');
+    if (!mapEl || !window.L) return;
+
+    if (_ubMap) { try { _ubMap.remove(); } catch {} _ubMap = null; _ubMarker = null; }
+
+    _ubMap = L.map(mapEl, { center: [lat, lng], zoom: 15, zoomControl: true, attributionControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_ubMap);
+
+    _ubMarker = L.marker([lat, lng], { draggable: true }).addTo(_ubMap);
+    actualizarCoordsDisplay(lat, lng);
+
+    _ubMarker.on('dragend', () => {
+      const pos = _ubMarker.getLatLng();
+      actualizarCoordsDisplay(pos.lat, pos.lng);
+    });
+
+    _ubMap.on('click', (e) => {
+      _ubMarker.setLatLng(e.latlng);
+      actualizarCoordsDisplay(e.latlng.lat, e.latlng.lng);
+    });
+  }, 200);
+}
+
+function actualizarCoordsDisplay(lat, lng) {
+  const latEl = g('ub-lat-display');
+  const lngEl = g('ub-lng-display');
+  if (latEl) latEl.textContent = Number(lat).toFixed(6);
+  if (lngEl) lngEl.textContent = Number(lng).toFixed(6);
+}
+
+window.cerrarModalUbicacion = function() {
+  const overlay = g('modal-overlay-ubicacion');
+  if (overlay) overlay.classList.add('hidden');
+};
+
+window.usarMiUbicacionComercio = function() {
+  if (!navigator.geolocation) { showToast('GPS no disponible en este navegador', 'error'); return; }
+  showToast('Obteniendo ubicacion...');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      if (_ubMarker) _ubMarker.setLatLng([lat, lng]);
+      if (_ubMap) _ubMap.setView([lat, lng], 16);
+      actualizarCoordsDisplay(lat, lng);
+      showToast('Ubicacion obtenida');
+    },
+    () => showToast('No se pudo obtener la ubicacion. Arrastra el pin en el mapa.', 'error'),
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
+window.guardarUbicacionComercio = async function() {
+  const direccion  = g('ub-direccion')?.value?.trim() || null;
+  const provincia  = g('ub-provincia')?.value || null;
+  const ciudad     = g('ub-ciudad')?.value?.trim() || null;
+  const pos        = _ubMarker?.getLatLng();
+  const lat        = pos?.lat ?? null;
+  const lng        = pos?.lng ?? null;
+
+  if (!direccion) { showToast('Ingresa la direccion del comercio', 'error'); return; }
+  if (!lat || !lng) { showToast('Selecciona la ubicacion en el mapa', 'error'); return; }
+
+  const btn = g('ub-btn-guardar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  const payload = { direccion, provincia, ciudad, lat, lng };
+  const { error } = await sb.from('comercios').update(payload).eq('id', S.cid);
+
+  if (error) {
+    showToast('Error: ' + error.message, 'error');
+  } else {
+    S.comercio = { ...S.comercio, ...payload };
+    showToast('Ubicacion guardada');
+    cerrarModalUbicacion();
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Guardar ubicacion'; }
+};
 
 // ─── REALTIME ────────────────────────────────────────────────────────────────
 function setupRealtime() {

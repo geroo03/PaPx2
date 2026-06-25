@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <link rel="stylesheet" href="../assets/css/portal-vars.css">
   <link rel="stylesheet" href="../assets/css/portal-layout.css">
   <link rel="stylesheet" href="../assets/css/portal-components.css">
@@ -810,6 +812,84 @@
     </main>
   </div><!-- /portal-main -->
 </div><!-- /portal-wrapper -->
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: UBICACIÓN DEL COMERCIO
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-overlay-ubicacion">
+  <div class="modal-sheet" id="modal-ubicacion" style="max-width:560px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Ubicacion del comercio</h2>
+      <button class="modal-close" onclick="cerrarModalUbicacion()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <label style="font-size:13px;font-weight:600;color:#333;">
+          Direccion
+          <input id="ub-direccion" type="text" placeholder="Ej: Av. Belgrano 1520"
+            style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;font-family:inherit;"/>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label style="font-size:13px;font-weight:600;color:#333;">
+            Provincia
+            <select id="ub-provincia" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;font-family:inherit;">
+              <option value="Santiago del Estero">Santiago del Estero</option>
+              <option value="Buenos Aires">Buenos Aires</option>
+              <option value="CABA">CABA</option>
+              <option value="Catamarca">Catamarca</option>
+              <option value="Chaco">Chaco</option>
+              <option value="Chubut">Chubut</option>
+              <option value="Córdoba">Cordoba</option>
+              <option value="Corrientes">Corrientes</option>
+              <option value="Entre Ríos">Entre Rios</option>
+              <option value="Formosa">Formosa</option>
+              <option value="Jujuy">Jujuy</option>
+              <option value="La Pampa">La Pampa</option>
+              <option value="La Rioja">La Rioja</option>
+              <option value="Mendoza">Mendoza</option>
+              <option value="Misiones">Misiones</option>
+              <option value="Neuquén">Neuquen</option>
+              <option value="Río Negro">Rio Negro</option>
+              <option value="Salta">Salta</option>
+              <option value="San Juan">San Juan</option>
+              <option value="San Luis">San Luis</option>
+              <option value="Santa Cruz">Santa Cruz</option>
+              <option value="Santa Fe">Santa Fe</option>
+              <option value="Tierra del Fuego">Tierra del Fuego</option>
+              <option value="Tucumán">Tucuman</option>
+            </select>
+          </label>
+          <label style="font-size:13px;font-weight:600;color:#333;">
+            Ciudad
+            <input id="ub-ciudad" type="text" placeholder="Ej: Sgo. del Estero"
+              style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;font-family:inherit;"/>
+          </label>
+        </div>
+
+        <div style="font-size:13px;font-weight:600;color:#333;margin-top:4px;">
+          Ubicacion en el mapa
+          <span style="font-weight:400;color:#888;font-size:11px;"> — arrastra el pin para ajustar</span>
+        </div>
+        <div id="mapa-ubicacion" style="height:280px;border-radius:12px;overflow:hidden;border:1px solid #e0e0e0;background:#e8e8e8;"></div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div style="flex:1;font-size:12px;color:#888;">
+            Lat: <strong id="ub-lat-display">—</strong> &nbsp; Lng: <strong id="ub-lng-display">—</strong>
+          </div>
+          <button onclick="usarMiUbicacionComercio()" style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Usar mi ubicacion
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="cerrarModalUbicacion()" style="flex:1;padding:12px;border-radius:10px;background:#fff;border:1px solid #ddd;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px;">Cancelar</button>
+        <button onclick="guardarUbicacionComercio()" id="ub-btn-guardar" style="flex:2;padding:12px;border-radius:10px;background:#FF6B35;color:#fff;border:none;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;">Guardar ubicacion</button>
+      </div>
+      <div id="ub-msg" style="font-size:12px;margin-top:8px;text-align:center;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════
      MODAL: AGREGAR / EDITAR PRODUCTO

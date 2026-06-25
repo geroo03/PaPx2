@@ -156,6 +156,7 @@ ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS codigo_postal           te
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS barrio                  text;
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS email_facturacion       text;
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS banco                   text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS provincia               text;
 
 -- Constraints (en DO blocks para tolerar constraints inline preexistentes)
 DO $$
