@@ -1462,6 +1462,7 @@ if ('Notification' in window && Notification.permission === 'default') {
     await cargarOfertas();
     cargarEfectivo();
     iniciarRealtimeCadete();
+    verificarAlertasCadete();
 
     // Sincronizar UI del toggle con el estado guardado
     document.getElementById('disp-dot').className = 'disp-dot' + (disp ? ' on' : '');
@@ -1511,6 +1512,73 @@ function cerrarTutorial() {
   localStorage.setItem('pap_tutorial_visto', 'true');
   const overlay = document.getElementById('tutorial-overlay');
   if (overlay) overlay.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ALERTAS DE COMPLETITUD — banners de lo que falta configurar
+// ═══════════════════════════════════════════════════════════════════════════════
+async function verificarAlertasCadete() {
+  if (!cadeteUserId) return;
+  const container = document.getElementById('alertas-cadete');
+  if (!container) return;
+
+  try {
+    const { data: cad } = await sb.from('cadetes')
+      .select('nombre, cvu, foto_dni_url, vehiculo, onboarding_completo, patente, seguro_url, carnet_url')
+      .eq('auth_uid', cadeteUserId).maybeSingle();
+
+    if (!cad || !cad.onboarding_completo) return;
+
+    const alertas = [];
+
+    if (!cad.cvu) {
+      alertas.push({
+        color: '#DC2626', bg: '#FEF2F2', border: '#FECACA',
+        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+        text: 'No tenes CVU/alias cargado. Sin eso no podemos pagarte los viajes.',
+        btn: 'Completar', onclick: "stab('p')",
+      });
+    }
+
+    if (!cad.foto_dni_url) {
+      alertas.push({
+        color: '#D97706', bg: '#FFFBEB', border: '#FDE68A',
+        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="12" x2="18" y2="12"/></svg>',
+        text: 'Falta la foto de tu DNI. Subila desde tu perfil.',
+        btn: 'Subir DNI', onclick: "stab('p')",
+      });
+    }
+
+    const veh = (cad.vehiculo || '').toLowerCase();
+    if (veh === 'moto') {
+      if (!cad.patente) {
+        alertas.push({
+          color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE',
+          icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+          text: 'Falta la patente de tu moto.',
+          btn: 'Completar', onclick: "stab('p')",
+        });
+      }
+      if (!cad.seguro_url) {
+        alertas.push({
+          color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE',
+          icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+          text: 'Falta el seguro del vehiculo. Subilo desde tu perfil.',
+          btn: 'Subir seguro', onclick: "stab('p')",
+        });
+      }
+    }
+
+    if (!alertas.length) { container.innerHTML = ''; return; }
+
+    container.innerHTML = alertas.map(a => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${a.bg};border:1px solid ${a.border};border-radius:10px;">
+        <div style="flex-shrink:0;">${a.icon}</div>
+        <div style="flex:1;font-size:11px;color:${a.color};font-weight:500;line-height:1.4;">${a.text}</div>
+        <button onclick="${a.onclick}" style="flex-shrink:0;background:${a.color};color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">${a.btn}</button>
+      </div>
+    `).join('');
+  } catch {}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -597,7 +597,33 @@ async function elegirRol(rol){
   window.location.reload();
 }
 
-function cargarPerfil(user){const nombre=user.user_metadata?.full_name||user.email?.split('@')[0]||'Usuario';const inicial=nombre.charAt(0).toUpperCase();document.querySelectorAll('.perfil-av').forEach(el=>el.textContent=inicial);const elAv=document.getElementById('perfil-av');const elNombre=document.getElementById('perfil-nombre');const elEmail=document.getElementById('perfil-email');if(elAv)elAv.textContent=inicial;if(elNombre)elNombre.textContent=nombre;if(elEmail)elEmail.textContent=user.email||'';}
+function cargarPerfil(user){const nombre=user.user_metadata?.full_name||user.email?.split('@')[0]||'Usuario';const inicial=nombre.charAt(0).toUpperCase();document.querySelectorAll('.perfil-av').forEach(el=>el.textContent=inicial);const elAv=document.getElementById('perfil-av');const elNombre=document.getElementById('perfil-nombre');const elEmail=document.getElementById('perfil-email');if(elAv)elAv.textContent=inicial;if(elNombre)elNombre.textContent=nombre;if(elEmail)elEmail.textContent=user.email||'';verificarAlertasCliente();}
+
+function verificarAlertasCliente(){
+  const container=document.getElementById('alertas-cliente');
+  if(!container)return;
+  const alertas=[];
+  const dirs=JSON.parse(localStorage.getItem('pap_direcciones')||'[]');
+  if(!dirs.length){
+    alertas.push({color:'#D97706',bg:'#FFFBEB',border:'#FDE68A',
+      icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+      text:'No tenes direcciones guardadas. Agrega una para pedir mas rapido.',
+      btn:'Agregar',onclick:"abrirPantallaExtra('direcciones')"});
+  }
+  if(!localStorage.getItem('pap_metodo_pago')){
+    alertas.push({color:'#2563EB',bg:'#EFF6FF',border:'#BFDBFE',
+      icon:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+      text:'No elegiste un metodo de pago preferido.',
+      btn:'Elegir',onclick:"abrirPantallaExtra('pagos')"});
+  }
+  if(!alertas.length){container.innerHTML='';return;}
+  container.innerHTML=alertas.map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${a.bg};border:1px solid ${a.border};border-radius:10px;">
+      <div style="flex-shrink:0;">${a.icon}</div>
+      <div style="flex:1;font-size:11px;color:${a.color};font-weight:500;line-height:1.4;">${a.text}</div>
+      <button onclick="${a.onclick}" style="flex-shrink:0;background:${a.color};color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">${a.btn}</button>
+    </div>`).join('');
+}
 
 let direcciones=JSON.parse(localStorage.getItem('pap_direcciones')||'[]');
 let metodoPagoGuardado=localStorage.getItem('pap_metodo_pago')||'';
