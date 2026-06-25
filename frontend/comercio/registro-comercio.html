@@ -6,6 +6,8 @@
   <title>Puerta a Puerta — Registrar comercio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <link rel="stylesheet" href="../assets/css/registro-comercio.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/env.js"></script>
@@ -316,17 +318,63 @@
     </div>
 
     <div class="fg">
-      <label class="fl" for="r-dir">Dirección del local <span>*</span></label>
-      <input class="fi" id="r-dir" type="text" placeholder="Ej: Av. Belgrano 234, Santiago del Estero">
+      <label class="fl" for="r-dir">Direccion del local <span>*</span></label>
+      <input class="fi" id="r-dir" type="text" placeholder="Ej: Av. Belgrano 234">
+    </div>
+
+    <div class="fr">
+      <div class="fg">
+        <label class="fl" for="r-provincia">Provincia</label>
+        <select class="fi" id="r-provincia" style="padding:10px 14px;">
+          <option value="Santiago del Estero" selected>Santiago del Estero</option>
+          <option value="Buenos Aires">Buenos Aires</option>
+          <option value="CABA">CABA</option>
+          <option value="Catamarca">Catamarca</option>
+          <option value="Chaco">Chaco</option>
+          <option value="Chubut">Chubut</option>
+          <option value="Cordoba">Cordoba</option>
+          <option value="Corrientes">Corrientes</option>
+          <option value="Entre Rios">Entre Rios</option>
+          <option value="Formosa">Formosa</option>
+          <option value="Jujuy">Jujuy</option>
+          <option value="La Pampa">La Pampa</option>
+          <option value="La Rioja">La Rioja</option>
+          <option value="Mendoza">Mendoza</option>
+          <option value="Misiones">Misiones</option>
+          <option value="Neuquen">Neuquen</option>
+          <option value="Rio Negro">Rio Negro</option>
+          <option value="Salta">Salta</option>
+          <option value="San Juan">San Juan</option>
+          <option value="San Luis">San Luis</option>
+          <option value="Santa Cruz">Santa Cruz</option>
+          <option value="Santa Fe">Santa Fe</option>
+          <option value="Tierra del Fuego">Tierra del Fuego</option>
+          <option value="Tucuman">Tucuman</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl" for="r-ciudad">Ciudad</label>
+        <input class="fi" id="r-ciudad" type="text" placeholder="Ej: Sgo. del Estero" value="Santiago del Estero">
+      </div>
     </div>
 
     <div class="fg">
-      <label class="fl" for="r-ciudad">Ciudad / Provincia</label>
-      <input class="fi" id="r-ciudad" type="text" placeholder="Santiago del Estero" value="Santiago del Estero">
+      <label class="fl">Ubicacion en el mapa <span>*</span></label>
+      <div style="font-size:11px;color:#888;margin-bottom:6px;">Arrastra el pin o hace click en el mapa para marcar tu local. Si tenes GPS activo, usa el boton.</div>
+      <div id="reg-mapa" style="height:220px;border-radius:12px;overflow:hidden;border:1.5px solid #e5e5e5;background:#e8e8e8;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div style="font-size:11px;color:#999;">
+          Lat: <strong id="reg-lat-display">-27.7951</strong> &nbsp; Lng: <strong id="reg-lng-display">-64.2615</strong>
+        </div>
+        <button type="button" id="btn-mi-ubi" style="background:#fff;border:1.5px solid #e5e5e5;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;color:#555;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Usar mi ubicacion
+        </button>
+      </div>
     </div>
 
     <div class="fg">
-      <label class="fl" for="r-tel">Teléfono de contacto</label>
+      <label class="fl" for="r-tel">Telefono de contacto</label>
       <input class="fi" id="r-tel" type="tel" placeholder="Ej: 3854123456" inputmode="tel">
     </div>
 
@@ -426,6 +474,48 @@ function setBtnLoading(loading) {
   btn.textContent = loading ? 'Registrando...' : 'Crear mi cuenta';
 }
 
+// ── Mapa de ubicación ─────────────────────────────────────
+let _regMap = null, _regMarker = null;
+let regLat = -27.7951, regLng = -64.2615;
+
+function initRegMapa() {
+  const mapEl = document.getElementById('reg-mapa');
+  if (!mapEl || !window.L) return;
+  _regMap = L.map(mapEl, { center: [regLat, regLng], zoom: 14, zoomControl: true, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_regMap);
+  _regMarker = L.marker([regLat, regLng], { draggable: true }).addTo(_regMap);
+  _regMarker.on('dragend', () => {
+    const p = _regMarker.getLatLng();
+    regLat = p.lat; regLng = p.lng;
+    el('reg-lat-display').textContent = regLat.toFixed(6);
+    el('reg-lng-display').textContent = regLng.toFixed(6);
+  });
+  _regMap.on('click', (e) => {
+    regLat = e.latlng.lat; regLng = e.latlng.lng;
+    _regMarker.setLatLng(e.latlng);
+    el('reg-lat-display').textContent = regLat.toFixed(6);
+    el('reg-lng-display').textContent = regLng.toFixed(6);
+  });
+}
+
+el('btn-mi-ubi')?.addEventListener('click', () => {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      regLat = pos.coords.latitude;
+      regLng = pos.coords.longitude;
+      if (_regMarker) _regMarker.setLatLng([regLat, regLng]);
+      if (_regMap) _regMap.setView([regLat, regLng], 16);
+      el('reg-lat-display').textContent = regLat.toFixed(6);
+      el('reg-lng-display').textContent = regLng.toFixed(6);
+    },
+    () => {},
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+setTimeout(initRegMapa, 300);
+
 // ── Selector de categoría ─────────────────────────────────
 el('cat-grid')?.addEventListener('click', e => {
   const opt = e.target.closest('.cat-opt');
@@ -467,13 +557,14 @@ document.addEventListener('keydown', e => {
 });
 
 async function registrar() {
-  const nombre  = (el('r-nombre')?.value   || '').trim();
-  const dir     = (el('r-dir')?.value      || '').trim();
-  const ciudad  = (el('r-ciudad')?.value   || '').trim() || 'Santiago del Estero';
-  const tel     = (el('r-tel')?.value      || '').trim();
-  const email   = (el('r-email')?.value    || '').trim();
-  const pass    = (el('r-pass')?.value     || '');
-  const pass2   = (el('r-pass2')?.value    || '');
+  const nombre    = (el('r-nombre')?.value     || '').trim();
+  const dir       = (el('r-dir')?.value        || '').trim();
+  const provincia = (el('r-provincia')?.value  || 'Santiago del Estero');
+  const ciudad    = (el('r-ciudad')?.value     || '').trim() || 'Santiago del Estero';
+  const tel       = (el('r-tel')?.value        || '').trim();
+  const email     = (el('r-email')?.value      || '').trim();
+  const pass      = (el('r-pass')?.value       || '');
+  const pass2     = (el('r-pass2')?.value      || '');
 
   // ── Validaciones ──────────────────────────────────────────
   if (!nombre)          { showErr('El nombre del comercio es obligatorio.'); return; }
@@ -536,6 +627,8 @@ async function registrar() {
         categoria:             catSel,
         descripcion:           '',
         direccion:             dir,
+        provincia:             provincia,
+        ciudad:                ciudad,
         telefono:              tel,
         email:                 email,
         usuario_id:            userId,
@@ -546,7 +639,8 @@ async function registrar() {
         deuda:                 0,
         rating:                0,
         total_pedidos:         0,
-        // creado_por_embajador_id: null  ← NULL permitido por diseño
+        lat:                   regLat,
+        lng:                   regLng,
       })
       .select('id')
       .single();
