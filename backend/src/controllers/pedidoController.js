@@ -20,6 +20,7 @@
 import crypto from 'node:crypto';
 import { supabaseAdmin }            from '../lib/supabaseClient.js';
 import { registrarComisionSiAplica } from './embajadorController.js';
+import { notificarCadeteNuevoViaje, notificarClienteEstado } from './pushController.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -270,11 +271,19 @@ export async function cambiarEstadoPedido(req, res) {
     }
 
     // Cuando el pedido se entrega, disparar el cálculo de comisión del embajador.
-    // Fire-and-forget: nunca bloquea ni falla la respuesta principal.
     if (nuevo_estado === 'entregado' && pedido.comercio_id) {
       const montoBase = Number(pedido.subtotal ?? pedido.total ?? 0);
       registrarComisionSiAplica(pedido_id, pedido.comercio_id, montoBase)
         .catch(e => console.error('[Comision] hook fallo silenciosamente:', e?.message));
+    }
+
+    // Push notification al cliente sobre el cambio de estado
+    if (pedido.cliente_id) {
+      const comercioNombre = await supabaseAdmin
+        .from('comercios').select('nombre').eq('id', pedido.comercio_id).single()
+        .then(r => r.data?.nombre || 'Tu comercio')
+        .catch(() => 'Tu comercio');
+      notificarClienteEstado(pedido.cliente_id, nuevo_estado, comercioNombre).catch(() => {});
     }
 
     return res.status(200).json({ ok: true, pedido: updated[0] });
@@ -511,6 +520,11 @@ export async function difundirPedido(req, res) {
     if (insertErr) {
       console.error('[difundirPedido] Error al insertar ofertas:', insertErr.message);
       return res.status(500).json({ error: 'Error al crear ofertas para cadetes.' });
+    }
+
+    // Push notification a cada cadete candidato
+    for (const o of ofertas) {
+      notificarCadeteNuevoViaje(o.cadete_id, comercio.nombre).catch(() => {});
     }
 
     return res.status(200).json({ ok: true, difundido: ofertas.length });

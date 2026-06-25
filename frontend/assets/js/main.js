@@ -4,6 +4,7 @@
 import { sanitizeHTML, formatARS, navigateSeguro } from './ui.js';
 import { state } from './state.js';
 import { ICONS } from './icons.js';
+import { registrarPush } from './push.js';
 
 // window.sb es inicializado en el session guard del HTML antes de que este script corra.
 const supabase = window.sb;
@@ -59,6 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Manejar la recuperación de sesión para Auth en toda la app
   const { data: { session } } = await supabase.auth.getSession();
   state.user = session?.user || null;
+
+  // Registrar push notifications si hay sesión activa
+  if (session?.user) registrarPush().catch(() => {});
 
   // Listen for auth state changes — only handle sign out
   try{
