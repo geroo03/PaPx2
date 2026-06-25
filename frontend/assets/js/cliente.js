@@ -251,6 +251,14 @@ async function confirmarPedido(){
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);}else{console.log('Pedido guardado:',data);}currentPedido=data||{...pedido,numero:Math.floor(Math.random()*9000)+1000};}catch(e){console.error('Excepcion:',e);currentPedido={...pedido,numero:Math.floor(Math.random()*9000)+1000};}
   const itemsParaPago=[...items];window.state.cart={};actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
+  // Notificar al comercio via push (fire & forget)
+  if(currentPedido?.id){
+    try{
+      const{data:{session:s}}=await sb.auth.getSession();
+      if(s?.access_token){fetch((window.BACKEND_URL||'')+'/api/pedidos/notificar-comercio',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.access_token},body:JSON.stringify({pedido_id:currentPedido.id})}).catch(()=>{});}
+    }catch{}
+  }
+
   // Escuchar cuando el comercio acepta el pedido
   if(currentPedido?.id){
     const pedidoId=currentPedido.id;

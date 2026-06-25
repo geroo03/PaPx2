@@ -20,7 +20,7 @@
 import crypto from 'node:crypto';
 import { supabaseAdmin }            from '../lib/supabaseClient.js';
 import { registrarComisionSiAplica } from './embajadorController.js';
-import { notificarCadeteNuevoViaje, notificarClienteEstado } from './pushController.js';
+import { notificarCadeteNuevoViaje, notificarClienteEstado, notificarComercioNuevoPedido } from './pushController.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -617,11 +617,72 @@ export async function valorarPedido(req, res) {
       }
     }
 
+    // Actualizar promedio de rating del cadete o comercio
+    if (tipo === 'cadete' && pedido.cadete_id) {
+      try {
+        const { data: resenas } = await supabaseAdmin
+          .from('resenas').select('rating').eq('cadete_id', pedido.cadete_id);
+        if (resenas?.length) {
+          const avg = resenas.reduce((s, r) => s + Number(r.rating), 0) / resenas.length;
+          await supabaseAdmin.from('cadetes')
+            .update({ rating: Math.round(avg * 10) / 10 })
+            .eq('auth_uid', pedido.cadete_id);
+        }
+      } catch {}
+    }
+    if (tipo === 'comercio' && pedido.comercio_id) {
+      try {
+        const { data: ratings } = await supabaseAdmin
+          .from('ratings').select('rating').eq('comercio_id', pedido.comercio_id);
+        if (ratings?.length) {
+          const avg = ratings.reduce((s, r) => s + Number(r.rating), 0) / ratings.length;
+          await supabaseAdmin.from('comercios')
+            .update({ rating: Math.round(avg * 10) / 10 })
+            .eq('id', pedido.comercio_id);
+        }
+      } catch {}
+    }
+
     console.log(`[Valoración] tipo:${tipo} | ${estrellasNum}★ | pedido ${pedido_id}`);
     return res.json({ ok: true, tipo, estrellas: estrellasNum });
 
   } catch (err) {
     console.error('[valorarPedido] Error:', err?.message ?? err);
     return res.status(500).json({ error: 'Error guardando la valoración.' });
+  }
+}
+
+
+/**
+ * POST /api/pedidos/notificar-comercio
+ * El cliente llama esto después de crear un pedido para pushear al comercio.
+ * Body: { pedido_id }
+ */
+export async function notificarNuevoPedido(req, res) {
+  const { pedido_id } = req.body ?? {};
+  if (!pedido_id) return res.status(400).json({ error: 'pedido_id requerido' });
+
+  try {
+    const { data: pedido } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, numero, comercio_id')
+      .eq('id', pedido_id)
+      .single();
+
+    if (!pedido?.comercio_id) return res.json({ ok: true, notificado: false });
+
+    const { data: comercio } = await supabaseAdmin
+      .from('comercios')
+      .select('usuario_id')
+      .eq('id', pedido.comercio_id)
+      .single();
+
+    if (comercio?.usuario_id) {
+      await notificarComercioNuevoPedido(comercio.usuario_id, pedido.numero || '—');
+    }
+
+    return res.json({ ok: true, notificado: !!comercio?.usuario_id });
+  } catch {
+    return res.json({ ok: true, notificado: false });
   }
 }

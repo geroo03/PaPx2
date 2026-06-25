@@ -1,4 +1,72 @@
-# Changelog — Sesion de desarrollo 20 de junio 2026
+# Changelog — Puerta a Puerta
+
+---
+
+## [2.5.0] — 25 de junio 2026
+
+### Push Notifications
+- Web Push nativo con VAPID keys (sin Firebase, gratis e ilimitado)
+- Cadete recibe push cuando le llega un nuevo viaje
+- Cliente recibe push cuando su pedido cambia de estado (preparando, en camino, entregado)
+- Comercio recibe push cuando le llega un pedido nuevo
+- Service worker actualizado para distintos tipos de notificacion
+- Auto-registro de suscripcion en todas las paginas autenticadas via main.js
+
+### Sistema de Efectivo
+- Tabla `liquidaciones` para registrar devoluciones del cadete
+- Trigger `pedidos_acumular_deuda_efectivo` — al entregar pedido en efectivo suma a `cadetes.deuda_efectivo`
+- Columnas `deuda_efectivo` ($0) y `limite_efectivo` ($15.000) en cadetes
+- Endpoints: `GET /api/cadete/efectivo`, `POST /api/cadete/solicitar-liquidacion`
+- UI cadete: barra de progreso verde/amarillo/rojo, boton "Liquidar" con modal
+- Historial de liquidaciones en panel del cadete
+- Opcion "Efectivo" funcional en checkout del cliente con mensaje de total a pagar
+
+### Referidos entre Cadetes
+- Tabla `referidos_cadete` con tracking de viajes y comisiones
+- Comision 2% al referente por los primeros 50 viajes del referido
+- Trigger `pedidos_comision_referido` se ejecuta automaticamente en cada entrega
+- Validacion de codigo via backend (`POST /api/cadete/validar-referido`)
+- Contador de "Cadetes invitados" en perfil del cadete
+
+### Admin — Control de Efectivo
+- Tabla de cadetes con barra de deuda por color de riesgo
+- Input editable para limite de efectivo por cadete
+- Boton "Editar deuda" para ajustar manualmente
+- Seccion "Liquidaciones pendientes" con Confirmar/Rechazar
+- Confirmar descuenta la deuda del cadete automaticamente
+- Endpoints: `PATCH /api/cadete/:id/efectivo`, `GET /api/cadete/admin/lista`
+
+### Datos Bancarios Comercio
+- 10 columnas nuevas: titular_bancario, tipo_cuenta, cbu_alias, cuit, razon_social, ciudad, codigo_postal, barrio, email_facturacion, banco
+- Formulario editable en seccion Finanzas del comercio
+
+### Rating Real
+- Al valorar cadete se recalcula promedio y actualiza `cadetes.rating`
+- Al valorar comercio se recalcula promedio y actualiza `comercios.rating`
+
+### Legal
+- Pagina `/legal.html` con Terminos y Condiciones + Politica de Privacidad
+- Ley 25.326, modelo de negocio, codigos de seguridad, efectivo, referidos
+- Links desde login, registro cadete, y perfil del cliente
+
+### PWA
+- Banner "Instalar Puerta a Puerta" con install prompt nativo
+- Se muestra una vez, descartable, detecta instalacion
+
+### Performance
+- Preconnect hints para Supabase y CDN en 6 HTML
+- localStorage cache para comercios y rubros
+- Imagenes reducidas de w=600 a w=400
+- Middleware `compression` (gzip) en backend
+
+### Configuracion
+- SMTP Resend en Supabase para emails transaccionales
+- VAPID keys en Railway para Web Push
+- MP Access Token de produccion en Railway
+
+---
+
+## [2.0.0] — Sesion de desarrollo 20 de junio 2026
 
 Registro completo de todo lo implementado, corregido y limpiado durante esta sesion.
 

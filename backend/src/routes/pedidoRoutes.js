@@ -15,6 +15,7 @@ import {
   getPedidoConCadete,
   difundirPedido,
   valorarPedido,
+  notificarNuevoPedido,
 } from '../controllers/pedidoController.js';
 
 const router = Router();
@@ -30,6 +31,9 @@ router.post('/difundir',       requireAuth, difundirPedido);
 
 // POST /api/pedidos/valorar          — cliente valora al comercio o al cadete post-entrega
 router.post('/valorar',        requireAuth, valorarPedido);
+
+// POST /api/pedidos/notificar-comercio — push al comercio cuando llega pedido nuevo
+router.post('/notificar-comercio', requireAuth, notificarNuevoPedido);
 
 // GET  /api/pedidos/:id              — cliente/cadete lee pedido + perfil cadete
 // Debe ir al final para que las rutas con nombre no sean interpretadas como :id

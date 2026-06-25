@@ -376,9 +376,26 @@
 </script>
 <script type="module" src="../assets/js/main.js?v=2.0.0"></script>
 <script src="../assets/js/cliente.js?v=2.0.0"></script>
-  <!-- Footer: industrial / dark, links to other modules -->
-  <!-- Footer de navegación de desarrollo — oculto en la app mobile -->
-  <footer style="display:none;"></footer>
+
+<!-- PWA Install Banner -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:76px;left:12px;right:12px;background:linear-gradient(135deg,#0d0d0d,#1a1a1a);border:1px solid rgba(255,107,53,.3);border-radius:14px;padding:14px 16px;z-index:8000;box-shadow:0 8px 32px rgba(0,0,0,.4);">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#FF6B35,#ff8a5a);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;">PaP</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#fff;">Instalar Puerta a Puerta</div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">Acceso rapido desde tu pantalla de inicio</div>
+    </div>
+    <button onclick="instalarPWA()" style="background:#FF6B35;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">Instalar</button>
+    <button onclick="cerrarPWABanner()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;padding:0 4px;">x</button>
+  </div>
+</div>
+<script>
+let _pwaPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_pwaPrompt=e;if(!localStorage.getItem('pap_pwa_dismissed')){document.getElementById('pwa-banner').style.display='block';}});
+window.instalarPWA=async function(){if(!_pwaPrompt)return;_pwaPrompt.prompt();const r=await _pwaPrompt.userChoice;if(r.outcome==='accepted'){document.getElementById('pwa-banner').style.display='none';}};
+window.cerrarPWABanner=function(){document.getElementById('pwa-banner').style.display='none';localStorage.setItem('pap_pwa_dismissed','1');};
+window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner').style.display='none';});
+</script>
 
 </body>
 </html>
