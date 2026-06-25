@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puerta a Puerta — Legales</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:#fff;color:#1a1a1a;line-height:1.7;padding:0;}
+    .top-bar{background:#0d0d0d;padding:16px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;}
+    .top-bar a{color:#FF6B35;text-decoration:none;font-size:14px;font-weight:600;}
+    .top-bar h1{color:#fff;font-size:16px;font-weight:800;margin:0;}
+    .tabs-legal{display:flex;gap:0;border-bottom:2px solid #f0f0f0;background:#fafafa;position:sticky;top:52px;z-index:99;}
+    .tab-legal{flex:1;padding:14px 8px;text-align:center;font-size:13px;font-weight:700;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;}
+    .tab-legal.active{color:#FF6B35;border-bottom-color:#FF6B35;}
+    .legal-panel{display:none;padding:24px 20px 80px;max-width:720px;margin:0 auto;}
+    .legal-panel.active{display:block;}
+    h2{font-size:18px;font-weight:800;margin:28px 0 12px;color:#0d0d0d;}
+    h2:first-child{margin-top:0;}
+    h3{font-size:14px;font-weight:700;margin:20px 0 8px;color:#333;}
+    p,li{font-size:13px;color:#444;margin-bottom:8px;}
+    ul,ol{padding-left:20px;margin-bottom:12px;}
+    .update{font-size:11px;color:#999;margin-bottom:24px;}
+    .brand-header{text-align:center;padding:28px 20px 0;}
+    .brand-header .logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#FF6B35,#ff8a5a);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;margin-bottom:10px;}
+    .brand-header p{font-size:12px;color:#888;}
+    strong{color:#1a1a1a;}
+    .contact-box{background:#f8f8f8;border-radius:12px;padding:16px;margin:20px 0;border:1px solid #eee;}
+    .contact-box p{margin:4px 0;font-size:13px;}
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="/login.html">← Volver</a>
+  <h1>Legales</h1>
+</div>
+
+<div class="brand-header">
+  <div class="logo">PaP</div>
+  <p>Puerta a Puerta — Santiago del Estero, Argentina</p>
+</div>
+
+<div class="tabs-legal">
+  <div class="tab-legal active" onclick="switchLegal('tyc')">Terminos y Condiciones</div>
+  <div class="tab-legal" onclick="switchLegal('priv')">Politica de Privacidad</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- TÉRMINOS Y CONDICIONES                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="legal-panel active" id="panel-tyc">
+
+<p class="update">Ultima actualizacion: 25 de junio de 2026</p>
+
+<h2>1. Aceptacion de los Terminos</h2>
+<p>Al registrarte, acceder o utilizar la plataforma <strong>Puerta a Puerta</strong> (en adelante "PaP", "la Plataforma", "nosotros"), aceptas estos Terminos y Condiciones en su totalidad. Si no estas de acuerdo, no utilices la Plataforma.</p>
+<p>PaP es operada desde Santiago del Estero, Argentina, y se rige por la legislacion argentina vigente.</p>
+
+<h2>2. Descripcion del Servicio</h2>
+<p>PaP es una plataforma tecnologica que conecta:</p>
+<ul>
+  <li><strong>Clientes</strong> (consumidores) que desean recibir productos en su domicilio.</li>
+  <li><strong>Comercios</strong> que ofrecen sus productos a traves de la Plataforma.</li>
+  <li><strong>Cadetes</strong> (repartidores independientes) que realizan la entrega.</li>
+  <li><strong>Embajadores</strong> que incorporan comercios a la red.</li>
+</ul>
+<p>PaP <strong>no es un comercio, ni un servicio de mensajeria</strong>. Actua exclusivamente como intermediario tecnologico entre las partes.</p>
+
+<h2>3. Registro y Cuentas</h2>
+<h3>3.1 Requisitos</h3>
+<ul>
+  <li>Ser mayor de 18 anos.</li>
+  <li>Proporcionar datos verdaderos, completos y actualizados.</li>
+  <li>Mantener la confidencialidad de tus credenciales de acceso.</li>
+</ul>
+<h3>3.2 Tipos de cuenta</h3>
+<p>Cada usuario tiene un unico rol asignado: Cliente, Comercio, Cadete, Embajador o Administrador. El cambio de rol solo puede realizarse a traves del backend de PaP.</p>
+<h3>3.3 Suspension y cancelacion</h3>
+<p>PaP se reserva el derecho de suspender o cancelar cualquier cuenta que:</p>
+<ul>
+  <li>Viole estos Terminos.</li>
+  <li>Proporcione informacion falsa.</li>
+  <li>Realice un uso abusivo o fraudulento de la Plataforma.</li>
+  <li>Acumule calificaciones negativas reiteradas.</li>
+</ul>
+
+<h2>4. Precios y Comisiones</h2>
+<h3>4.1 Precio al consumidor</h3>
+<p>El precio que ve el cliente incluye un <strong>recargo del 15%</strong> sobre el precio base del comercio. Este recargo corresponde a la comision de la Plataforma.</p>
+<h3>4.2 Costo de envio</h3>
+<p>El costo de envio se calcula segun el vehiculo del cadete (bicicleta o moto) y la distancia. El cliente lo ve desglosado antes de confirmar el pedido.</p>
+<h3>4.3 Comision del embajador</h3>
+<p>Los embajadores perciben una comision sobre los pedidos de los comercios que incorporaron: 5% durante los primeros 6 meses y 2% entre los meses 7 y 12.</p>
+<h3>4.4 Pago al cadete</h3>
+<p>El cadete recibe una tarifa por cada entrega, compuesta por una base fija segun su vehiculo mas un monto por kilometro recorrido.</p>
+
+<h2>5. Metodos de Pago</h2>
+<p>PaP acepta los siguientes metodos:</p>
+<ul>
+  <li><strong>MercadoPago</strong>: procesado a traves de la pasarela de MercadoPago S.R.L.</li>
+  <li><strong>Efectivo</strong>: el cliente abona al cadete en el momento de la entrega. El cadete acumula un saldo que debe liquidar periodicamente a PaP.</li>
+</ul>
+<p>PaP no almacena datos de tarjetas de credito ni debito. Todo el procesamiento de pagos electronicos se delega a MercadoPago.</p>
+
+<h2>6. Proceso de Entrega</h2>
+<h3>6.1 Codigos de seguridad</h3>
+<p>Cada pedido genera dos codigos de 4 digitos:</p>
+<ul>
+  <li><strong>Codigo de retiro</strong>: el comercio se lo comunica al cadete al entregarle el pedido.</li>
+  <li><strong>Codigo de entrega</strong>: el cliente se lo comunica al cadete al recibir el pedido.</li>
+</ul>
+<p>Estos codigos son obligatorios para confirmar cada etapa y protegen a todas las partes.</p>
+<h3>6.2 No presentacion del cliente</h3>
+<p>Si el cliente no se presenta en el domicilio indicado, el cadete puede activar un temporizador de 10 minutos. Cumplido el plazo, la entrega puede cancelarse.</p>
+<h3>6.3 Productos</h3>
+<p>PaP no es responsable por la calidad, cantidad, estado o idoneidad de los productos ofrecidos por los comercios. Cualquier reclamo sobre los productos debe dirigirse al comercio.</p>
+
+<h2>7. Cadetes</h2>
+<h3>7.1 Relacion</h3>
+<p>Los cadetes son prestadores independientes, no empleados de PaP. No existe relacion de dependencia laboral.</p>
+<h3>7.2 Requisitos</h3>
+<ul>
+  <li>Completar el proceso de onboarding (DNI, datos bancarios).</li>
+  <li>Documentacion vehicular vigente para moto (patente, carnet, seguro).</li>
+  <li>Mantener el GPS activo durante su disponibilidad.</li>
+</ul>
+<h3>7.3 Efectivo</h3>
+<p>El cadete que cobre pedidos en efectivo asume la obligacion de liquidar los montos recaudados a PaP. PaP establece un limite maximo de efectivo acumulable por cadete.</p>
+<h3>7.4 Referidos</h3>
+<p>Cada cadete recibe un codigo unico de referido. Al invitar a otro cadete que complete su registro, el referente percibe una comision del 2% sobre los primeros 50 viajes del referido.</p>
+
+<h2>8. Comercios</h2>
+<ul>
+  <li>Los comercios son responsables de la exactitud de su menu, precios, disponibilidad y tiempos de preparacion.</li>
+  <li>Deben mantener actualizados sus datos bancarios y de facturacion.</li>
+  <li>PaP puede suspender un comercio que acumule reclamos, incumpla tiempos de entrega o no respete los estandares de calidad.</li>
+</ul>
+
+<h2>9. Propiedad Intelectual</h2>
+<p>El nombre "Puerta a Puerta", el logotipo, el diseno de la aplicacion, el codigo fuente y todo el contenido original son propiedad exclusiva de PaP. Queda prohibida su reproduccion sin autorizacion escrita.</p>
+
+<h2>10. Limitacion de Responsabilidad</h2>
+<p>PaP actua como intermediario tecnologico. No garantiza:</p>
+<ul>
+  <li>La disponibilidad ininterrumpida del servicio.</li>
+  <li>La calidad de los productos de los comercios.</li>
+  <li>Los tiempos exactos de entrega.</li>
+  <li>La conducta de cadetes o comercios fuera de la Plataforma.</li>
+</ul>
+<p>En ningun caso la responsabilidad de PaP excedera el monto del ultimo pedido realizado por el usuario.</p>
+
+<h2>11. Reportes y Resolucion de Conflictos</h2>
+<p>Los usuarios pueden reportar problemas desde la Plataforma. PaP se compromete a investigar cada reporte y dar respuesta en un plazo razonable. Para conflictos no resueltos, sera competente la justicia ordinaria de Santiago del Estero.</p>
+
+<h2>12. Modificaciones</h2>
+<p>PaP puede modificar estos Terminos en cualquier momento. Los cambios se publicaran en esta pagina y, cuando sean significativos, se notificara a los usuarios. El uso continuado de la Plataforma implica la aceptacion de los Terminos vigentes.</p>
+
+<h2>13. Contacto</h2>
+<div class="contact-box">
+  <p><strong>Puerta a Puerta</strong></p>
+  <p>Santiago del Estero, Argentina</p>
+  <p>Email: gerardoacostafrancario@gmail.com</p>
+</div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ -->
+<!-- POLÍTICA DE PRIVACIDAD                                      -->
+<!-- ════════════════════════════════════════════════════════════ -->
+<div class="legal-panel" id="panel-priv">
+
+<p class="update">Ultima actualizacion: 25 de junio de 2026</p>
+
+<h2>1. Responsable del Tratamiento</h2>
+<p><strong>Puerta a Puerta</strong> ("PaP") con domicilio en Santiago del Estero, Argentina, es responsable del tratamiento de los datos personales recopilados a traves de la Plataforma, en conformidad con la <strong>Ley 25.326 de Proteccion de Datos Personales</strong> y sus normas complementarias.</p>
+
+<h2>2. Datos que Recopilamos</h2>
+<h3>2.1 Datos proporcionados por el usuario</h3>
+<ul>
+  <li>Nombre y apellido</li>
+  <li>Direccion de email</li>
+  <li>Numero de telefono (opcional)</li>
+  <li>Direccion de entrega</li>
+  <li>Foto del DNI (solo cadetes)</li>
+  <li>Datos bancarios: CBU/alias, CUIT, titular (comercios y cadetes)</li>
+  <li>Datos del vehiculo: patente, tipo (solo cadetes con moto)</li>
+</ul>
+<h3>2.2 Datos recopilados automaticamente</h3>
+<ul>
+  <li><strong>Ubicacion GPS</strong>: solo cuando el cadete tiene la disponibilidad activa, para asignar pedidos y mostrar el tracking al cliente. No se recopila ubicacion en segundo plano.</li>
+  <li><strong>Datos de uso</strong>: paginas visitadas, acciones realizadas, horarios de uso.</li>
+  <li><strong>Datos del dispositivo</strong>: tipo de navegador, sistema operativo, resolucion de pantalla.</li>
+</ul>
+<h3>2.3 Datos de terceros</h3>
+<p>Si inicias sesion con Google, recibimos tu nombre y email de tu cuenta de Google. No accedemos a tus contactos, fotos ni otros datos.</p>
+
+<h2>3. Finalidad del Tratamiento</h2>
+<p>Utilizamos tus datos para:</p>
+<ul>
+  <li>Crear y administrar tu cuenta.</li>
+  <li>Procesar y entregar pedidos.</li>
+  <li>Calcular tarifas, comisiones y pagos.</li>
+  <li>Mostrar el tracking en tiempo real al cliente.</li>
+  <li>Verificar la identidad de cadetes (DNI, documentacion vehicular).</li>
+  <li>Prevenir fraudes y usos abusivos.</li>
+  <li>Enviar notificaciones relacionadas con tus pedidos.</li>
+  <li>Mejorar la Plataforma y la experiencia de usuario.</li>
+</ul>
+
+<h2>4. Base Legal</h2>
+<ul>
+  <li><strong>Consentimiento</strong>: al registrarte aceptas el tratamiento de tus datos para las finalidades descriptas.</li>
+  <li><strong>Ejecucion contractual</strong>: el tratamiento es necesario para prestarte el servicio.</li>
+  <li><strong>Interes legitimo</strong>: prevencion de fraude y mejora del servicio.</li>
+  <li><strong>Obligacion legal</strong>: cumplimiento de normativa fiscal y tributaria argentina.</li>
+</ul>
+
+<h2>5. Comparticion de Datos</h2>
+<p>Compartimos datos personales unicamente con:</p>
+<ul>
+  <li><strong>Supabase Inc.</strong>: proveedor de base de datos y autenticacion (servidores en EE.UU.).</li>
+  <li><strong>MercadoPago S.R.L.</strong>: procesamiento de pagos electronicos.</li>
+  <li><strong>Vercel Inc.</strong>: hosting del frontend.</li>
+  <li><strong>Railway Corp.</strong>: hosting del backend.</li>
+  <li><strong>Otros usuarios de la Plataforma</strong>: el cliente ve el nombre y vehiculo del cadete; el cadete ve la direccion de entrega del cliente. Solo se comparten los datos estrictamente necesarios para completar el pedido.</li>
+</ul>
+<p><strong>No vendemos, alquilamos ni cedemos tus datos personales a terceros con fines comerciales o publicitarios.</strong></p>
+
+<h2>6. Transferencia Internacional</h2>
+<p>Algunos de nuestros proveedores tecnologicos (Supabase, Vercel, Railway) operan servidores fuera de Argentina. Al usar la Plataforma, consientes la transferencia de tus datos a dichos servidores, siempre bajo las garantias de seguridad descriptas en esta Politica.</p>
+
+<h2>7. Seguridad</h2>
+<p>Implementamos las siguientes medidas:</p>
+<ul>
+  <li>Comunicaciones cifradas con HTTPS/TLS.</li>
+  <li>Tokens de autenticacion JWT con expiracion.</li>
+  <li>Codigos de retiro y entrega generados con criptografia segura (CSPRNG).</li>
+  <li>Comparacion de codigos en tiempo constante para evitar ataques de timing.</li>
+  <li>Row Level Security (RLS) en la base de datos: cada usuario solo puede acceder a sus propios datos.</li>
+  <li>Las credenciales sensibles se almacenan en variables de entorno del servidor, nunca en el frontend.</li>
+</ul>
+
+<h2>8. Retencion de Datos</h2>
+<ul>
+  <li><strong>Cuenta activa</strong>: mientras mantengas tu cuenta abierta.</li>
+  <li><strong>Pedidos</strong>: se conservan por 2 anos con fines contables y fiscales.</li>
+  <li><strong>Ubicacion GPS</strong>: se sobreescribe en cada actualizacion; solo se almacena la ultima posicion conocida del cadete.</li>
+  <li><strong>Documentos de identidad</strong>: mientras el cadete este activo en la Plataforma.</li>
+</ul>
+<p>Al eliminar tu cuenta, tus datos personales se eliminan o anonimizan en un plazo de 30 dias, salvo obligacion legal de conservacion.</p>
+
+<h2>9. Tus Derechos</h2>
+<p>De acuerdo con la Ley 25.326, tenes derecho a:</p>
+<ul>
+  <li><strong>Acceso</strong>: solicitar una copia de tus datos personales.</li>
+  <li><strong>Rectificacion</strong>: corregir datos inexactos o incompletos.</li>
+  <li><strong>Supresion</strong>: solicitar la eliminacion de tus datos.</li>
+  <li><strong>Oposicion</strong>: oponerte al tratamiento de tus datos en ciertos casos.</li>
+</ul>
+<p>Para ejercer estos derechos, escribi a <strong>gerardoacostafrancario@gmail.com</strong> indicando tu nombre, email registrado y el derecho que deseas ejercer. Responderemos en un plazo maximo de 10 dias habiles.</p>
+<p>Tambien podes presentar un reclamo ante la <strong>Agencia de Acceso a la Informacion Publica</strong> (AAIP) de Argentina.</p>
+
+<h2>10. Cookies y Almacenamiento Local</h2>
+<p>PaP utiliza <strong>localStorage</strong> del navegador para:</p>
+<ul>
+  <li>Mantener tu sesion activa.</li>
+  <li>Cachear datos del catalogo para mejorar la velocidad de carga.</li>
+  <li>Recordar preferencias (tutorial visto, vehiculo seleccionado).</li>
+</ul>
+<p>No utilizamos cookies de terceros con fines publicitarios.</p>
+
+<h2>11. Menores de Edad</h2>
+<p>La Plataforma no esta dirigida a menores de 18 anos. No recopilamos datos de menores de forma intencional. Si detectamos una cuenta de un menor, la eliminaremos.</p>
+
+<h2>12. Modificaciones</h2>
+<p>Podemos actualizar esta Politica periodicamente. La fecha de ultima actualizacion se muestra al inicio del documento. Te notificaremos los cambios significativos.</p>
+
+<h2>13. Contacto</h2>
+<div class="contact-box">
+  <p><strong>Puerta a Puerta</strong></p>
+  <p>Santiago del Estero, Argentina</p>
+  <p>Email: gerardoacostafrancario@gmail.com</p>
+  <p>Autoridad de control: AAIP — www.argentina.gob.ar/aaip</p>
+</div>
+
+</div>
+
+<script>
+function switchLegal(panel) {
+  document.querySelectorAll('.legal-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-legal').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + panel).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
