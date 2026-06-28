@@ -284,7 +284,7 @@ async function loadPedidos() {
   const desde = new Date(); desde.setDate(desde.getDate() - pedidosDias);
   const [{ data: peds, error: pErr }, { data: advs }] = await Promise.all([
     sb.from('pedidos')
-      .select('id,numero,comercio_id,cadete_id,cliente_id,estado,productos,total,direccion_entrega,created_at,codigo_retiro,propina_cadete,distancia_estimada,pago_cadete')
+      .select('id,numero,comercio_id,cadete_id,cliente_id,estado,productos,total,metodo_pago,monto_comision_app,direccion_entrega,created_at,codigo_retiro,propina_cadete,distancia_estimada,pago_cadete')
       .eq('comercio_id', S.cid).gte('created_at', desde.toISOString()).order('created_at', { ascending: false }),
     sb.from('advertencias_comercio').select('id,pedido_id,motivo,created_at').eq('comercio_id', String(S.cid)),
   ]);
@@ -424,6 +424,7 @@ function detallePedido(p, advs, cadetesMap = {}) {
     <div class="detail-meta">
       ${p.tipo_delivery ? `<span>Entrega: ${p.tipo_delivery === 'app' ? 'Cadete PaP' : 'Cadete propio'}</span>` : ''}
       ${p.metodo_pago   ? `<span>Pago: ${esc(p.metodo_pago)}</span>` : ''}
+      ${p.metodo_pago === 'efectivo' ? `<span style="color:#D97706;font-weight:700;">Efectivo — el cadete te entrega $${Number(p.total||0).toLocaleString('es-AR')}. Comision PaP (15%): $${Number(p.monto_comision_app||0).toLocaleString('es-AR')}</span>` : ''}
       ${p.direccion_entrega ? `<span>Dir: ${esc(p.direccion_entrega)}</span>` : ''}
       ${p.costo_envio   ? `<span>Envio: ${formatARS(p.costo_envio)}</span>` : ''}
       ${propinaHTML}

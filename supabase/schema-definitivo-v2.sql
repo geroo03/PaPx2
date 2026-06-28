@@ -1240,15 +1240,16 @@ CREATE TRIGGER trg_pedidos_acumular_deuda
   EXECUTE FUNCTION public.pedidos_acumular_deuda_propio();
 
 
--- E-8. Acumular deuda efectivo al cadete
+-- E-8. Efectivo: el cadete entrega toda la plata al comercio.
+--      El comercio acumula deuda del 15% (monto_comision_app) hacia PaP.
 CREATE OR REPLACE FUNCTION public.pedidos_acumular_deuda_efectivo()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
-  IF NEW.metodo_pago = 'efectivo' AND NEW.cadete_id IS NOT NULL THEN
+  IF NEW.metodo_pago = 'efectivo' AND NEW.comercio_id IS NOT NULL THEN
     NEW.cobrado_efectivo := true;
-    UPDATE public.cadetes
-    SET deuda_efectivo = COALESCE(deuda_efectivo, 0) + COALESCE(NEW.total, 0)
-    WHERE auth_uid = NEW.cadete_id;
+    UPDATE public.comercios
+    SET deuda = COALESCE(deuda, 0) + COALESCE(NEW.monto_comision_app, 0)
+    WHERE id = NEW.comercio_id;
   END IF;
   RETURN NEW;
 END;
