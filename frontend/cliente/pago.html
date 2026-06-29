@@ -132,10 +132,23 @@ async function iniciarPago() {
         }))
       : [{ nombre: `Pedido ${comercioNombre}`, qty: 1, precio: total }];
 
-    // ── Llamar a nuestro backend (Node.js) — no más Supabase Edge Functions ──
+    // ── Obtener token de sesión ──
+    let authToken = '';
+    try {
+      const _sb = window.sb || (window.supabase?.createClient ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+      if (_sb) {
+        const { data: { session } } = await _sb.auth.getSession();
+        authToken = session?.access_token || '';
+      }
+    } catch {}
+
+    // ── Llamar a nuestro backend ──
     const resp = await fetch(`${BACKEND_URL}/api/mp/crear-preferencia`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+      },
       body:    JSON.stringify({
         pedido_id: pedidoId,
         items:     itemsNormalizados,
