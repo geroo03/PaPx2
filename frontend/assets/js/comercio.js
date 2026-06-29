@@ -156,6 +156,7 @@ function dispatchAction(t, originalEvent) {
     case 'aceptar-pedido':       aceptarPedido(id); break;
     case 'rechazar-pedido':      rechazarPedido(id); break;
     case 'marcar-listo':         marcarListo(id); break;
+    case 'buscar-cadete':        buscarCadete(id); break;
     case 'toggle-row':           togglePedidoRow(id); break;
     case 'open-modal-producto':  openModalProducto(); break;
     case 'save-producto':        saveProducto(); break;
@@ -361,7 +362,12 @@ function accionesPedido(p) {
       <button class="btn btn-danger  btn-sm" data-action="rechazar-pedido" data-id="${p.id}">Rechazar</button>
     </div>`;
   if (p.estado === 'preparando') return `
-    <button class="btn btn-outline btn-sm" data-action="marcar-listo" data-id="${p.id}">✓ Marcar listo</button>`;
+    <div class="pedido-actions">
+      <button class="btn btn-outline btn-sm" data-action="marcar-listo" data-id="${p.id}">Marcar listo</button>
+      ${!p.cadete_id ? `<button class="btn btn-outline btn-sm" data-action="buscar-cadete" data-id="${p.id}" style="margin-top:4px;">Buscar cadete</button>` : ''}
+    </div>`;
+  if (p.estado === 'listo' && !p.cadete_id) return `
+    <button class="btn btn-outline btn-sm" data-action="buscar-cadete" data-id="${p.id}">Buscar cadete</button>`;
   return '';
 }
 
@@ -513,6 +519,24 @@ async function marcarListo(id) {
   const { error } = await sb.from('pedidos').update({ estado:'listo' }).eq('id', id).eq('comercio_id', S.cid);
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast('Pedido listo para despachar ✓'); loadPedidos();
+}
+
+async function buscarCadete(id) {
+  showToast('Buscando cadete disponible...', 'info');
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) { showToast('Sesión expirada', 'error'); return; }
+    const base = window.BACKEND_URL || '';
+    const resp = await fetch(`${base}/api/pedidos/difundir`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body:    JSON.stringify({ pedidoId: id, comercioId: S.cid }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) { showToast(data.error || 'Error al buscar cadete', 'error'); return; }
+    const n = data.difundido ?? data.notificados ?? 0;
+    showToast(n > 0 ? `Notificado a ${n} cadete${n !== 1 ? 's' : ''} cercano${n !== 1 ? 's' : ''}` : 'Sin cadetes disponibles ahora', n > 0 ? 'success' : 'info');
+  } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
 function updateNavBadge() {

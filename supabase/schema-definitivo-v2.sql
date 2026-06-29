@@ -1000,8 +1000,9 @@ CREATE POLICY mensajes_select_partes
   USING (
     EXISTS (
       SELECT 1 FROM public.pedidos p
+      LEFT JOIN public.comercios c ON c.id = p.comercio_id
       WHERE p.id = mensajes_pedido.pedido_id
-        AND (p.cliente_id = auth.uid() OR p.comercio_id = auth.uid() OR p.cadete_id = auth.uid())
+        AND (p.cliente_id = auth.uid() OR c.usuario_id = auth.uid() OR p.cadete_id = auth.uid())
     )
     OR (SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin'
   );
@@ -1012,8 +1013,9 @@ CREATE POLICY mensajes_insert_partes
     remitente_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM public.pedidos p
+      LEFT JOIN public.comercios c ON c.id = p.comercio_id
       WHERE p.id = pedido_id
-        AND (p.cliente_id = auth.uid() OR p.comercio_id = auth.uid() OR p.cadete_id = auth.uid())
+        AND (p.cliente_id = auth.uid() OR c.usuario_id = auth.uid() OR p.cadete_id = auth.uid())
     )
     AND rol_remitente = (SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid())
   );
