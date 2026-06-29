@@ -1,5 +1,5 @@
 /**
- * comercio.js — Puerta a Puerta Portal
+ * comercio.js — Puerta a Puerta X Portal
  * Event delegation total. Cero handlers inline.
  */
 
@@ -109,7 +109,7 @@ function bindAllEvents() {
     const base = parseFloat(e.target.value) || 0;
     const hint = g('mp-precio-cliente');
     if (hint) hint.textContent = base > 0
-      ? `El cliente verá: ARS $${formatNum(Math.round(base * RECARGO_DIV))} (+15% PaP)`
+      ? `El cliente verá: ARS $${formatNum(Math.round(base * RECARGO_DIV))} (+15% PaP X)`
       : '';
   });
   const zone      = g('upload-zone');
@@ -422,9 +422,9 @@ function detallePedido(p, advs, cadetesMap = {}) {
   return `<div class="pedido-detail">
     <div class="detail-items">${filas}</div>
     <div class="detail-meta">
-      ${p.tipo_delivery ? `<span>Entrega: ${p.tipo_delivery === 'app' ? 'Cadete PaP' : 'Cadete propio'}</span>` : ''}
+      ${p.tipo_delivery ? `<span>Entrega: ${p.tipo_delivery === 'app' ? 'Cadete PaP X' : 'Cadete propio'}</span>` : ''}
       ${p.metodo_pago   ? `<span>Pago: ${esc(p.metodo_pago)}</span>` : ''}
-      ${p.metodo_pago === 'efectivo' ? `<span style="color:#D97706;font-weight:700;">Efectivo — el cadete te entrega $${Number(p.total||0).toLocaleString('es-AR')}. Comision PaP (15%): $${Number(p.monto_comision_app||0).toLocaleString('es-AR')}</span>` : ''}
+      ${p.metodo_pago === 'efectivo' ? `<span style="color:#D97706;font-weight:700;">Efectivo — el cadete te entrega $${Number(p.total||0).toLocaleString('es-AR')}. Comision PaP X (15%): $${Number(p.monto_comision_app||0).toLocaleString('es-AR')}</span>` : ''}
       ${p.direccion_entrega ? `<span>Dir: ${esc(p.direccion_entrega)}</span>` : ''}
       ${p.costo_envio   ? `<span>Envio: ${formatARS(p.costo_envio)}</span>` : ''}
       ${propinaHTML}

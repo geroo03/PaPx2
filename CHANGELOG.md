@@ -1,4 +1,4 @@
-# Changelog — Puerta a Puerta
+# Changelog — Puerta a Puerta X
 
 ---
 
@@ -50,7 +50,7 @@
 - Links desde login, registro cadete, y perfil del cliente
 
 ### PWA
-- Banner "Instalar Puerta a Puerta" con install prompt nativo
+- Banner "Instalar Puerta a Puerta X" con install prompt nativo
 - Se muestra una vez, descartable, detecta instalacion
 
 ### Performance

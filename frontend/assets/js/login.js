@@ -1,5 +1,5 @@
 /**
- * login.js — Puerta a Puerta — Módulo de autenticación unificado
+ * login.js — Puerta a Puerta X — Módulo de autenticación unificado
  * Arquitectura serverless directa a Supabase.
  *
  * Flujo:

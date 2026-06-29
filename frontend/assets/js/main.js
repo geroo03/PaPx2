@@ -52,7 +52,7 @@ window.buildUrl = buildUrl;
 // LISTENERS GLOBALES
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[PaP] Inicializando modulos V2 de Puerta a Puerta...');
+  console.log('[PaP] Inicializando modulos V2 de Puerta a Puerta X...');
 
   // Guard: supabase puede ser null en modo bypass de prueba (no bloquear)
   if (!supabase) { console.warn('[PaP] supabase no disponible — modo bypass activo'); return; }

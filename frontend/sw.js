@@ -1,5 +1,5 @@
 self.addEventListener('push', (event) => {
-  let data = { title: 'Puerta a Puerta', body: 'Tenes una notificacion nueva' };
+  let data = { title: 'Puerta a Puerta X', body: 'Tenes una notificacion nueva' };
   try { data = event.data.json(); } catch {
     try { data = JSON.parse(event.data.text()); } catch {}
   }
@@ -11,7 +11,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Puerta a Puerta', {
+    self.registration.showNotification(data.title || 'Puerta a Puerta X', {
       body: data.body || '',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

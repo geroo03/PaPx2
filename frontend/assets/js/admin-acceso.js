@@ -1,5 +1,5 @@
 /**
- * admin-acceso.js — Puerta a Puerta — Login del panel de administracion
+ * admin-acceso.js — Puerta a Puerta X — Login del panel de administracion
  */
 
 import { supabase as sb } from './config.js';
