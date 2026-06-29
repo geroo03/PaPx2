@@ -17,7 +17,7 @@
  *   user_metadata → metadata del JWT (no confiar para roles — usar tabla profiles)
  */
 
-import { supabase } from '../lib/supabaseClient.js';
+import { supabaseAdmin, supabase } from '../lib/supabaseClient.js';
 
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers?.authorization ?? '';
@@ -28,7 +28,7 @@ export async function requireAuth(req, res, next) {
     });
   }
 
-  const token = authHeader.slice(7).trim(); // remueve 'Bearer '
+  const token = authHeader.slice(7).trim();
 
   if (!token) {
     return res.status(401).json({
@@ -36,15 +36,18 @@ export async function requireAuth(req, res, next) {
     });
   }
 
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+  // Usar supabaseAdmin (SERVICE_ROLE) para validar el JWT — más fiable que ANON
+  // porque la SERVICE_ROLE key está definitivamente configurada en el mismo proyecto
+  const client = supabaseAdmin || supabase;
+  const { data: { user }, error } = await client.auth.getUser(token);
 
   if (error || !user) {
+    console.error('[Auth] getUser falló:', error?.message, '| token[:20]:', token.slice(0,20));
     return res.status(401).json({
       error: 'No autorizado: token inválido o sesión expirada. Volvé a iniciar sesión.',
     });
   }
 
-  // Inyectar el usuario validado en la request para que los controllers lo consuman
   req.user = user;
   next();
 }
