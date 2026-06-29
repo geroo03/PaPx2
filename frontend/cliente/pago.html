@@ -138,34 +138,51 @@ async function iniciarPago() {
         }))
       : [{ nombre: `Pedido ${comercioNombre}`, qty: 1, precio: total }];
 
-    // ── Obtener token de sesión (forzar refresh si está vencido) ──
+    // ── Obtener token de sesión (siempre refresh primero) ──────────────────
     let authToken = '';
     try {
-      const _sb = window.sb || (window.supabase?.createClient ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
+      // Siempre crear cliente fresco para leer la sesión del localStorage
+      const _sb = window.supabase?.createClient
+        ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+        : window.sb;
+
       if (_sb) {
-        let { data: { session } } = await _sb.auth.getSession();
-        // Si el token expira en menos de 60s o ya no hay sesión, forzar refresh
-        const expiraEn = session?.expires_at ? (session.expires_at * 1000 - Date.now()) : -1;
-        if (!session || expiraEn < 60000) {
-          const { data: refreshed } = await _sb.auth.refreshSession();
-          session = refreshed?.session || session;
+        // 1. Intentar refresh — siempre, para obtener el token más fresco
+        let session = null;
+        const { data: refreshed, error: refreshErr } = await _sb.auth.refreshSession();
+        if (!refreshErr && refreshed?.session?.access_token) {
+          session = refreshed.session;
+          console.log('[Pago] Token refrescado OK, expira en',
+            Math.round((session.expires_at - Date.now()/1000)/60), 'min');
+        } else {
+          // 2. Refresh falló: usar sesión guardada si todavía es válida
+          console.warn('[Pago] refreshSession falló:', refreshErr?.message);
+          const { data: stored } = await _sb.auth.getSession();
+          session = stored?.session || null;
+          if (session) {
+            const segsRestantes = (session.expires_at || 0) - Date.now() / 1000;
+            console.log('[Pago] Usando sesión guardada, expira en', Math.round(segsRestantes/60), 'min');
+            if (segsRestantes <= 0) {
+              console.error('[Pago] Sesión guardada también expiró');
+              session = null;
+            }
+          }
         }
         authToken = session?.access_token || '';
       }
     } catch (e) { console.warn('[Pago] Error obteniendo sesion:', e.message); }
 
     if (!authToken) {
-      mostrarError('Tu sesion expiro. Volve a iniciar sesion e intenta de nuevo.');
+      mostrarError('Tu sesión expiró. Tocá "Volver" para ingresar de nuevo y reintentá.');
+      document.getElementById('estado-error').insertAdjacentHTML('beforeend',
+        '<a href="/login.html" style="display:block;margin-top:10px;text-align:center;color:#FF6B35;font-weight:700;">Ir a iniciar sesión</a>');
       return;
     }
 
-    // ── Llamar a nuestro backend ──
-    const resp = await fetch(`${BACKEND_URL}/api/mp/crear-preferencia`, {
+    // ── Llamar a nuestro backend ──────────────────────────────────────────
+    let resp = await fetch(`${BACKEND_URL}/api/mp/crear-preferencia`, {
       method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
       body:    JSON.stringify({
         pedido_id:         pedidoId === 'pending_mp' ? null : pedidoId,
         items:             itemsNormalizados,
@@ -173,9 +190,18 @@ async function iniciarPago() {
         cliente_id:        pedidoData.cliente_id || null,
         direccion_entrega: pedidoData.direccion_entrega || '',
         metodo_pago:       'mercadopago',
-        total:     total,
+        total:             total,
       }),
     });
+
+    // Si sigue siendo 401 (refresh puede haber devuelto token ya revocado en Supabase),
+    // redirigir a login con mensaje claro
+    if (resp.status === 401) {
+      mostrarError('Sesión inválida en el servidor. Tocá "Ir a iniciar sesión" y volvé a intentar.');
+      document.getElementById('estado-error').insertAdjacentHTML('beforeend',
+        '<a href="/login.html" style="display:block;margin-top:10px;text-align:center;color:#FF6B35;font-weight:700;">Ir a iniciar sesión</a>');
+      return;
+    }
 
     if (!resp.ok) {
       const errBody = await resp.json().catch(() => ({}));
