@@ -150,8 +150,12 @@ async function iniciarPago() {
         ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
       },
       body:    JSON.stringify({
-        pedido_id: pedidoId,
-        items:     itemsNormalizados,
+        pedido_id:         pedidoId === 'pending_mp' ? null : pedidoId,
+        items:             itemsNormalizados,
+        comercio_id:       pedidoData.comercio_id || null,
+        cliente_id:        pedidoData.cliente_id || null,
+        direccion_entrega: pedidoData.direccion_entrega || '',
+        metodo_pago:       'mercadopago',
         total:     total,
       }),
     });

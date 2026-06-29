@@ -280,12 +280,35 @@ async function confirmarPedido(){
   let userId=null;try{const{data:{session}}=await sb.auth.getSession();userId=session?.user?.id;}catch{}
   const comercioId=currentComercio?.id;
   const _UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if(!comercioId||!_UUID_RE.test(comercioId)){showToast('Recargá la página y volvé a intentar el pedido.',5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
-  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
-  try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);}else{console.log('Pedido guardado:',data);}currentPedido=data||{...pedido,numero:Math.floor(Math.random()*9000)+1000};}catch(e){console.error('Excepcion:',e);currentPedido={...pedido,numero:Math.floor(Math.random()*9000)+1000};}
-  const itemsParaPago=[...items];if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
+  if(!comercioId||!_UUID_RE.test(comercioId)){showToast('Recarga la pagina y volve a intentar.',5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
 
-  // Notificar al comercio via push (fire & forget)
+  // MercadoPago: NO crear pedido aún — se crea cuando MP confirma el pago
+  if(payMethod==='mercadopago'){
+    const cartSub=items.reduce((s,i)=>s+i.precio*i.qty,0);
+    localStorage.setItem('pap_pedido_pago',JSON.stringify({
+      items:items.map(i=>({nombre:i.nombre,qty:i.qty,precio:i.precio,quantity:i.qty,unit_price:i.precio,title:i.nombre})),
+      total:cartSub+1200+propinaSeleccionada,
+      propina_cadete:propinaSeleccionada||0,
+      envio:1200,
+      comercio:currentComercio?.nombre||'Comercio',
+      comercio_id:comercioId,
+      cliente_id:userId,
+      direccion_entrega:getDireccionEntrega(),
+      metodo_pago:'mercadopago'
+    }));
+    localStorage.setItem('pap_pedido_actual','pending_mp');
+    if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();
+    btn.disabled=false;btn.textContent='Confirmar pedido';
+    window.location.href='pago.html';
+    return;
+  }
+
+  // Efectivo y Transferencia: crear pedido inmediatamente
+  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
+  try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}currentPedido=data;}catch(e){console.error('Excepcion:',e);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
+  if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
+
+  // Notificar al comercio via push
   if(currentPedido?.id){
     try{
       const{data:{session:s}}=await sb.auth.getSession();
@@ -298,33 +321,25 @@ async function confirmarPedido(){
     const pedidoId=currentPedido.id;
     const ch=sb.channel('pedido-confirmado-'+pedidoId)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'pedidos',filter:`id=eq.${pedidoId}`},(payload)=>{
-        if(payload.new.estado==='preparando'){
-          pedidoConfirmadoPorComercio();
-          sb.removeChannel(ch);
-        }
+        if(payload.new.estado==='preparando'){pedidoConfirmadoPorComercio();sb.removeChannel(ch);}
       }).subscribe();
-    // También hacer polling como fallback
     const poll=setInterval(async()=>{
       try{
         const{data}=await sb.from('pedidos').select('estado').eq('id',pedidoId).single();
-        if(data?.estado==='preparando'||data?.estado==='en_camino'||data?.estado==='entregado'){
-          pedidoConfirmadoPorComercio();
-          clearInterval(poll);
-        }
+        if(data?.estado==='preparando'||data?.estado==='en_camino'||data?.estado==='entregado'){pedidoConfirmadoPorComercio();clearInterval(poll);}
       }catch{}
     },5000);
   }
 
-  if(payMethod==='mercadopago'){const cartSub=itemsParaPago.reduce((s,i)=>s+i.precio*i.qty,0);localStorage.setItem('pap_pedido_pago',JSON.stringify({items:itemsParaPago.map(i=>({nombre:i.nombre,qty:i.qty,precio:i.precio,quantity:i.qty,unit_price:i.precio,title:i.nombre})),total:cartSub+800+propinaSeleccionada,propina_cadete:propinaSeleccionada||0,envio:800,comercio:currentComercio?.nombre||'Comercio'}));localStorage.setItem('pap_pedido_actual',currentPedido?.id||'');window.location.href='pago.html';return;}
   if(payMethod==='efectivo'){
-    mostrarConfirmado(currentPedido?.numero||Math.floor(Math.random()*9000)+1000);
+    mostrarConfirmado(currentPedido?.numero||'—');
     setTimeout(()=>{
       const confMsg=document.getElementById('conf-msg');
       if(confMsg) confMsg.innerHTML='Tene preparado <strong>$'+total.toLocaleString('es-AR')+'</strong> en efectivo para pagarle al cadete cuando llegue.';
     },100);
     return;
   }
-  mostrarConfirmado(currentPedido?.numero||Math.floor(Math.random()*9000)+1000);
+  mostrarConfirmado(currentPedido?.numero||'—');
 }
 
 // 4d: Fetch pedido con perfil del cadete desde el backend (GET /api/pedidos/:id)

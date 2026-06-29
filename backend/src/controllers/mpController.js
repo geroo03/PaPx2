@@ -6,51 +6,24 @@ const mpClient     = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_
 const mpPreference = new Preference(mpClient);
 const mpPayment    = new Payment(mpClient);
 
-const FRONTEND_URL = process.env.FRONTEND_URL?.split(',')[0]?.trim() ?? '';
-const SERVER_URL   = process.env.SERVER_URL ?? '';
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:8000';
+const SERVER_URL   = process.env.SERVER_URL   ?? 'http://localhost:3000';
+
 
 /**
  * POST /api/mp/crear-preferencia
- *
- * Crea la preferencia de pago en MercadoPago.
- * Verifica que el pedido exista y pertenezca al usuario autenticado.
- * Propina máxima: $10.000.
- *
- * Body: { pedido_id, items: [{ nombre, precio, qty }], total, propina_cadete? }
+ * Body: { items, total, comercio_id, cliente_id, direccion_entrega, metodo_pago, propina_cadete? }
  */
 export async function crearPreferencia(req, res) {
-  const { pedido_id, items, total, propina_cadete } = req.body ?? {};
+  const { pedido_id, items, total, comercio_id, cliente_id, direccion_entrega, metodo_pago, propina_cadete } = req.body ?? {};
 
-  if (!pedido_id || !Array.isArray(items) || items.length === 0 || !total) {
-    return res.status(400).json({
-      error: 'Campos requeridos: pedido_id (UUID), items (array), total (number)',
-    });
+  if (!Array.isArray(items) || items.length === 0 || !total) {
+    return res.status(400).json({ error: 'Campos requeridos: items (array), total (number)' });
   }
 
   const propinaNum = Math.max(0, Math.floor(Number(propina_cadete ?? 0)));
   if (propinaNum > 10000) {
     return res.status(400).json({ error: 'La propina no puede superar $10.000' });
-  }
-
-  const { data: pedido, error: pedidoErr } = await supabaseAdmin
-    .from('pedidos')
-    .select('id, cliente_id, estado')
-    .eq('id', pedido_id)
-    .single();
-
-  if (pedidoErr || !pedido) {
-    return res.status(404).json({ error: 'Pedido no encontrado' });
-  }
-
-  if (pedido.cliente_id !== req.user.id) {
-    return res.status(403).json({ error: 'Este pedido no te pertenece' });
-  }
-
-  const ESTADOS_PAGABLES = ['nuevo', 'pendiente'];
-  if (!ESTADOS_PAGABLES.includes(pedido.estado)) {
-    return res.status(409).json({
-      error: `El pedido está en estado '${pedido.estado}' y no puede pagarse`,
-    });
   }
 
   try {
@@ -71,24 +44,31 @@ export async function crearPreferencia(req, res) {
       }] : []),
     ];
 
-    if (propinaNum > 0) {
-      await supabaseAdmin.from('pedidos')
-        .update({ propina_cadete: propinaNum })
-        .eq('id', pedido_id);
-    }
+    // Guardar datos del pedido en external_reference como JSON
+    const refData = {
+      comercio_id:      comercio_id || null,
+      cliente_id:       cliente_id || req.user.id,
+      productos:        items,
+      total:            Number(total),
+      direccion_entrega: direccion_entrega || '',
+      propina_cadete:   propinaNum,
+      metodo_pago:      'mercadopago',
+      pedido_id:        pedido_id || null,
+    };
+    const externalRef = Buffer.from(JSON.stringify(refData)).toString('base64url');
 
     const result = await mpPreference.create({
       body: {
         items: mpItems,
-        external_reference: pedido_id,
+        external_reference: externalRef,
         back_urls: {
-          success: `${FRONTEND_URL}/cliente/pago.html?estado=success&pedido=${pedido_id}`,
-          failure: `${FRONTEND_URL}/cliente/pago.html?estado=failure&pedido=${pedido_id}`,
-          pending: `${FRONTEND_URL}/cliente/pago.html?estado=pending&pedido=${pedido_id}`,
+          success: `${FRONTEND_URL}/cliente/pago.html?estado=success`,
+          failure: `${FRONTEND_URL}/cliente/pago.html?estado=failure`,
+          pending: `${FRONTEND_URL}/cliente/pago.html?estado=pending`,
         },
         auto_return:          'approved',
         notification_url:     `${SERVER_URL}/api/mp/webhook`,
-        statement_descriptor: 'Puerta a Puerta',
+        statement_descriptor: 'Puerta a Puerta X',
       },
     });
 
@@ -103,12 +83,10 @@ export async function crearPreferencia(req, res) {
   }
 }
 
+
 /**
  * POST /api/mp/webhook
- *
- * Recibe notificaciones asíncronas de MercadoPago.
- * Verifica firma HMAC-SHA256 antes de procesar.
- * Retorna 500 en error de DB para que MP reintente automáticamente.
+ * Recibe notificaciones de MP. Verifica HMAC. Crea el pedido si el pago fue aprobado.
  */
 export async function mpWebhook(req, res) {
   const xSignature = req.headers['x-signature']  ?? '';
@@ -125,7 +103,7 @@ export async function mpWebhook(req, res) {
   const v1 = sigParts['v1'];
 
   if (!ts || !v1) {
-    return res.status(401).json({ error: 'Firma inválida' });
+    return res.status(401).json({ error: 'Firma invalida' });
   }
 
   const manifest = `id:${notifId};request-id:${xRequestId};ts:${ts};`;
@@ -144,7 +122,7 @@ export async function mpWebhook(req, res) {
   } catch { firmaValida = false; }
 
   if (!firmaValida) {
-    return res.status(401).json({ error: 'Firma HMAC inválida' });
+    return res.status(401).json({ error: 'Firma HMAC invalida' });
   }
 
   const { type, data } = req.body ?? {};
@@ -158,22 +136,50 @@ export async function mpWebhook(req, res) {
     return res.status(500).json({ error: 'Error consultando pago' });
   }
 
-  const { status, external_reference: pedidoId } = paymentData;
-  console.log(`[Webhook] payment:${data.id} | status:${status} | pedido:${pedidoId ?? '—'}`);
+  const { status, external_reference } = paymentData;
+  console.log(`[Webhook] payment:${data.id} | status:${status}`);
 
-  if (!pedidoId) return res.sendStatus(200);
+  if (!external_reference) return res.sendStatus(200);
 
   if (status === 'approved') {
-    const { error: dbError } = await supabaseAdmin
-      .from('pedidos')
-      .update({ estado: 'pagado' })
-      .eq('id', pedidoId);
+    try {
+      const refData = JSON.parse(Buffer.from(external_reference, 'base64url').toString());
 
-    if (dbError) {
-      console.error('[Webhook→Supabase] Error:', dbError.message);
-      return res.status(500).json({ error: 'Error actualizando pedido' });
+      // Si ya existe un pedido_id, solo actualizar estado
+      if (refData.pedido_id) {
+        await supabaseAdmin.from('pedidos')
+          .update({ estado: 'nuevo', estado_pago: 'aprobado', mp_payment_id: String(data.id) })
+          .eq('id', refData.pedido_id);
+        console.log(`[Webhook] Pedido ${refData.pedido_id} → pagado`);
+      } else {
+        // Crear el pedido ahora que el pago fue confirmado
+        const { data: nuevoPedido, error: insertErr } = await supabaseAdmin
+          .from('pedidos')
+          .insert({
+            comercio_id:      refData.comercio_id,
+            cliente_id:       refData.cliente_id,
+            productos:        refData.productos,
+            total:            refData.total,
+            direccion_entrega: refData.direccion_entrega,
+            propina_cadete:   refData.propina_cadete || 0,
+            metodo_pago:      'mercadopago',
+            estado:           'nuevo',
+            estado_pago:      'aprobado',
+            mp_payment_id:    String(data.id),
+          })
+          .select('id, numero')
+          .single();
+
+        if (insertErr) {
+          console.error('[Webhook] Error creando pedido:', insertErr.message);
+          return res.status(500).json({ error: 'Error creando pedido' });
+        }
+        console.log(`[Webhook] Pedido creado: #${nuevoPedido.numero} (${nuevoPedido.id})`);
+      }
+    } catch (err) {
+      console.error('[Webhook] Error procesando external_reference:', err?.message);
+      return res.status(500).json({ error: 'Error procesando pago' });
     }
-    console.log(`[Supabase] Pedido ${pedidoId} → pagado`);
   }
 
   return res.sendStatus(200);
