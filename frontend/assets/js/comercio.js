@@ -872,22 +872,61 @@ async function loadHorarios() { renderHorarios(); }
 function renderHorarios() {
   const grid = g('horarios-grid'); if (!grid) return;
   const com  = S.comercio;
-  const apertura  = (com?.horario_apertura||'').slice(0,5);
-  const cierre    = (com?.horario_cierre  ||'').slice(0,5);
-  const diasRaw   = Array.isArray(com?.dias_abierto) ? com.dias_abierto : [];
+  const apertura  = (com?.horario_apertura||'08:00').slice(0,5);
+  const cierre    = (com?.horario_cierre  ||'22:00').slice(0,5);
+  const diasRaw   = Array.isArray(com?.dias_abierto) ? com.dias_abierto : ['lunes','martes','miercoles','jueves','viernes','sabado'];
   const diasSet   = new Set(diasRaw.map(d => String(d).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
   const DIAS = [
-    {key:'lunes',label:'Lunes'},{key:'martes',label:'Martes'},{key:'miercoles',label:'Miércoles'},
-    {key:'jueves',label:'Jueves'},{key:'viernes',label:'Viernes'},{key:'sabado',label:'Sábado'},{key:'domingo',label:'Domingo'},
+    {key:'lunes',label:'Lunes'},{key:'martes',label:'Martes'},{key:'miercoles',label:'Miercoles'},
+    {key:'jueves',label:'Jueves'},{key:'viernes',label:'Viernes'},{key:'sabado',label:'Sabado'},{key:'domingo',label:'Domingo'},
   ];
-  grid.innerHTML = DIAS.map(({key,label}) => {
+
+  grid.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;padding:12px 16px;background:#fff;border-radius:10px;border:1px solid #eee;">
+      <label style="font-size:12px;font-weight:600;color:#555;">Apertura
+        <input type="time" id="hor-apertura" value="${apertura}" style="display:block;margin-top:4px;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;"/>
+      </label>
+      <label style="font-size:12px;font-weight:600;color:#555;">Cierre
+        <input type="time" id="hor-cierre" value="${cierre}" style="display:block;margin-top:4px;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;"/>
+      </label>
+      <button onclick="window.guardarHorarios()" style="margin-top:18px;background:#FF6B35;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px;">Guardar</button>
+    </div>
+  ` + DIAS.map(({key,label}) => {
     const isOpen = diasSet.has(key) || diasSet.has(key.slice(0,3));
     const chips  = (isOpen && apertura && cierre)
       ? `<span class="horario-chip">${apertura} - ${cierre}</span>`
       : '<span class="horario-cerrado">Cerrado</span>';
-    return `<div class="horario-row"><span class="horario-dia">${label}</span><div class="horario-turnos">${chips}</div></div>`;
+    return `<div class="horario-row" onclick="window.toggleDia('${key}')" style="cursor:pointer;">
+      <span class="horario-dia">${label}</span>
+      <div class="horario-turnos">${chips}</div>
+      <div style="width:36px;height:20px;border-radius:10px;background:${isOpen?'#FF6B35':'#ddd'};position:relative;flex-shrink:0;transition:.2s;">
+        <div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;${isOpen?'right:2px':'left:2px'};transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+      </div>
+    </div>`;
   }).join('');
 }
+
+let _diasActivos = new Set();
+window.toggleDia = function(dia) {
+  const com = S.comercio;
+  const diasRaw = Array.isArray(com?.dias_abierto) ? com.dias_abierto : ['lunes','martes','miercoles','jueves','viernes','sabado'];
+  _diasActivos = new Set(diasRaw.map(d => String(d).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')));
+  if (_diasActivos.has(dia)) _diasActivos.delete(dia);
+  else _diasActivos.add(dia);
+  S.comercio.dias_abierto = [..._diasActivos];
+  renderHorarios();
+};
+
+window.guardarHorarios = async function() {
+  const apertura = g('hor-apertura')?.value || '08:00';
+  const cierre = g('hor-cierre')?.value || '22:00';
+  const diasRaw = Array.isArray(S.comercio?.dias_abierto) ? S.comercio.dias_abierto : ['lunes','martes','miercoles','jueves','viernes','sabado'];
+  const payload = { horario_apertura: apertura, horario_cierre: cierre, dias_abierto: diasRaw };
+  const { error } = await sb.from('comercios').update(payload).eq('id', S.cid);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  S.comercio = { ...S.comercio, ...payload };
+  showToast('Horarios guardados');
+};
 
 function openModalCierre() {
   const inp = g('cierre-fecha'); if (inp) inp.min = new Date().toISOString().split('T')[0];
@@ -1011,7 +1050,7 @@ function renderListaResenas(ratings) {
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 function handleConfigSeccion(sec) {
   if (sec === 'local') { abrirModalUbicacion(); return; }
-  showToast({ usuarios:'Administracion de Usuarios — proximamente', procesamiento:'Permiso procesamiento — proximamente', portada:'Foto de portada — proximamente' }[sec] || 'Proximamente', 'info');
+  showToast('Esta funcion estara disponible proximamente', 'info');
 }
 
 // ─── UBICACIÓN DEL COMERCIO ──────────────────────────────────────────────────

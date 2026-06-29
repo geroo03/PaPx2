@@ -157,6 +157,9 @@ ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS barrio                  te
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS email_facturacion       text;
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS banco                   text;
 ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS provincia               text;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS horario_apertura       time;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS horario_cierre         time;
+ALTER TABLE public.comercios ADD COLUMN IF NOT EXISTS dias_abierto           text[];
 
 -- Constraints (en DO blocks para tolerar constraints inline preexistentes)
 DO $$
