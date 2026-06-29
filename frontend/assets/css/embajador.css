@@ -1,7 +1,8 @@
 /* assets/css/embajador.css - Mobile-first styles */
 :root{--bg:#fafafa;--card:#fff;--muted:#8a8f98;--brand:#FF6B35;--radius:14px}
 *{box-sizing:border-box;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
-body{margin:0;background:var(--bg);color:#0d0d0d}
+html{scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+body{margin:0;background:var(--bg);color:#0d0d0d;-webkit-overflow-scrolling:touch;}
 .page{max-width:980px;margin:0 auto;padding:14px}
 .topbar{padding:6px 4px 18px}
 .topbar h1{margin:0;font-size:20px;font-weight:800}
