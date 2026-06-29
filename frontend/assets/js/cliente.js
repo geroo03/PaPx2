@@ -273,7 +273,8 @@ function selPropina(amt){propinaSeleccionada=amt;const envio=1200;const items=Ob
 function cambiarQty(id,delta){if(!window.state.cart[id])return;window.state.cart[id].qty=Math.max(0,window.state.cart[id].qty+delta);if(window.state.cart[id].qty===0)delete window.state.cart[id]; window.state.saveCart();renderCarrito();actualizarCartFloat();}
 
 async function confirmarPedido(){
-  const items=Object.values(window.state.cart).filter(i=>i.qty>0);if(!items.length){showToast('Agregá productos primero');return;}
+  const cart=window.state?.cart||JSON.parse(localStorage.getItem('pap_cart')||'{}');
+  const items=Object.values(cart).filter(i=>i.qty>0);if(!items.length){showToast('Agrega productos primero');return;}
   const btn=document.getElementById('btn-confirmar');btn.disabled=true;btn.textContent='Procesando...';
   const sub=items.reduce((s,i)=>s+i.precio*i.qty,0);const total=sub+1200+propinaSeleccionada;const nota=document.getElementById('nota-pedido')?.value?.trim()||'';
   let userId=null;try{const{data:{session}}=await sb.auth.getSession();userId=session?.user?.id;}catch{}
@@ -282,7 +283,7 @@ async function confirmarPedido(){
   if(!comercioId||!_UUID_RE.test(comercioId)){showToast('Recargá la página y volvé a intentar el pedido.',5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
   const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);}else{console.log('Pedido guardado:',data);}currentPedido=data||{...pedido,numero:Math.floor(Math.random()*9000)+1000};}catch(e){console.error('Excepcion:',e);currentPedido={...pedido,numero:Math.floor(Math.random()*9000)+1000};}
-  const itemsParaPago=[...items];window.state.cart={};actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
+  const itemsParaPago=[...items];if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
   // Notificar al comercio via push (fire & forget)
   if(currentPedido?.id){
