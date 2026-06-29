@@ -124,6 +124,10 @@ function stab(tab) {
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
   document.getElementById('tab-' + tab)?.classList.add('active');
   document.getElementById('sec-' + tab)?.classList.add('active');
+  // Highlight bottom nav
+  const navMap = { v: 0, h: 1, g: 2, p: 3 };
+  document.querySelectorAll('.nav .ni').forEach((ni, i) => ni.classList.toggle('active', i === navMap[tab]));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function removeAlertBtn() {
