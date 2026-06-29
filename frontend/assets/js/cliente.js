@@ -245,6 +245,7 @@ function mostrarConfirmado(numPedido){
   document.getElementById('s-confirmado').classList.add('visible');
 }
 function pedidoConfirmadoPorComercio(){
+  if(currentPedido)currentPedido.estado='preparando';
   document.getElementById('conf-icono').innerHTML=ICONS.confetti;
   document.getElementById('conf-titulo').textContent='¡Pedido confirmado!';
   document.getElementById('conf-sub').textContent='El comercio aceptó tu pedido.\nYa está siendo preparado';
@@ -310,10 +311,13 @@ async function confirmarPedido(){
 
   // Notificar al comercio via push
   if(currentPedido?.id){
-    try{
-      const{data:{session:s}}=await sb.auth.getSession();
-      if(s?.access_token){fetch((window.BACKEND_URL||'')+'/api/pedidos/notificar-comercio',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.access_token},body:JSON.stringify({pedido_id:currentPedido.id})}).catch(()=>{});}
-    }catch{}
+    (async()=>{
+      try{
+        let{data:{session:s}}=await sb.auth.getSession();
+        if(s&&s.expires_at&&(s.expires_at-Date.now()/1000)<120){const r=await sb.auth.refreshSession();s=r.data?.session||s;}
+        if(s?.access_token){fetch((window.BACKEND_URL||'')+'/api/pedidos/notificar-comercio',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.access_token},body:JSON.stringify({pedido_id:currentPedido.id})}).catch(()=>{});}
+      }catch{}
+    })();
   }
 
   // Escuchar cuando el comercio acepta el pedido
@@ -371,6 +375,7 @@ function iniciarTracking(){
   if(trackInterval){clearInterval(trackInterval);trackInterval=null;}
   if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
   if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
+  if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
 
   const pedidoId=currentPedido?.id;
   const num=currentPedido?.numero||'—';
@@ -439,6 +444,7 @@ function iniciarTracking(){
       // Cerrar canales Realtime al finalizar el viaje
       if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
       if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
+      if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
       showToast('¡Tu pedido fue entregado!',3000);
       try{mostrarBotonDevolucion();}catch{}
       setTimeout(()=>{try{mostrarRating(currentComercio?.nombre||'el comercio');}catch{}},1000);
@@ -454,6 +460,14 @@ function iniciarTracking(){
     return;
   }
 
+  // Fetch del estado real desde Supabase al abrir (por si ya avanzó mientras esperábamos)
+  (async()=>{
+    try{
+      const{data}=await sb.from('pedidos').select('estado,cadete_id,codigo_entrega').eq('id',pedidoId).single();
+      if(data?.estado){actualizarEstado(data.estado);}
+    }catch{}
+  })();
+
   // ── Suscripción 1: cambios de estado del pedido (postgres_changes) ────────
   window._trackPedidoCh=sb
     .channel(`track-pedido-${pedidoId}`)
@@ -463,6 +477,22 @@ function iniciarTracking(){
         actualizarEstado(payload.new?.estado);
       })
     .subscribe();
+
+  // ── Polling de respaldo (cada 8s) por si Realtime no llega ───────────────
+  let _lastEstado=currentPedido?.estado||'nuevo';
+  const _trackPoll=setInterval(async()=>{
+    try{
+      const{data}=await sb.from('pedidos').select('estado').eq('id',pedidoId).single();
+      if(data?.estado&&data.estado!==_lastEstado){
+        _lastEstado=data.estado;
+        actualizarEstado(data.estado);
+        if(data.estado==='entregado')clearInterval(_trackPoll);
+      }
+    }catch{}
+  },8000);
+  // Limpiar polling cuando se entregue o se abandone la pantalla
+  const _origTrackCleanup=window._trackPedidoCh;
+  window._trackPollId=_trackPoll;
 
   // ── Obtener posición GPS del cliente (para calcular ETA real + mapa) ─────
   let clienteLat=null,clienteLng=null;
