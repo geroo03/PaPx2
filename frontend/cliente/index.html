@@ -419,12 +419,41 @@
     <button onclick="cerrarPWABanner()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;padding:0 4px;">x</button>
   </div>
 </div>
+<!-- iOS Install Banner -->
+<div id="ios-banner" style="display:none;position:fixed;bottom:76px;left:12px;right:12px;background:linear-gradient(135deg,#0d0d0d,#1a1a1a);border:1px solid rgba(255,107,53,.3);border-radius:14px;padding:16px;z-index:8000;box-shadow:0 8px 32px rgba(0,0,0,.4);">
+  <div style="display:flex;align-items:flex-start;gap:12px;">
+    <div style="width:40px;height:40px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="/puertaapuertax.jpg" alt="PaP X" style="width:100%;height:100%;object-fit:cover;"></div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">Instalar Puerta a Puerta X</div>
+      <div style="font-size:12px;color:#9CA3AF;line-height:1.6;">
+        1. Toca el boton <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2" style="vertical-align:middle;"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> de abajo<br>
+        2. Busca <strong style="color:#fff;">"Agregar a inicio"</strong><br>
+        3. Toca <strong style="color:#FF6B35;">Agregar</strong>
+      </div>
+    </div>
+    <button onclick="cerrarIOSBanner()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;">x</button>
+  </div>
+  <div style="text-align:center;margin-top:10px;">
+    <svg width="20" height="12" viewBox="0 0 20 12" fill="#FF6B35"><polygon points="10,12 0,0 20,0"/></svg>
+  </div>
+</div>
+
 <script>
 let _pwaPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_pwaPrompt=e;if(!localStorage.getItem('pap_pwa_dismissed')){document.getElementById('pwa-banner').style.display='block';}});
 window.instalarPWA=async function(){if(!_pwaPrompt)return;_pwaPrompt.prompt();const r=await _pwaPrompt.userChoice;if(r.outcome==='accepted'){document.getElementById('pwa-banner').style.display='none';}};
 window.cerrarPWABanner=function(){document.getElementById('pwa-banner').style.display='none';localStorage.setItem('pap_pwa_dismissed','1');};
+window.cerrarIOSBanner=function(){document.getElementById('ios-banner').style.display='none';localStorage.setItem('pap_ios_dismissed','1');};
 window.addEventListener('appinstalled',()=>{document.getElementById('pwa-banner').style.display='none';});
+
+// iOS detection: show iOS banner if no beforeinstallprompt fires
+setTimeout(()=>{
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&'ontouchend' in document);
+  const isStandalone=window.navigator.standalone||window.matchMedia('(display-mode:standalone)').matches;
+  if(isIOS&&!isStandalone&&!localStorage.getItem('pap_ios_dismissed')&&!_pwaPrompt){
+    document.getElementById('ios-banner').style.display='block';
+  }
+},2000);
 </script>
 
 </body>
