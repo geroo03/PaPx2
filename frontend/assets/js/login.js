@@ -32,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
   bindForm();
   bindPasswordToggle();
   bindRegisterMenu();
+  // Mostrar checkbox TyC si no aceptó antes
+  if (!localStorage.getItem('pap_tyc_aceptados')) {
+    const wrap = document.getElementById('tyc-wrap');
+    if (wrap) wrap.style.display = 'block';
+  }
 });
 
 // ─── BIND FORM ────────────────────────────────────────────────────────────────
@@ -55,7 +60,14 @@ async function handleLogin() {
   const pass  = (document.getElementById('input-pass')?.value  || '');
   const btn   = document.getElementById('btn-login');
 
-  if (!email || !pass) { showError('Completá email y contraseña.'); return; }
+  if (!email || !pass) { showError('Completa email y contrasena.'); return; }
+
+  // Verificar TyC si no aceptó antes
+  if (!localStorage.getItem('pap_tyc_aceptados')) {
+    const chk = document.getElementById('chk-tyc');
+    if (chk && !chk.checked) { showError('Debes aceptar los terminos y condiciones para continuar.'); return; }
+    localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
+  }
 
   setLoading(btn, true);
   hideMessages();

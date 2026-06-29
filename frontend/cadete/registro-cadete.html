@@ -53,8 +53,13 @@
     Ya tengo cuenta → Ingresar
   </button>
 
+  <div style="margin-top:20px;text-align:left;">
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;color:#888;line-height:1.5;">
+      <input type="checkbox" id="chk-tyc-cadete" style="margin-top:3px;accent-color:#FF6B35;width:16px;height:16px;flex-shrink:0;">
+      Acepto los <a href="/legal.html" target="_blank" style="color:#FF6B35;font-weight:600;text-decoration:none;">terminos y condiciones</a> y la <a href="/legal.html" target="_blank" style="color:#FF6B35;font-weight:600;text-decoration:none;">politica de privacidad</a>
+    </label>
+  </div>
   <p class="note">
-    Al continuar aceptas los <a href="/legal.html" style="color:#FF6B35;">terminos y condiciones</a> de Puerta a Puerta X.<br>
     Despues de iniciar sesion completaras tus datos desde el panel.
   </p>
 </div>
@@ -63,6 +68,13 @@
 import { supabase as sb } from '../assets/js/config.js';
 
 window.loginConGoogle = async function() {
+  const chk = document.getElementById('chk-tyc-cadete');
+  if (chk && !chk.checked) {
+    const err = document.getElementById('err');
+    if (err) { err.textContent = 'Debes aceptar los terminos y condiciones.'; err.style.display = 'block'; }
+    return;
+  }
+  localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
   const btn = document.getElementById('btn-google');
   const loader = document.getElementById('loader');
   btn.disabled = true;
