@@ -138,15 +138,26 @@ async function iniciarPago() {
         }))
       : [{ nombre: `Pedido ${comercioNombre}`, qty: 1, precio: total }];
 
-    // ── Obtener token de sesión ──
+    // ── Obtener token de sesión (forzar refresh si está vencido) ──
     let authToken = '';
     try {
       const _sb = window.sb || (window.supabase?.createClient ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : null);
       if (_sb) {
-        const { data: { session } } = await _sb.auth.getSession();
+        let { data: { session } } = await _sb.auth.getSession();
+        // Si el token expira en menos de 60s o ya no hay sesión, forzar refresh
+        const expiraEn = session?.expires_at ? (session.expires_at * 1000 - Date.now()) : -1;
+        if (!session || expiraEn < 60000) {
+          const { data: refreshed } = await _sb.auth.refreshSession();
+          session = refreshed?.session || session;
+        }
         authToken = session?.access_token || '';
       }
-    } catch {}
+    } catch (e) { console.warn('[Pago] Error obteniendo sesion:', e.message); }
+
+    if (!authToken) {
+      mostrarError('Tu sesion expiro. Volve a iniciar sesion e intenta de nuevo.');
+      return;
+    }
 
     // ── Llamar a nuestro backend ──
     const resp = await fetch(`${BACKEND_URL}/api/mp/crear-preferencia`, {
