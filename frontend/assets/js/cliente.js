@@ -597,7 +597,8 @@ async function elegirRol(rol){
   window.location.reload();
 }
 
-function cargarPerfil(user){const nombre=user.user_metadata?.full_name||user.email?.split('@')[0]||'Usuario';const inicial=nombre.charAt(0).toUpperCase();document.querySelectorAll('.perfil-av').forEach(el=>el.textContent=inicial);const elAv=document.getElementById('perfil-av');const elNombre=document.getElementById('perfil-nombre');const elEmail=document.getElementById('perfil-email');if(elAv)elAv.textContent=inicial;if(elNombre)elNombre.textContent=nombre;if(elEmail)elEmail.textContent=user.email||'';verificarAlertasCliente();}
+function cargarPerfil(user){const nombre=user.user_metadata?.full_name||user.email?.split('@')[0]||'Usuario';const inicial=nombre.charAt(0).toUpperCase();document.querySelectorAll('.perfil-av').forEach(el=>el.textContent=inicial);const elAv=document.getElementById('perfil-av');const elNombre=document.getElementById('perfil-nombre');const elEmail=document.getElementById('perfil-email');if(elAv)elAv.textContent=inicial;if(elNombre)elNombre.textContent=nombre;if(elEmail)elEmail.textContent=user.email||'';verificarAlertasCliente();
+const rol=user.user_metadata?.role;if(rol==='embajador'){const b=document.getElementById('btn-volver-embajador');if(b)b.style.display='flex';}}
 
 function verificarAlertasCliente(){
   const container=document.getElementById('alertas-cliente');

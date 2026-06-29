@@ -40,6 +40,10 @@ async function init() {
 function bindTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.dataset.tab === 'tienda') {
+        window.location.href = '/cliente/index.html';
+        return;
+      }
       document.querySelectorAll('.tab-btn, .tab-panel').forEach(el => el.classList.remove('active'));
       btn.classList.add('active');
       $(`tab-${btn.dataset.tab}`).classList.add('active');
