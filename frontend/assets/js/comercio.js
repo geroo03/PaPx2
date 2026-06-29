@@ -429,7 +429,22 @@ function detallePedido(p, advs, cadetesMap = {}) {
       ${p.costo_envio   ? `<span>Envio: ${formatARS(p.costo_envio)}</span>` : ''}
       ${propinaHTML}
       <span><strong>Total: ${formatARS(p.total ?? p.subtotal ?? 0)}</strong></span>
-    </div>${cadeteHTML}${notasHTML}${advsHTML}</div>`;
+    </div>${cadeteHTML}
+    <div style="margin-top:10px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;">
+      <div onclick="window.toggleChatComercio('${p.id}')" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;background:#f9f9f9;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span style="font-size:12px;font-weight:700;flex:1;">Chat con el cliente</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div id="chat-com-${p.id}" style="display:none;">
+        <div id="chat-com-msgs-${p.id}" style="height:160px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;background:#fafafa;"></div>
+        <div style="padding:8px;display:flex;gap:6px;border-top:1px solid #e0e0e0;">
+          <input id="chat-com-input-${p.id}" placeholder="Escribi..." style="flex:1;border:1px solid #ddd;border-radius:16px;padding:7px 12px;font-size:12px;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')window.enviarMsgComercio('${p.id}')"/>
+          <button onclick="window.enviarMsgComercio('${p.id}')" style="width:30px;height:30px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    </div>
+    ${notasHTML}${advsHTML}</div>`;
 }
 
 // Guardar nota del pedido — expuesta como global para onclick inline
@@ -1092,6 +1107,58 @@ window.guardarUbicacionComercio = async function() {
   }
 
   if (btn) { btn.disabled = false; btn.textContent = 'Guardar ubicacion'; }
+};
+
+// ─── CHAT PEDIDO (comercio ↔ cliente) ────────────────────────────────────────
+window.toggleChatComercio = async function(pedidoId) {
+  const chatEl = g('chat-com-' + pedidoId);
+  if (!chatEl) return;
+  const visible = chatEl.style.display !== 'none';
+  chatEl.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    const msgs = g('chat-com-msgs-' + pedidoId);
+    if (msgs && !msgs.dataset.loaded) {
+      msgs.dataset.loaded = '1';
+      const { data } = await sb.from('mensajes_pedido').select('*').eq('pedido_id', pedidoId).order('creado_at', { ascending: true }).limit(100);
+      msgs.innerHTML = '';
+      (data || []).forEach(m => appendMsgComercio(pedidoId, m));
+
+      sb.channel('chat-com-rt-' + pedidoId)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_pedido', filter: `pedido_id=eq.${pedidoId}` },
+          payload => { appendMsgComercio(pedidoId, payload.new); })
+        .subscribe();
+    }
+  }
+};
+
+function appendMsgComercio(pedidoId, msg) {
+  const container = g('chat-com-msgs-' + pedidoId);
+  if (!container) return;
+  const esMio = msg.rol_remitente === 'comercio';
+  const rolLabel = { cliente: 'Cliente', comercio: 'Vos', cadete: 'Cadete', admin: 'Admin' }[msg.rol_remitente] || msg.rol_remitente;
+  const hora = new Date(msg.creado_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;justify-content:${esMio ? 'flex-end' : 'flex-start'};`;
+  div.innerHTML = `<div style="max-width:80%;padding:7px 10px;border-radius:${esMio ? '10px 10px 4px 10px' : '4px 10px 10px 10px'};background:${esMio ? '#FF6B35' : '#e8e8e8'};color:${esMio ? '#fff' : '#111'};font-size:12px;line-height:1.4;">
+    ${!esMio ? `<div style="font-size:9px;font-weight:700;margin-bottom:1px;opacity:.7;">${esc(rolLabel)}</div>` : ''}
+    ${esc(msg.mensaje)}
+    <div style="font-size:8px;opacity:.5;text-align:right;margin-top:1px;">${hora}</div>
+  </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+window.enviarMsgComercio = async function(pedidoId) {
+  const input = g('chat-com-input-' + pedidoId);
+  if (!input || !input.value.trim()) return;
+  const texto = input.value.trim(); input.value = '';
+  const { error } = await sb.from('mensajes_pedido').insert({
+    pedido_id: pedidoId,
+    remitente_id: S.uid,
+    rol_remitente: 'comercio',
+    mensaje: texto,
+  });
+  if (error) showToast('Error enviando mensaje', 'error');
 };
 
 // ─── REALTIME ────────────────────────────────────────────────────────────────

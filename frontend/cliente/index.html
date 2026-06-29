@@ -273,6 +273,22 @@
     <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot3" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div><div class="tline" id="line3"></div></div><div><div class="tstep-lbl" id="lbl3" style="color:var(--gray-400);">Cadete en camino</div><div class="tstep-time" id="t3"></div></div></div>
     <div class="tstep"><div class="tstep-col"><div class="tdot" id="dot4" style="background:var(--gray-200);border:2px solid var(--gray-200);"></div></div><div><div class="tstep-lbl" id="lbl4" style="color:var(--gray-400);">Entregado</div><div class="tstep-time" id="t4"></div></div></div>
   </div>
+  <!-- Chat con comercio/cadete -->
+  <div id="chat-pedido-wrap" style="margin:0 18px 14px;background:#fff;border-radius:14px;border:1px solid var(--gray-100);overflow:hidden;">
+    <div onclick="toggleChatPedido()" style="padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid var(--gray-100);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span style="font-size:13px;font-weight:700;color:var(--black);flex:1;">Chat del pedido</span>
+      <span id="chat-pedido-badge" style="display:none;width:18px;height:18px;border-radius:50%;background:#FF6B35;color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;"></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div id="chat-pedido-body" style="display:none;">
+      <div id="chat-pedido-msgs" style="height:200px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;background:#fafafa;"></div>
+      <div style="padding:10px;display:flex;gap:8px;border-top:1px solid var(--gray-100);">
+        <input id="chat-pedido-input" placeholder="Escribi tu mensaje..." style="flex:1;border:1.5px solid var(--gray-200);border-radius:20px;padding:8px 14px;font-size:13px;outline:none;font-family:inherit;" onkeydown="if(event.key==='Enter')enviarMsgPedido()"/>
+        <button onclick="enviarMsgPedido()" style="width:36px;height:36px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
+    </div>
+  </div>
   <div id="btn-devolucion-wrap" style="display:none;padding:14px 18px 4px;"><button onclick="abrirDevolucion()" style="width:100%;background:linear-gradient(135deg,#DC2626,#EF4444);color:#fff;border:none;border-radius:14px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(220,38,38,.35);animation:pulseRed 2s infinite;display:flex;align-items:center;justify-content:center;gap:10px;"><span style="font-size:18px;"></span><div style="text-align:left;"><div>¿Tuviste un problema con tu pedido?</div><div style="font-size:11px;opacity:.85;margin-top:2px;">Tocá acá — lo resolvemos en 10 min</div></div><span style="font-size:16px;margin-left:auto;">›</span></button></div>
   <div style="height:20px;"></div>
 </div>

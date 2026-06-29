@@ -426,12 +426,14 @@ function renderTripActivo(container) {
                  border:1px solid rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-weight:700;">
           ${ICONS.pin} Ver ruta al Local
         </a>
+        ${renderChatCadete(v.id ?? v.pedido_id)}
       </div>`;
 
     document.body.insertAdjacentHTML('beforeend', alertBtnHtml);
     document.getElementById('viaje-alert-btn')?.addEventListener('click', () => {
       if (confirm('¿Reportar un problema con este viaje al administrador?')) toast('Reporte enviado.');
     });
+    initChatCadete(v.id ?? v.pedido_id);
     return;
   }
 
@@ -503,6 +505,7 @@ function renderTripActivo(container) {
                  border:1px solid rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-weight:700;">
           ${ICONS.pin} Ver ruta de Entrega
         </a>
+        ${renderChatCadete(v.id ?? v.pedido_id)}
 
         <!-- No-show: cliente no aparece -->
         <div id="noshow-wrap" style="margin-top:12px;">
@@ -532,6 +535,7 @@ function renderTripActivo(container) {
     document.getElementById('viaje-alert-btn')?.addEventListener('click', () => {
       if (confirm('¿Reportar un problema con este viaje al administrador?')) toast('Reporte enviado.');
     });
+    initChatCadete(v.id ?? v.pedido_id);
     return;
   }
 
@@ -1515,6 +1519,79 @@ function cerrarTutorial() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// CHAT DEL PEDIDO — cadete ↔ cliente/comercio
+// ═══════════════════════════════════════════════════════════════════════════════
+let _chatCadeteChannel = null;
+
+function renderChatCadete(pedidoId) {
+  if (!pedidoId) return '';
+  return `
+    <div style="margin-top:12px;border:1px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;">
+      <div onclick="toggleChatCadete()" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(255,255,255,0.03);">
+        ${ICONS.chat}
+        <span style="font-size:12px;font-weight:700;flex:1;">Chat del pedido</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div id="chat-cad-body" style="display:none;">
+        <div id="chat-cad-msgs" style="height:160px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px;background:rgba(0,0,0,0.2);"></div>
+        <div style="padding:8px;display:flex;gap:6px;">
+          <input id="chat-cad-input" placeholder="Escribi..." style="flex:1;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:7px 12px;font-size:12px;outline:none;background:rgba(255,255,255,0.05);color:#fff;font-family:inherit;" onkeydown="if(event.key==='Enter')enviarMsgCadete()"/>
+          <button onclick="enviarMsgCadete()" style="width:30px;height:30px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function initChatCadete(pedidoId) {
+  if (!pedidoId) return;
+  if (_chatCadeteChannel) { try { sb.removeChannel(_chatCadeteChannel); } catch {} }
+
+  const { data } = await sb.from('mensajes_pedido').select('*').eq('pedido_id', pedidoId).order('creado_at', { ascending: true }).limit(100);
+  const container = document.getElementById('chat-cad-msgs');
+  if (container) { container.innerHTML = ''; (data || []).forEach(m => appendMsgCadete(m)); }
+
+  _chatCadeteChannel = sb.channel('chat-cad-rt-' + pedidoId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_pedido', filter: `pedido_id=eq.${pedidoId}` },
+      payload => { appendMsgCadete(payload.new); })
+    .subscribe();
+}
+
+function appendMsgCadete(msg) {
+  const container = document.getElementById('chat-cad-msgs');
+  if (!container) return;
+  const esMio = msg.rol_remitente === 'cadete';
+  const rolLabel = { cliente: 'Cliente', comercio: 'Comercio', cadete: 'Vos', admin: 'Admin' }[msg.rol_remitente] || msg.rol_remitente;
+  const hora = new Date(msg.creado_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;justify-content:${esMio ? 'flex-end' : 'flex-start'};`;
+  div.innerHTML = `<div style="max-width:80%;padding:7px 10px;border-radius:${esMio ? '10px 10px 4px 10px' : '4px 10px 10px 10px'};background:${esMio ? '#FF6B35' : 'rgba(255,255,255,0.1)'};color:#fff;font-size:12px;line-height:1.4;">
+    ${!esMio ? `<div style="font-size:9px;font-weight:700;margin-bottom:1px;opacity:.7;">${rolLabel}</div>` : ''}
+    ${msg.mensaje}
+    <div style="font-size:8px;opacity:.5;text-align:right;margin-top:1px;">${hora}</div>
+  </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function toggleChatCadete() {
+  const body = document.getElementById('chat-cad-body');
+  if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+}
+
+async function enviarMsgCadete() {
+  const input = document.getElementById('chat-cad-input');
+  if (!input || !input.value.trim() || !activeTrip) return;
+  const texto = input.value.trim(); input.value = '';
+  const pedidoId = activeTrip.id ?? activeTrip.pedido_id;
+  await sb.from('mensajes_pedido').insert({
+    pedido_id: pedidoId,
+    remitente_id: cadeteUserId,
+    rol_remitente: 'cadete',
+    mensaje: texto,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ALERTAS DE COMPLETITUD — banners de lo que falta configurar
 // ═══════════════════════════════════════════════════════════════════════════════
 async function verificarAlertasCadete() {
@@ -1610,5 +1687,7 @@ Object.assign(window, {
   cerrarLiquidacion,
   enviarLiquidacion,
   cargarEfectivo,
+  toggleChatCadete,
+  enviarMsgCadete,
   toast,
 });

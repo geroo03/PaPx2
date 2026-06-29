@@ -460,6 +460,56 @@ function iniciarTracking(){
     .subscribe(status=>{
       console.log('[Tracking] Canal GPS suscripto:',status);
     });
+
+  // Chat del pedido en tiempo real
+  cargarMensajesPedido(pedidoId);
+  window._chatPedidoCh=sb.channel('chat-pedido-'+pedidoId)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'mensajes_pedido',filter:`pedido_id=eq.${pedidoId}`},
+      payload=>{agregarMsgPedidoUI(payload.new);})
+    .subscribe();
+}
+
+let _chatPedidoAbierto=false;
+function toggleChatPedido(){
+  _chatPedidoAbierto=!_chatPedidoAbierto;
+  const body=document.getElementById('chat-pedido-body');
+  if(body)body.style.display=_chatPedidoAbierto?'block':'none';
+  if(_chatPedidoAbierto){const msgs=document.getElementById('chat-pedido-msgs');if(msgs)msgs.scrollTop=msgs.scrollHeight;}
+}
+
+async function cargarMensajesPedido(pedidoId){
+  if(!pedidoId)return;
+  const{data}=await sb.from('mensajes_pedido').select('*').eq('pedido_id',pedidoId).order('creado_at',{ascending:true}).limit(100);
+  const container=document.getElementById('chat-pedido-msgs');
+  if(!container)return;
+  container.innerHTML='';
+  (data||[]).forEach(m=>agregarMsgPedidoUI(m));
+}
+
+function agregarMsgPedidoUI(msg){
+  const container=document.getElementById('chat-pedido-msgs');
+  if(!container)return;
+  const esCliente=msg.rol_remitente==='cliente';
+  const rolLabel={cliente:'Vos',comercio:'Comercio',cadete:'Cadete',admin:'Admin'}[msg.rol_remitente]||msg.rol_remitente;
+  const hora=new Date(msg.creado_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const div=document.createElement('div');
+  div.style.cssText=`display:flex;justify-content:${esCliente?'flex-end':'flex-start'};`;
+  div.innerHTML=`<div style="max-width:80%;padding:8px 12px;border-radius:${esCliente?'12px 12px 4px 12px':'4px 12px 12px 12px'};background:${esCliente?'#FF6B35':'#e8e8e8'};color:${esCliente?'#fff':'#111'};font-size:13px;line-height:1.4;">
+    ${!esCliente?`<div style="font-size:10px;font-weight:700;margin-bottom:2px;opacity:.7;">${rolLabel}</div>`:''}
+    ${msg.mensaje}
+    <div style="font-size:9px;opacity:.5;text-align:right;margin-top:2px;">${hora}</div>
+  </div>`;
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+}
+
+async function enviarMsgPedido(){
+  const input=document.getElementById('chat-pedido-input');
+  if(!input||!input.value.trim())return;
+  const texto=input.value.trim();input.value='';
+  const pedidoId=currentPedido?.id;if(!pedidoId)return;
+  const{data:{user}}=await sb.auth.getUser();if(!user)return;
+  await sb.from('mensajes_pedido').insert({pedido_id:pedidoId,remitente_id:user.id,rol_remitente:'cliente',mensaje:texto});
 }
 
 async function cargarPedidos(){
