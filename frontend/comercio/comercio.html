@@ -386,15 +386,16 @@
           <h1 class="page-title">Finanzas</h1>
         </div>
 
-        <div class="promo-banner">
-          <div class="promo-banner-text">
-            <div class="promo-banner-label">Disponible hasta el 01/08</div>
-            <div class="promo-banner-amount">$ 374.223</div>
-            <div class="promo-banner-sub">Acompañamos tu crecimiento con adelantos de dinero</div>
+        <div class="promo-banner" style="position:relative;opacity:.6;pointer-events:none;">
+          <div style="position:absolute;top:12px;right:16px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.4);padding:4px 12px;border-radius:20px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <span style="font-size:11px;font-weight:700;color:#fff;">Proximamente</span>
           </div>
-          <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4);">
-            Simular crédito
-          </button>
+          <div class="promo-banner-text">
+            <div class="promo-banner-label">Adelantos de dinero</div>
+            <div class="promo-banner-amount">Proximamente</div>
+            <div class="promo-banner-sub">Acompanamos tu crecimiento con adelantos de dinero</div>
+          </div>
         </div>
 
         <!-- Sub-tabs: Estado de Cuenta / Contrato -->
@@ -625,8 +626,12 @@
         <div class="tab-content promo-tab-content active" id="promo-tab-crear">
           <!-- Calculadora de descuento PaP — populada por JS en modo mock -->
           <div id="promo-calculadora-pap"></div>
+          <div style="background:#FFF8F5;border:1px solid #FFE0CC;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <div style="font-size:13px;color:#92400E;font-weight:600;">Las promociones estaran disponibles proximamente</div>
+          </div>
           <div class="section-title">Recomendado para tu local</div>
-          <div class="promo-cards-grid">
+          <div class="promo-cards-grid" style="opacity:.5;pointer-events:none;">
             <div class="promo-card">
               <div class="promo-card-icon"></div>
               <div class="promo-card-title">Adquiere nuevos usuarios</div>
@@ -659,7 +664,7 @@
           </div>
 
           <div class="section-title">Promociones y descuentos</div>
-          <div class="promo-cards-grid">
+          <div class="promo-cards-grid" style="opacity:.5;pointer-events:none;">
             <div class="promo-card" style="cursor:pointer" data-action="nueva-promo" data-tipo="descuento_porcentaje">
               <div class="promo-card-icon"></div>
               <div class="promo-card-title">Descuentos Fugaces</div>
