@@ -1009,10 +1009,22 @@ function obSelVeh(tipo) {
 
 async function verificarOnboarding() {
   if (!cadeteUserId) return;
+  const overlay = document.getElementById('onboarding-overlay');
+  // Mostrar el formulario de inmediato (optimista) en vez de esperar el round-trip
+  // de red para decidir si mostrarlo — eso causaba el retraso visible al cargar
+  // el panel. Se omite solo si ya sabemos (cache local) que completó el onboarding,
+  // para no generar un flash en cadetes ya onboardeados.
+  const yaCompletoCache = localStorage.getItem('pap_onboarding_completo') === 'true';
+  if (overlay && !yaCompletoCache) overlay.style.display = 'block';
   try {
     const { data } = await sb.from('cadetes').select('nombre, cvu, foto_dni_url, vehiculo, onboarding_completo').eq('auth_uid', cadeteUserId).maybeSingle();
-    if (data?.onboarding_completo) return;
-    document.getElementById('onboarding-overlay').style.display = 'block';
+    if (data?.onboarding_completo) {
+      localStorage.setItem('pap_onboarding_completo', 'true');
+      if (overlay) overlay.style.display = 'none';
+    } else {
+      localStorage.removeItem('pap_onboarding_completo');
+      if (overlay) overlay.style.display = 'block';
+    }
   } catch { }
 }
 
@@ -1110,6 +1122,7 @@ function bindOnboardingForm() {
       } catch {}
 
       cadeteVehiculo = _obVehiculo;
+      localStorage.setItem('pap_onboarding_completo', 'true');
       document.getElementById('onboarding-overlay').style.display = 'none';
       actualizarSelectorVehiculo();
       toast(`${ICONS.confetti} ¡Perfil completo! Ya podes recibir viajes`);
