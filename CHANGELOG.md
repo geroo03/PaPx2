@@ -2,6 +2,91 @@
 
 ---
 
+## [2.6.0] — 29–30 de junio 2026
+
+### Bugs críticos corregidos
+
+#### Auth y JWT
+- `authMiddleware.js`: cambiado de `supabase` (ANON client) a `supabaseAdmin` (SERVICE_ROLE) para validar tokens JWT — esto estaba causando 401 en TODOS los endpoints del backend (difundir, crear-preferencia, notificar-comercio, etc.)
+- `pago.html`: reescrita lógica de auth en `iniciarPago()` — ahora siempre llama `refreshSession()` primero antes de enviar el token a MercadoPago; si el backend devuelve 401 después del refresh muestra error claro con link a login
+
+#### Chat
+- RLS policy `mensajes_insert_partes` en `mensajes_pedido` comparaba `comercio_id = auth.uid()` pero `comercio_id` referencia `comercios.id` (no `auth.users.id`). Fix: JOIN a través de `comercios` chequeando `c.usuario_id = auth.uid()`. SQL en `supabase/migration-fix-mensajes-rls.sql`
+
+#### Cadete — buscarCadete no implementado
+- `buscarCadete(id)` era referenciada en `dispatchAction` pero no existía — el botón "Buscar cadete" no hacía nada. Implementada con fetch a `POST /api/pedidos/difundir`
+
+#### Cadete — "Sin cadetes disponibles" siempre
+- `difundirPedido` requería `activo = true AND disponible = true` pero `activo` nunca se seteaba
+- Fix: `togDisp()` ahora sincroniza `activo` junto con `disponible`; upsert de perfil incluye `activo: true`
+- Fix: query elimina requisito de `activo`, solo necesita `disponible = true`
+- Fix: fallback — si no hay cadetes con GPS en 10 km, notifica a TODOS los `disponible = true`
+- GPS cutoff extendido de 15 min a 30 min
+
+#### Tracking en tiempo real
+- `currentPedido.estado` nunca se actualizaba en memoria al aceptar el comercio, entonces `iniciarTracking` arrancaba desde el estado viejo
+- Fix: `pedidoConfirmadoPorComercio()` actualiza `currentPedido.estado = 'preparando'`
+- Fix: `iniciarTracking()` hace fetch inmediato del estado real desde Supabase al abrir
+- Fix: polling de respaldo cada 8s si Realtime no llega, se auto-cancela al detectar `entregado`
+
+#### Tracking — se repetía después de entregado
+- Poll de 5s ("esperar confirmación del comercio") tenía `clearInterval(poll)` DESPUÉS de `pedidoConfirmadoPorComercio()` — si la función tiraba error (elementos DOM no presentes), el catch lo tragaba y el poll corría para siempre
+- Fix: `clearInterval(poll)` movido ANTES de la llamada a la función
+- Fix: `pedidoConfirmadoPorComercio()` reescrita con optional chaining para no tirar nunca
+- Fix: flag `_entregadoYaVisto` — toast y rating popup ahora disparan UNA sola vez por sesión de tracking aunque `actualizarEstado('entregado')` se llame múltiples veces
+- Fix: `window.state.setPedido(null)` al detectar `entregado` limpia localStorage — el pedido ya no reaparece en la próxima carga de la app
+
+#### comercio.js — tabla incorrecta
+- `sb.from('comercio')` (singular) en 6 lugares referenciaba una tabla que no existe; la tabla real es `comercios` (plural). Esto causaba fallos silenciosos en abrirComercio, toggle abierto/cerrado, guardar horarios, guardar ubicación
+- Mi propio `replace_all` anterior para renombrar el bucket de Storage había pisado también las queries de BD. Corregido
+
+#### comercio.js — perfiles con FK equivocada
+- `sb.from('perfiles').select('id,...').in('id', cadeteIds)` buscaba perfiles por PK random (`id`) en lugar de por `usuario_id` (FK a auth.users). Los cadetes asignados a pedidos nunca aparecían con nombre/vehículo en el panel del comercio
+
+#### cliente.js — rating sin usuario_id
+- `enviarRating()` insertaba directo a `ratings` sin incluir `usuario_id` — fallaba con error 400 (columna NOT NULL). Redirigido al backend `POST /api/pedidos/valorar` que ya maneja todo correctamente
+
+---
+
+### Fotos y Storage
+
+#### Buckets creados en Supabase Storage
+- `productos` (público, 5 MB, image/*) — fotos de productos del menú
+- `cadetes-antecedentes` (privado, 10 MB, image/* + PDF) — DNI, carnet, seguro
+- `comercio` (público) — fotos de portada de tiendas
+
+#### Menú del cliente — fotos de productos
+- Reestructurado el render de cada ítem del menú: la imagen ahora va a la **izquierda** usando las clases CSS `.mi-img` / `.mi-left` que ya existían pero no se usaban. Antes la imagen iba dentro de `.mi-right` mezclada con precio y botón, haciéndola invisible visualmente
+
+#### Panel comercio — foto de portada
+- Nueva sección "Foto de portada" en la tab Configuración
+- Preview instantáneo al seleccionar archivo
+- Upload al bucket `comercio` con ruta `{comercio_id}/portada.{ext}`, `upsert: true`
+- Guarda URL pública en `comercios.imagen_url` — aparece inmediatamente en las tarjetas del cliente
+
+---
+
+### Performance y UX
+
+#### Cadete — arranque más rápido
+- `guardCadete()`: cambiado de `getUser()` (network round-trip) a `getSession()` (localStorage, instantáneo)
+- Init paralelo: `await Promise.all([verificarOnboarding(), cargarOfertas()])` en vez de secuencial
+
+#### Sonidos de notificación en bucle
+- `playBeep()` (comercio, nuevo pedido): ahora repite 6 veces × 0.5s = **3 segundos**
+- `sonarViaje()` (cadete, nuevo viaje): ahora repite la secuencia de 4 notas 5 veces = **~3 segundos**
+- Implementado con Web Audio API pre-programando todos los osciladores — timing exacto sin `setInterval`
+
+---
+
+### HTML
+
+#### cadete.html — estructura rota
+- 3 `</div>` de cierre huérfanos (restos de código eliminado en la sección de liquidaciones) cerraban prematuramente el div `.app`, dejando `sec-ia` y `sec-p` fuera del contenedor — la tab Perfil no renderizaba correctamente y el botón "Cerrar sesión" no era visible
+- Nav bar duplicado eliminado (dos `<div class="nav">` fijos en `bottom:0` superpuestos)
+
+---
+
 ## [2.5.0] — 25 de junio 2026
 
 ### Push Notifications
