@@ -28,6 +28,18 @@
     .loader{display:none;justify-content:center;margin-top:16px}
     .loader::after{content:'';width:24px;height:24px;border:3px solid #333;border-top-color:#FF6B35;border-radius:50%;animation:spin .6s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    /* email form */
+    .email-form{display:flex;flex-direction:column;gap:12px;text-align:left}
+    .email-form input{width:100%;background:#1a1a1a;color:#fff;border:1.5px solid #333;border-radius:12px;padding:14px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s}
+    .email-form input:focus{border-color:#FF6B35}
+    .email-form input::placeholder{color:#555}
+    .btn-registrar{width:100%;background:#FF6B35;color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s}
+    .btn-registrar:hover{opacity:.9}
+    .btn-registrar:disabled{opacity:.5;cursor:not-allowed}
+    .confirm-box{background:#0f2a1a;border:1.5px solid #1a5c30;border-radius:14px;padding:20px;text-align:center;display:none}
+    .confirm-box .icon{font-size:36px;margin-bottom:10px}
+    .confirm-box p{color:#aee;font-size:14px;line-height:1.6}
+    .confirm-box strong{color:#4dbb70}
   </style>
 </head>
 <body>
@@ -37,58 +49,76 @@
   </div>
 
   <h1>Unite como Cadete</h1>
-  <p class="sub">Empezá a repartir y ganar con Puerta a Puerta X.<br>Solo necesitás tu cuenta de Google.</p>
+  <p class="sub">Empezá a repartir y ganar con Puerta a Puerta X.</p>
+
+  <div style="margin-bottom:24px;text-align:left;">
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;color:#888;line-height:1.5;">
+      <input type="checkbox" id="chk-tyc-cadete" style="margin-top:3px;accent-color:#FF6B35;width:16px;height:16px;flex-shrink:0;">
+      Acepto los <a href="/legal.html" target="_blank" style="color:#FF6B35;font-weight:600;text-decoration:none;">terminos y condiciones</a> y la <a href="/legal.html" target="_blank" style="color:#FF6B35;font-weight:600;text-decoration:none;">politica de privacidad</a>
+    </label>
+  </div>
 
   <button class="btn-google" id="btn-google" onclick="loginConGoogle()">
     <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09A6.97 6.97 0 015.5 12c0-.72.13-1.42.34-2.09V7.07H2.18A11 11 0 001 12c0 1.78.43 3.46 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
     Continuar con Google
   </button>
 
+  <div class="divider">o registrate con email</div>
+
+  <div class="email-form" id="email-form">
+    <input type="email" id="inp-email" placeholder="Tu email" autocomplete="email">
+    <input type="password" id="inp-pass" placeholder="Contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+    <input type="password" id="inp-pass2" placeholder="Repetir contraseña" autocomplete="new-password">
+    <button class="btn-registrar" id="btn-registrar" onclick="registrarConEmail()">Crear cuenta como Cadete</button>
+  </div>
+
+  <div class="confirm-box" id="confirm-box">
+    <div class="icon">📧</div>
+    <p>Enviamos un email de confirmación a<br><strong id="confirm-email"></strong><br><br>Abrilo y tocá el enlace para activar tu cuenta. Luego podrás ingresar al panel.</p>
+  </div>
+
   <div class="loader" id="loader"></div>
   <div class="error-msg" id="err"></div>
 
-  <div class="divider">o</div>
+  <div class="divider">¿ya tenés cuenta?</div>
 
-  <button class="btn-email" onclick="location.href='/login.html'">
-    Ya tengo cuenta → Ingresar
-  </button>
+  <button class="btn-email" onclick="location.href='/login.html'">Ingresar →</button>
 
-  <div style="margin-top:20px;text-align:left;">
-    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px;color:#888;line-height:1.5;">
-      <input type="checkbox" id="chk-tyc-cadete" style="margin-top:3px;accent-color:#FF6B35;width:16px;height:16px;flex-shrink:0;">
-      Acepto los <a href="/legal.html" target="_blank" style="color:#FF6B35;font-weight:600;text-decoration:none;">terminos y condiciones</a> y la <a href="/legal.html" target="_blank" style="color:#FF6B35;font-weight:600;text-decoration:none;">politica de privacidad</a>
-    </label>
-  </div>
   <p class="note">
-    Despues de iniciar sesion completaras tus datos desde el panel.
+    Despues de registrarte completaras tus datos desde el panel.
   </p>
 </div>
 
 <script type="module">
 import { supabase as sb } from '../assets/js/config.js';
 
+const base = window.BACKEND_URL ?? '';
+
 function mostrarErr(msg) {
   const el = document.getElementById('err');
   if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function ocultarErr() {
+  const el = document.getElementById('err');
+  if (el) el.style.display = 'none';
+}
+function setLoading(on) {
+  document.getElementById('loader').style.display = on ? 'flex' : 'none';
+  document.getElementById('btn-google').disabled = on;
+  document.getElementById('btn-registrar').disabled = on;
 }
 
 window.loginConGoogle = async function() {
   const chk = document.getElementById('chk-tyc-cadete');
   if (chk && !chk.checked) { mostrarErr('Debes aceptar los terminos y condiciones.'); return; }
+  ocultarErr();
   localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
   localStorage.setItem('pap_pending_role', 'cadete');
-  const btn = document.getElementById('btn-google');
-  const loader = document.getElementById('loader');
-  btn.disabled = true;
-  loader.style.display = 'flex';
+  setLoading(true);
   try {
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Redirigir de vuelta a ESTA página para que el set-role ocurra acá
-        // antes de entrar a cadete.html. Si se redirige directo a cadete.html
-        // y Railway está frío o la red falla, el guard expulsa al usuario sin
-        // poder mostrar un error ni reintentar.
         redirectTo: window.location.origin + '/cadete/cadete.html',
         queryParams: { prompt: 'select_account' },
       }
@@ -96,30 +126,84 @@ window.loginConGoogle = async function() {
     if (error) throw error;
   } catch (e) {
     mostrarErr('Error: ' + (e.message || 'Intentá de nuevo.'));
-    btn.disabled = false;
-    loader.style.display = 'none';
+    setLoading(false);
   }
 };
 
-// Al volver de Google OAuth esta página recibe la sesión.
-// Asigna el rol de cadete acá (no en cadete.html) para que si falla
-// el backend se muestre el error sin expulsar al usuario.
+window.registrarConEmail = async function() {
+  const chk = document.getElementById('chk-tyc-cadete');
+  if (chk && !chk.checked) { mostrarErr('Debes aceptar los terminos y condiciones.'); return; }
+  ocultarErr();
+
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const pass2 = document.getElementById('inp-pass2').value;
+
+  if (!email) { mostrarErr('Ingresá tu email.'); return; }
+  if (pass.length < 6) { mostrarErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass !== pass2) { mostrarErr('Las contraseñas no coinciden.'); return; }
+
+  localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
+  localStorage.setItem('pap_pending_role', 'cadete');
+  setLoading(true);
+
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: { pending_role: 'cadete' },
+        emailRedirectTo: window.location.origin + '/cadete/registro-cadete.html',
+      },
+    });
+    if (error) throw error;
+
+    if (data.session) {
+      // Sin confirmación de email — asignar rol directamente
+      const resp = await fetch(`${base}/api/auth/set-role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ role: 'cadete' }),
+      });
+      if (resp.ok) {
+        localStorage.removeItem('pap_pending_role');
+        location.replace('cadete.html');
+        return;
+      }
+      const body = await resp.json().catch(() => ({}));
+      mostrarErr('Cuenta creada, pero no se pudo asignar el rol: ' + (body.error || `error ${resp.status}`) + '. Intentá de nuevo.');
+    } else {
+      // Email de confirmación enviado
+      document.getElementById('email-form').style.display = 'none';
+      const cb = document.getElementById('confirm-box');
+      document.getElementById('confirm-email').textContent = email;
+      cb.style.display = 'block';
+    }
+  } catch (e) {
+    if (e.message?.toLowerCase().includes('already registered')) {
+      mostrarErr('Ese email ya está registrado. Ingresá desde "Ingresar →".');
+    } else {
+      mostrarErr(e.message || 'Error al registrarse. Intentá de nuevo.');
+    }
+  }
+  setLoading(false);
+};
+
+// Volvió de confirmar email o de Google OAuth
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session?.user) return; // carga normal sin sesión, nada que hacer
+    if (!session?.user) return;
 
     const user = session.user;
-    const pendingRole = localStorage.getItem('pap_pending_role');
+    const pendingRole = localStorage.getItem('pap_pending_role') || user.user_metadata?.pending_role;
 
     if (pendingRole === 'cadete') {
-      // Volvió de Google OAuth — asignar rol antes de ir al panel
       const loader = document.getElementById('loader');
       const btn = document.getElementById('btn-google');
       if (loader) loader.style.display = 'flex';
       if (btn) btn.disabled = true;
       try {
-        const base = window.BACKEND_URL ?? '';
         const resp = await fetch(`${base}/api/auth/set-role`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
@@ -140,10 +224,9 @@ window.loginConGoogle = async function() {
       return;
     }
 
-    // Ya tiene rol cadete asignado → ir directo al panel
+    // Ya tiene sesión activa como cadete → ir al panel
     const role = user.user_metadata?.role;
     if (role === 'cadete') { location.replace('cadete.html'); return; }
-    // Verificar en perfiles por si el rol ya fue asignado en otra sesión
     try {
       const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', user.id).maybeSingle();
       if (perfil?.rol === 'cadete') { location.replace('cadete.html'); }
