@@ -161,11 +161,6 @@ function dispatchAction(t, originalEvent) {
     case 'open-modal-producto':  openModalProducto(); break;
     case 'save-producto':        saveProducto(); break;
     case 'close-modal':          closeAllModals(); break;
-    case 'trigger-upload':
-      // Guard: el click sintético del input burbujea hacia upload-zone y re-dispara
-      // esta acción. Si el origen ES el input, cortamos el bucle.
-      if (originalEvent?.target?.id !== 'input-imagen') g('input-imagen')?.click();
-      break;
     case 'select-categoria':     selectCategoria(id); break;
     case 'toggle-producto':      toggleProducto(t, id); break;
     case 'menu-subtab':          switchMenuSubTab(t.dataset.tab); break;

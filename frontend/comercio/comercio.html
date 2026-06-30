@@ -912,7 +912,7 @@
       </p>
 
       <!-- Upload zone -->
-      <div class="upload-zone" id="upload-zone" data-action="trigger-upload">
+      <div class="upload-zone" id="upload-zone">
         <div id="upload-preview-wrap" class="hidden">
           <img id="upload-preview" class="upload-preview" src="" alt="Preview">
         </div>
@@ -920,7 +920,7 @@
           <div class="upload-zone-icon"></div>
           <div class="upload-zone-text">Arrastrá una imagen o hacé clic para subir</div>
           <div class="upload-zone-hint">• 720 × 540 píxeles mínimos &nbsp;•&nbsp; PNG, JPEG, WEBP &nbsp;•&nbsp; Máx. 20MB</div>
-          <button type="button" class="upload-zone-btn" data-action="trigger-upload">
+          <button type="button" class="upload-zone-btn" onclick="event.stopPropagation(); document.getElementById('input-imagen').click();">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Subir una foto del plato
           </button>
