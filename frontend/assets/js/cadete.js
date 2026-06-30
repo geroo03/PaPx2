@@ -1440,7 +1440,15 @@ if ('Notification' in window && Notification.permission === 'default') {
   try {
     // getSession() usa el cache local — instantáneo, sin round-trip de red
     const { data: { session }, error } = await sb.auth.getSession();
-    const user = session?.user ?? null;
+    let user = session?.user ?? null;
+
+    // Fallback de red: justo después de volver de un OAuth (registro con Google)
+    // el cache local puede no haberse persistido todavía. getUser() valida contra
+    // el server, evita expulsar al cadete recién registrado a login por error.
+    if (!error && !user) {
+      const { data: { user: netUser } } = await sb.auth.getUser();
+      user = netUser ?? null;
+    }
 
     if (error || !user) {
       window._cadete_redirecting = true;
@@ -1456,6 +1464,26 @@ if ('Notification' in window && Notification.permission === 'default') {
         const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', user.id).maybeSingle();
         if (perfil?.rol) role = perfil.rol;
       } catch {}
+    }
+
+    // Recién registrado como cadete vía Google: el trigger de la DB le asignó
+    // 'cliente' por defecto porque OAuth no soporta pasar metadata de rol.
+    // Usamos el mismo endpoint que el onboarding para corregirlo antes del guard.
+    if (role !== 'cadete' && localStorage.getItem('pap_pending_role') === 'cadete') {
+      try {
+        const { data: { session: freshSession } } = await sb.auth.getSession();
+        const token = freshSession?.access_token;
+        if (token) {
+          const base = window.BACKEND_URL ?? '';
+          const resp = await fetch(`${base}/api/auth/set-role`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ role: 'cadete' }),
+          });
+          if (resp.ok) role = 'cadete';
+        }
+      } catch {}
+      localStorage.removeItem('pap_pending_role');
     }
 
     if (role && role !== 'cadete') {

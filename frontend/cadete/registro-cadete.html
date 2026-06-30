@@ -75,6 +75,9 @@ window.loginConGoogle = async function() {
     return;
   }
   localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
+  // Le indica a cadete.html que asigne rol=cadete apenas vuelva de Google,
+  // porque el trigger de la DB defaultea a 'cliente' cuando no hay metadata de rol (OAuth no la soporta).
+  localStorage.setItem('pap_pending_role', 'cadete');
   const btn = document.getElementById('btn-google');
   const loader = document.getElementById('loader');
   btn.disabled = true;
