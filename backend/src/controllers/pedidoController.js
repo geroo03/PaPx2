@@ -345,6 +345,19 @@ export async function getPedidoConCadete(req, res) {
         .eq('usuario_id', pedido.cadete_id)
         .single();
       cadete_perfil = perfil ?? null;
+
+      // El teléfono vive en 'cadetes' (lo carga el cadete desde su perfil), no en 'perfiles'.
+      // Solo el cliente dueño del pedido lo recibe — lo necesita para el botón "Llamar".
+      if (userId === pedido.cliente_id) {
+        const { data: cadeteRow } = await supabaseAdmin
+          .from('cadetes')
+          .select('telefono')
+          .eq('auth_uid', pedido.cadete_id)
+          .maybeSingle();
+        if (cadeteRow?.telefono) {
+          cadete_perfil = { ...(cadete_perfil ?? {}), telefono: cadeteRow.telefono };
+        }
+      }
     }
 
     // ── PASO 4: Armar respuesta con visibilidad controlada ────────────────────
@@ -461,10 +474,20 @@ export async function difundirPedido(req, res) {
       return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes disponibles. Pedile a un cadete que active el switch en su app.' });
     }
 
+    // Idempotencia: si este pedido ya tiene ofertas pendientes (doble-click en
+    // "Buscar cadete", reintento del front, etc.) no duplicar — un cadete no
+    // debe ver la misma oferta dos veces.
+    const { data: ofertasExistentes } = await supabaseAdmin
+      .from('ofertas_cadetes')
+      .select('cadete_id')
+      .eq('pedido_id', pedidoId)
+      .eq('estado', 'pendiente');
+    const yaOfertados = new Set((ofertasExistentes || []).map(o => o.cadete_id));
+
     const posMap = Object.fromEntries((posiciones || []).map(p => [p.cadete_id, p]));
 
     // Armar candidatos: con GPS → ordenar por cercanía; sin GPS → distancia 0 (fallback)
-    let candidatos = todosDisp.map(c => {
+    let candidatos = todosDisp.filter(c => !yaOfertados.has(c.auth_uid)).map(c => {
       const pos = posMap[c.auth_uid];
       const veh = (c.vehiculo ?? '').toLowerCase();
       const base = TARIFA_BASE_VEHICULO[veh] ?? TARIFA_BASE_VEHICULO.bici;
@@ -501,6 +524,10 @@ export async function difundirPedido(req, res) {
         estado:             'pendiente',
       };
     });
+
+    if (!ofertas.length) {
+      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Los cadetes cercanos ya tienen esta oferta pendiente.' });
+    }
 
     const { error: insertErr } = await supabaseAdmin
       .from('ofertas_cadetes')

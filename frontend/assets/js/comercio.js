@@ -156,7 +156,7 @@ function dispatchAction(t, originalEvent) {
     case 'aceptar-pedido':       aceptarPedido(id); break;
     case 'rechazar-pedido':      rechazarPedido(id); break;
     case 'marcar-listo':         marcarListo(id); break;
-    case 'buscar-cadete':        buscarCadete(id); break;
+    case 'buscar-cadete':        buscarCadete(id, t); break;
     case 'toggle-row':           togglePedidoRow(id); break;
     case 'open-modal-producto':  openModalProducto(); break;
     case 'save-producto':        saveProducto(); break;
@@ -516,7 +516,11 @@ async function marcarListo(id) {
   showToast('Pedido listo para despachar ✓'); loadPedidos();
 }
 
-async function buscarCadete(id) {
+async function buscarCadete(id, btnEl) {
+  // Guard contra doble-click / doble-dispatch: sin esto, dos llamadas casi
+  // simultáneas a /api/pedidos/difundir insertan dos ofertas idénticas para
+  // el mismo cadete (el backend no era idempotente).
+  if (btnEl) { if (btnEl.dataset.buscando === '1') return; btnEl.dataset.buscando = '1'; btnEl.disabled = true; }
   showToast('Buscando cadete disponible...', 'info');
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -532,6 +536,7 @@ async function buscarCadete(id) {
     const n = data.difundido ?? data.notificados ?? 0;
     showToast(n > 0 ? `Notificado a ${n} cadete${n !== 1 ? 's' : ''} cercano${n !== 1 ? 's' : ''}` : (data.mensaje || 'Sin cadetes disponibles ahora'), n > 0 ? 'success' : 'info');
   } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  finally { if (btnEl) { btnEl.dataset.buscando = '0'; btnEl.disabled = false; } }
 }
 
 function updateNavBadge() {

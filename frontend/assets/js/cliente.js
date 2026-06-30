@@ -225,8 +225,10 @@ function initAutocomplete(){}function autocompletarDireccion(){}function selecci
 let starSeleccionada=0;
 function mostrarRating(comercioNombre){starSeleccionada=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('rating-comentario').value='';document.getElementById('rating-comercio-nombre').textContent=`Calificá a ${comercioNombre}`;document.getElementById('rating-screen').classList.add('visible');}
 function selStar(n){starSeleccionada=n;document.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('active',i<n));}
-async function enviarRating(){if(!starSeleccionada){showToast('Elegí una puntuación');return;}const comentario=document.getElementById('rating-comentario').value.trim();try{const{data:{session}}=await sb.auth.getSession();if(session?.access_token){await fetch((window.BACKEND_URL||'')+'/api/pedidos/valorar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({pedido_id:currentPedido?.id,tipo:'comercio',estrellas:starSeleccionada,comentario})});}}catch(e){}cerrarRating();showToast(`${ICONS.check} ¡Gracias por tu calificación!`,3000);} 
-function cerrarRating(){document.getElementById('rating-screen').classList.remove('visible');}
+async function enviarRating(){if(!starSeleccionada){showToast('Elegí una puntuación');return;}const comentario=document.getElementById('rating-comentario').value.trim();try{const{data:{session}}=await sb.auth.getSession();if(session?.access_token){await fetch((window.BACKEND_URL||'')+'/api/pedidos/valorar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({pedido_id:currentPedido?.id,tipo:'comercio',estrellas:starSeleccionada,comentario})});}}catch(e){}showToast(`${ICONS.check} ¡Gracias por tu calificación!`,3000);cerrarRating();}
+// Cierra el overlay de rating y vuelve a "Mis pedidos" — antes se quedaba en la
+// pantalla de tracking del pedido ya entregado, tanto al calificar como al saltear.
+function cerrarRating(){document.getElementById('rating-screen').classList.remove('visible');go('pedidos');}
 
 const menusFallback={};
 
@@ -359,19 +361,34 @@ async function fetchPedidoConCadete(pedidoId){
 }
 
 // 4d: Poblar card de cadete en el tracking view con datos del perfil
+let cadeteTelefonoActual=null;
 function poblarCadeteCard(pedido){
   if(!pedido||!pedido.cadete_perfil)return;
   const p=pedido.cadete_perfil;
-  const cadNombre=document.getElementById('cad-nombre');
+  const cadNombre=document.getElementById('cad-name');
   const cadSub=document.getElementById('cad-sub');
-  const cadAvatar=document.getElementById('cad-avatar');
+  const cadAvatar=document.getElementById('cad-av');
+  const btnLlamar=document.getElementById('btn-llamar-cadete');
   if(cadNombre){const nombre=[p.nombre,p.apellido].filter(Boolean).join(' ');cadNombre.textContent=nombre||'Tu repartidor';}
   if(cadSub&&!cadSub.textContent.includes('km')){const veh=[p.vehiculo,p.color].filter(Boolean).join(' · ');if(veh)cadSub.textContent=veh;}
-  if(cadAvatar&&p.avatar_url){cadAvatar.src=p.avatar_url;cadAvatar.style.display='block';}
+  if(cadAvatar&&p.avatar_url){cadAvatar.style.backgroundImage=`url('${p.avatar_url}')`;}
+  cadeteTelefonoActual=p.telefono||null;
+  if(btnLlamar){
+    btnLlamar.disabled=!cadeteTelefonoActual;
+    btnLlamar.style.opacity=cadeteTelefonoActual?'1':'.5';
+    btnLlamar.style.cursor=cadeteTelefonoActual?'pointer':'not-allowed';
+  }
+}
+function llamarCadete(){
+  if(!cadeteTelefonoActual){showToast('El cadete todavía no cargó su teléfono');return;}
+  window.location.href=`tel:${cadeteTelefonoActual.replace(/[^\d+]/g,'')}`;
 }
 
 function iniciarTracking(){
   // ── Limpiar sesión de tracking anterior ──────────────────────────────────
+  cadeteTelefonoActual=null;
+  const _btnLlamarInit=document.getElementById('btn-llamar-cadete');
+  if(_btnLlamarInit){_btnLlamarInit.disabled=true;_btnLlamarInit.style.opacity='.5';_btnLlamarInit.style.cursor='not-allowed';}
   if(trackInterval){clearInterval(trackInterval);trackInterval=null;}
   if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
   if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
