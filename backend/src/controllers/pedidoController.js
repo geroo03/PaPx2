@@ -434,25 +434,7 @@ export async function difundirPedido(req, res) {
       .select('cadete_id, latitud, longitud')
       .gte('ultima_actualizacion', cutoff);
 
-    if (!posiciones?.length) {
-      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes con GPS activo.' });
-    }
-
     // ── PASO 4: Filtrar por cadetes disponibles ───────────────────────────────
-    const posMap = Object.fromEntries(posiciones.map(p => [p.cadete_id, p]));
-
-    const { data: cadetesDisp } = await supabaseAdmin
-      .from('cadetes')
-      .select('auth_uid, nombre, vehiculo')
-      .eq('disponible', true)
-      .eq('activo', true)
-      .in('auth_uid', Object.keys(posMap));
-
-    if (!cadetesDisp?.length) {
-      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes disponibles en la zona.' });
-    }
-
-    // ── PASO 5: Haversine — ordenar por cercanía ──────────────────────────────
     function haversineKm(lat1, lng1, lat2, lng2) {
       const R    = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -469,29 +451,36 @@ export async function difundirPedido(req, res) {
     const TARIFA_POR_KM = 250;
     const TARIFA_BASE_VEHICULO = { moto: 1800, bici: 1200 };
 
-    const candidatos = cadetesDisp
-      .map(c => {
-        const pos = posMap[c.auth_uid];
-        const veh = (c.vehiculo ?? '').toLowerCase();
-        const base = TARIFA_BASE_VEHICULO[veh] ?? TARIFA_BASE_VEHICULO.bici;
-        return {
-          ...c,
-          tarifa_base: base,
-          distancia_km: haversineKm(
-            Number(pos.latitud), Number(pos.longitud),
-            comLat, comLng,
-          ),
-        };
-      })
-      .filter(c => c.distancia_km <= RADIO_MAX_KM)
-      .sort((a, b) => a.distancia_km - b.distancia_km)
-      .slice(0, MAX_OFERTAS);
+    // Todos los cadetes con disponible=true (activo es opcional para mayor cobertura)
+    const { data: todosDisp } = await supabaseAdmin
+      .from('cadetes')
+      .select('auth_uid, nombre, vehiculo')
+      .eq('disponible', true);
 
-    if (!candidatos.length) {
-      return res.status(200).json({
-        ok: true, difundido: 0,
-        mensaje: `Sin cadetes dentro del radio de ${RADIO_MAX_KM} km.`,
-      });
+    if (!todosDisp?.length) {
+      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes disponibles. Pedile a un cadete que active el switch en su app.' });
+    }
+
+    const posMap = Object.fromEntries((posiciones || []).map(p => [p.cadete_id, p]));
+
+    // Armar candidatos: con GPS → ordenar por cercanía; sin GPS → distancia 0 (fallback)
+    let candidatos = todosDisp.map(c => {
+      const pos = posMap[c.auth_uid];
+      const veh = (c.vehiculo ?? '').toLowerCase();
+      const base = TARIFA_BASE_VEHICULO[veh] ?? TARIFA_BASE_VEHICULO.bici;
+      const distancia_km = pos
+        ? haversineKm(Number(pos.latitud), Number(pos.longitud), comLat, comLng)
+        : 0; // sin GPS → incluir igual con distancia desconocida
+      return { ...c, tarifa_base: base, distancia_km, tiene_gps: !!pos };
+    });
+
+    // Si hay cadetes con GPS, filtrar por radio; si no hay ninguno con GPS, notificar a todos
+    const conGps = candidatos.filter(c => c.tiene_gps && c.distancia_km <= RADIO_MAX_KM);
+    if (conGps.length > 0) {
+      candidatos = conGps.sort((a, b) => a.distancia_km - b.distancia_km).slice(0, MAX_OFERTAS);
+    } else {
+      // Fallback: notificar a todos los disponibles (sin importar GPS ni distancia)
+      candidatos = candidatos.slice(0, MAX_OFERTAS);
     }
 
     const ofertas = candidatos.map(c => {

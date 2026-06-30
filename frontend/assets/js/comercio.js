@@ -535,7 +535,7 @@ async function buscarCadete(id) {
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) { showToast(data.error || 'Error al buscar cadete', 'error'); return; }
     const n = data.difundido ?? data.notificados ?? 0;
-    showToast(n > 0 ? `Notificado a ${n} cadete${n !== 1 ? 's' : ''} cercano${n !== 1 ? 's' : ''}` : 'Sin cadetes disponibles ahora', n > 0 ? 'success' : 'info');
+    showToast(n > 0 ? `Notificado a ${n} cadete${n !== 1 ? 's' : ''} cercano${n !== 1 ? 's' : ''}` : (data.mensaje || 'Sin cadetes disponibles ahora'), n > 0 ? 'success' : 'info');
   } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
