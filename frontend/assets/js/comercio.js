@@ -295,8 +295,8 @@ async function loadPedidos() {
   try {
     const cadeteIds = [...new Set((peds||[]).filter(p=>p.cadete_id).map(p=>p.cadete_id))];
     if (cadeteIds.length) {
-      const { data: perfs } = await sb.from('perfiles').select('id,nombre,apellido,vehiculo,color,avatar_url').in('id', cadeteIds);
-      (perfs||[]).forEach(pf => { S.cadetesMap[pf.id] = pf; });
+      const { data: perfs } = await sb.from('perfiles').select('usuario_id,nombre,apellido,vehiculo,color,avatar_url').in('usuario_id', cadeteIds);
+      (perfs||[]).forEach(pf => { S.cadetesMap[pf.usuario_id] = pf; });
     }
   } catch { /* RLS puede no permitirlo todavía — se muestra sin info de cadete */ }
   hideLoading('pedidos-loading'); showTableBody('tabla-pedidos');
@@ -790,6 +790,25 @@ function loadContratoData() {
   if (!cont) return;
 
   cont.innerHTML = `
+    <!-- Foto de portada -->
+    <div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:20px;margin-bottom:20px;">
+      <h3 style="font-size:15px;font-weight:800;margin-bottom:4px;">Foto de portada</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:14px;">Es la imagen que ven los clientes en la tarjeta de tu comercio. Usá una foto cuadrada de buena calidad (mín. 400×400 px).</p>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div id="ct-foto-preview-wrap" style="width:90px;height:90px;border-radius:12px;overflow:hidden;background:#f5f5f5;flex-shrink:0;border:1px solid #eee;">
+          ${com.imagen_url ? `<img id="ct-foto-preview" src="${esc(com.imagen_url)}" style="width:100%;height:100%;object-fit:cover;"/>` : `<div id="ct-foto-preview" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:28px;"></div>`}
+        </div>
+        <div style="flex:1;">
+          <label style="display:inline-flex;align-items:center;gap:8px;background:#FF6B35;color:#fff;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;">
+            Elegir foto
+            <input type="file" id="ct-foto-file" accept="image/*" style="display:none;" onchange="window.previsualizarFotoComercio(this)"/>
+          </label>
+          <button onclick="window.subirFotoComercio()" id="ct-foto-btn" style="display:none;margin-left:8px;background:#111;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;">Guardar foto</button>
+          <div id="ct-foto-msg" style="font-size:12px;color:#888;margin-top:8px;">Formatos: JPG, PNG, WEBP · Máx 5 MB</div>
+        </div>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:16px 0;">
       <!-- Contrato -->
       <div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:20px;">
@@ -874,6 +893,45 @@ window.guardarContrato = async function() {
   S.comercio = { ...S.comercio, ...payload };
   const msg = g('ct-msg'); if (msg) { msg.textContent = 'Datos guardados'; setTimeout(() => msg.textContent = '', 3000); }
   showToast('Datos del contrato guardados');
+};
+
+window.previsualizarFotoComercio = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview = g('ct-foto-preview');
+    if (preview) { preview.outerHTML = `<img id="ct-foto-preview" src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;"/>`; }
+    const btn = g('ct-foto-btn'); if (btn) btn.style.display = 'inline-block';
+    const msg = g('ct-foto-msg'); if (msg) msg.textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.subirFotoComercio = async function() {
+  const input = g('ct-foto-file');
+  const file = input?.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('La foto no puede superar 5 MB', 'error'); return; }
+  const btn = g('ct-foto-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Subiendo...'; }
+  try {
+    const ext  = file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `${S.cid}/portada.${ext}`;
+    const { error: upErr } = await sb.storage.from('comercio').upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) throw new Error(upErr.message);
+    const { data: urlData } = sb.storage.from('comercio').getPublicUrl(path);
+    const imagen_url = urlData?.publicUrl ?? null;
+    const { error: dbErr } = await sb.from('comercios').update({ imagen_url }).eq('id', S.cid);
+    if (dbErr) throw new Error(dbErr.message);
+    S.comercio = { ...S.comercio, imagen_url };
+    const msg = g('ct-foto-msg'); if (msg) msg.textContent = '¡Foto guardada!';
+    showToast('Foto de portada actualizada');
+  } catch(e) {
+    showToast('Error subiendo foto: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar foto'; }
+  }
 };
 
 function setFinFilter(period) {
@@ -1249,12 +1307,15 @@ function handleRealtimePedido(payload) {
 function playBeep() {
   try {
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+    const beepLen = 0.35, interval = 0.5, count = 6; // 6 × 0.5s = 3s
+    for (let i = 0; i < count; i++) {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime + i * interval);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * interval);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * interval + beepLen);
+      osc.start(ctx.currentTime + i * interval); osc.stop(ctx.currentTime + i * interval + beepLen);
+    }
   } catch (_) {}
 }
 

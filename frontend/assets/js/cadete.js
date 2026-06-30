@@ -796,19 +796,27 @@ function iniciarRealtimeCadete() {
 
 function sonarViaje() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [784, 659, 784, 880].forEach((freq, i) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.12 + 0.15);
-      osc.start(ctx.currentTime + i * 0.12);
-      osc.stop(ctx.currentTime + i * 0.12 + 0.15);
-    });
+    const ctx   = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [784, 659, 784, 880];
+    const noteStep = 0.12, noteDur = 0.15;
+    const seqLen = notes.length * noteStep; // 0.48s
+    const seqGap = 0.10;                   // gap between repeats
+    const reps   = 5;                      // 5 × (0.48 + 0.10) = 2.9s ≈ 3s
+    for (let r = 0; r < reps; r++) {
+      notes.forEach((freq, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        const t = ctx.currentTime + r * (seqLen + seqGap) + i * noteStep;
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + noteDur);
+        osc.start(t);
+        osc.stop(t + noteDur);
+      });
+    }
   } catch {}
 }
 

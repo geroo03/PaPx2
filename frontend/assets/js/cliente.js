@@ -225,12 +225,12 @@ function initAutocomplete(){}function autocompletarDireccion(){}function selecci
 let starSeleccionada=0;
 function mostrarRating(comercioNombre){starSeleccionada=0;document.querySelectorAll('.star').forEach(s=>s.classList.remove('active'));document.getElementById('rating-comentario').value='';document.getElementById('rating-comercio-nombre').textContent=`Calificá a ${comercioNombre}`;document.getElementById('rating-screen').classList.add('visible');}
 function selStar(n){starSeleccionada=n;document.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('active',i<n));}
-async function enviarRating(){if(!starSeleccionada){showToast('Elegí una puntuación');return;}const comentario=document.getElementById('rating-comentario').value.trim();try{await sb.from('ratings').insert([{comercio_id:currentComercio?.id,pedido_id:currentPedido?.id,rating:starSeleccionada,comentario}]);}catch(e){}cerrarRating();showToast(`${ICONS.check} ¡Gracias por tu calificación!`,3000);} 
+async function enviarRating(){if(!starSeleccionada){showToast('Elegí una puntuación');return;}const comentario=document.getElementById('rating-comentario').value.trim();try{const{data:{session}}=await sb.auth.getSession();if(session?.access_token){await fetch((window.BACKEND_URL||'')+'/api/pedidos/valorar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({pedido_id:currentPedido?.id,tipo:'comercio',estrellas:starSeleccionada,comentario})});}}catch(e){}cerrarRating();showToast(`${ICONS.check} ¡Gracias por tu calificación!`,3000);} 
 function cerrarRating(){document.getElementById('rating-screen').classList.remove('visible');}
 
 const menusFallback={};
 
-async function abrirComercio(id){const com=allComercios.find(c=>c.id===id);if(!com)return;currentComercio=com;window.state.cart={};document.getElementById('det-name').textContent=com.nombre;document.getElementById('det-meta').textContent=`${com.abierto_ahora?'Abierto':'Cerrado'} · ${com.rating} · ${com.total_pedidos||0} pedidos · Envio desde $1.200`;document.getElementById('cart-comercio-name').textContent=com.nombre;document.getElementById('cart-float').style.display='none';document.getElementById('ratings-comercio').style.display='none';go('detail');cargarRatingsComercio(id);try{const[{data,error},{data:catData}]=await Promise.all([window.sb.from('productos').select('*').eq('comercio_id',id).eq('disponible',true),window.sb.from('categorias_producto').select('id,nombre').eq('comercio_id',id)]);if(error){console.error('[PaP] Error cargando productos:',error.message);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">'+(ICONS.warn||'')+'</div><p>Error al cargar el menú. Intentá de nuevo.</p></div>';return;}const cerradoBanner=!com.abierto_ahora?'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 16px;margin-bottom:12px;font-size:13px;font-weight:600;color:#DC2626;text-align:center;">Cerrado ahora — podés explorar el menú pero no hacer pedidos.</div>':'';if(!data||!data.length){document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="empty"><div class="big"></div><p>Este comercio no tiene productos disponibles.</p></div>';return;}const catMap=Object.fromEntries((catData||[]).map(c=>[c.id,c.nombre]));const cats=[...new Set(data.map(p=>p.categoria_id||'General'))];document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="section-card">'+cats.map(cat=>`<div class="menu-cat-label">${catMap[cat]||cat}</div>${data.filter(p=>(p.categoria_id||'General')===cat).map(p=>{const precio=Math.round(Number(p.precio_base??p.precio??0)*1.15);const img=p.imagen_url?`<img src="${p.imagen_url}" style="width:54px;height:54px;object-fit:cover;border-radius:10px;flex-shrink:0;margin-left:8px;" loading="lazy"/>`:'';const addDisabled=!com.abierto_ahora?' disabled style="opacity:.4;cursor:not-allowed;"':'';return`<div class="menu-item"><div style="flex:1;min-width:0;"><div class="mi-name">${p.nombre}</div><div class="mi-desc">${p.descripcion||''}</div></div><div class="mi-right">${img}<div class="mi-price">$${precio.toLocaleString('es-AR')}</div><button class="add-btn" onclick="addCart('${p.id}','${p.nombre.replace(/'/g,"\\'")}',${precio})"${addDisabled}>+</button></div></div>`;}).join('')}`).join('')+'</div>';}catch(e){console.error('[PaP] Excepción al cargar productos:',e);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">'+(ICONS.warn||'')+'</div><p>No se pudo cargar el menú. Revisá tu conexión.</p></div>';}}
+async function abrirComercio(id){const com=allComercios.find(c=>c.id===id);if(!com)return;currentComercio=com;window.state.cart={};document.getElementById('det-name').textContent=com.nombre;document.getElementById('det-meta').textContent=`${com.abierto_ahora?'Abierto':'Cerrado'} · ${com.rating} · ${com.total_pedidos||0} pedidos · Envio desde $1.200`;document.getElementById('cart-comercio-name').textContent=com.nombre;document.getElementById('cart-float').style.display='none';document.getElementById('ratings-comercio').style.display='none';go('detail');cargarRatingsComercio(id);try{const[{data,error},{data:catData}]=await Promise.all([window.sb.from('productos').select('*').eq('comercio_id',id).eq('disponible',true),window.sb.from('categorias_producto').select('id,nombre').eq('comercio_id',id)]);if(error){console.error('[PaP] Error cargando productos:',error.message);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">'+(ICONS.warn||'')+'</div><p>Error al cargar el menú. Intentá de nuevo.</p></div>';return;}const cerradoBanner=!com.abierto_ahora?'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 16px;margin-bottom:12px;font-size:13px;font-weight:600;color:#DC2626;text-align:center;">Cerrado ahora — podés explorar el menú pero no hacer pedidos.</div>':'';if(!data||!data.length){document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="empty"><div class="big"></div><p>Este comercio no tiene productos disponibles.</p></div>';return;}const catMap=Object.fromEntries((catData||[]).map(c=>[c.id,c.nombre]));const cats=[...new Set(data.map(p=>p.categoria_id||'General'))];document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="section-card">'+cats.map(cat=>`<div class="menu-cat-label">${catMap[cat]||cat}</div>${data.filter(p=>(p.categoria_id||'General')===cat).map(p=>{const precio=Math.round(Number(p.precio_base??p.precio??0)*1.15);const imgEl=p.imagen_url?`<img class="mi-img" src="${p.imagen_url}" loading="lazy" onerror="this.style.display='none'"/>`:`<div class="mi-img-emoji">🍽️</div>`;const addDisabled=!com.abierto_ahora?' disabled style="opacity:.4;cursor:not-allowed;"':'';return`<div class="menu-item"><div class="mi-left">${imgEl}<div class="mi-info"><div class="mi-name">${p.nombre}</div><div class="mi-desc">${p.descripcion||''}</div></div></div><div class="mi-right"><div class="mi-price">$${precio.toLocaleString('es-AR')}</div><button class="add-btn" onclick="addCart('${p.id}','${p.nombre.replace(/'/g,"\\'")}',${precio})"${addDisabled}>+</button></div></div>`;}).join('')}`).join('')+'</div>';}catch(e){console.error('[PaP] Excepción al cargar productos:',e);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">'+(ICONS.warn||'')+'</div><p>No se pudo cargar el menú. Revisá tu conexión.</p></div>';}}
 
 function addCart(id,nombre,precio){if(!window.state.cart[id])window.state.cart[id]={nombre,precio,qty:0};window.state.cart[id].qty++;const qtyRow=document.getElementById(`qty-row-${id}`);const qtyN=document.getElementById(`qty-n-${id}`);if(qtyRow)qtyRow.style.display='flex';if(qtyN)qtyN.textContent=window.state.cart[id].qty;actualizarCartFloat();showToast('Agregado al carrito');}
 function addCartMenu(id,nombre,precio){addCart(id,nombre,precio);}
@@ -246,11 +246,11 @@ function mostrarConfirmado(numPedido){
 }
 function pedidoConfirmadoPorComercio(){
   if(currentPedido)currentPedido.estado='preparando';
-  document.getElementById('conf-icono').innerHTML=ICONS.confetti;
-  document.getElementById('conf-titulo').textContent='¡Pedido confirmado!';
-  document.getElementById('conf-sub').textContent='El comercio aceptó tu pedido.\nYa está siendo preparado';
-  document.getElementById('conf-btn').style.display='block';
-  document.getElementById('conf-loader').style.display='none';
+  const ci=document.getElementById('conf-icono');if(ci)ci.innerHTML=ICONS.confetti;
+  const ct=document.getElementById('conf-titulo');if(ct)ct.textContent='¡Pedido confirmado!';
+  const cs=document.getElementById('conf-sub');if(cs)cs.textContent='El comercio aceptó tu pedido.\nYa está siendo preparado';
+  const cb=document.getElementById('conf-btn');if(cb)cb.style.display='block';
+  const cl=document.getElementById('conf-loader');if(cl)cl.style.display='none';
 }
 function irAlTracking(){document.getElementById('s-confirmado').classList.remove('visible');iniciarTracking();go('tracking');}
 function actualizarCartFloat(){const items=Object.values(window.state.cart);const total=items.reduce((s,i)=>s+i.precio*i.qty,0);const count=items.reduce((s,i)=>s+i.qty,0);const f=document.getElementById('cart-float');if(count>0){f.style.display='flex';document.getElementById('cf-count').textContent=`Ver carrito (${count} producto${count>1?'s':''})`;document.getElementById('cf-total').textContent=`$${total.toLocaleString('es-AR')}`;}else{f.style.display='none';}}
@@ -330,7 +330,7 @@ async function confirmarPedido(){
     const poll=setInterval(async()=>{
       try{
         const{data}=await sb.from('pedidos').select('estado').eq('id',pedidoId).single();
-        if(data?.estado==='preparando'||data?.estado==='en_camino'||data?.estado==='entregado'){pedidoConfirmadoPorComercio();clearInterval(poll);}
+        if(data?.estado==='preparando'||data?.estado==='en_camino'||data?.estado==='entregado'){clearInterval(poll);pedidoConfirmadoPorComercio();}
       }catch{}
     },5000);
   }
@@ -413,6 +413,7 @@ function iniciarTracking(){
   };
 
   // ── Actualizar UI según el estado real del pedido ─────────────────────────
+  let _entregadoYaVisto=false;
   const actualizarEstado=estado=>{
     if(!estado)return;
     if(['en_preparacion','preparando'].includes(estado)){
@@ -445,9 +446,15 @@ function iniciarTracking(){
       if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
       if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
       if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
-      showToast('¡Tu pedido fue entregado!',3000);
-      try{mostrarBotonDevolucion();}catch{}
-      setTimeout(()=>{try{mostrarRating(currentComercio?.nombre||'el comercio');}catch{}},1000);
+      // Limpiar pedido del localStorage para que no reaparezca en próxima carga
+      if(window.state)window.state.setPedido(null);
+      // Toast y rating solo una vez por sesión
+      if(!_entregadoYaVisto){
+        _entregadoYaVisto=true;
+        showToast('¡Tu pedido fue entregado!',3000);
+        try{mostrarBotonDevolucion();}catch{}
+        setTimeout(()=>{try{mostrarRating(currentComercio?.nombre||'el comercio');}catch{}},1000);
+      }
     }
   };
 
