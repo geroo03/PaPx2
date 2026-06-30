@@ -210,6 +210,7 @@ async function cargarOfertas() {
       `)
       .eq('cadete_id', cadeteUserId)
       .eq('estado', 'pendiente')
+      .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
       .order('distancia_km', { ascending: true });
 
     const prevMap = new Map(ofertasPendientes.map(o => [o.pedido_id, o]));
