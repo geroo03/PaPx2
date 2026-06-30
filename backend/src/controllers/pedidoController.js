@@ -216,7 +216,7 @@ export async function cambiarEstadoPedido(req, res) {
     // ── PASO 1: Leer el pedido actual ──────────────────────────────────────────
     const { data: pedido, error: fetchErr } = await supabaseAdmin
       .from('pedidos')
-      .select('id, cadete_id, comercio_id, estado, subtotal, total, codigo_retiro, codigo_entrega')
+      .select('id, cadete_id, cliente_id, comercio_id, estado, subtotal, total, codigo_retiro, codigo_entrega')
       .eq('id', pedido_id)
       .single();
 
