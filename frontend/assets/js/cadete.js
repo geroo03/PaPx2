@@ -1558,6 +1558,14 @@ if ('Notification' in window && Notification.permission === 'default') {
     document.getElementById('disp-dot').className = 'disp-dot' + (disp ? ' on' : '');
     document.getElementById('disp-lbl').textContent = disp ? 'Disponible' : 'Inactivo';
 
+    // Sincronizar cadetes.disponible en DB con el estado de la UI al bootear.
+    // togDisp() solo escribe en DB cuando el usuario toca el switch — un cadete
+    // recién onboardeado arranca con el switch en "Disponible" visualmente pero
+    // nunca tocó el botón, así que la DB se queda en false (default de tabla) y
+    // el matching de difundirPedido() lo excluye en silencio. Sin este sync, un
+    // cadete nuevo nunca recibe ofertas hasta que apaga y prende el switch.
+    sb.from('cadetes').update({ disponible: disp, activo: disp }).eq('auth_uid', cadeteUserId).then(() => {});
+
     // Arrancar GPS si el cadete está disponible
     if (disp) iniciarReporteGPS();
   } catch (e) {
