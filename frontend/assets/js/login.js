@@ -39,6 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Detectar retorno del email de reset de contraseña (Supabase procesa el hash automáticamente)
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    showRecoveryForm();
+  }
+});
+
 // ─── BIND FORM ────────────────────────────────────────────────────────────────
 function bindForm() {
   const btnLogin = document.getElementById('btn-login');
@@ -219,6 +226,57 @@ function bindRegisterMenu() {
     });
   });
 }
+
+// ─── PASSWORD RECOVERY FORM ───────────────────────────────────────────────────
+function showRecoveryForm() {
+  const card = document.querySelector('.card');
+  if (!card) return;
+  card.innerHTML = `
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:36px;margin-bottom:8px;">🔑</div>
+      <div style="font-size:20px;font-weight:800;color:#111;margin-bottom:4px;">Nueva contraseña</div>
+      <div style="font-size:13px;color:#888;">Elegí una contraseña nueva para tu cuenta.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nueva contraseña <span style="color:#FF6B35">*</span></label>
+      <input class="form-input" id="rec-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Repetir contraseña <span style="color:#FF6B35">*</span></label>
+      <input class="form-input" id="rec-pass2" type="password" placeholder="Repetí la contraseña" autocomplete="new-password">
+    </div>
+    <button class="btn-login" id="btn-rec" onclick="submitRecovery()">Guardar contraseña</button>
+    <div class="error-msg"   id="error-msg"  style="display:none"></div>
+    <div class="success-msg" id="success-msg" style="display:none"></div>
+  `;
+}
+
+window.submitRecovery = async function() {
+  const pass  = document.getElementById('rec-pass')?.value || '';
+  const pass2 = document.getElementById('rec-pass2')?.value || '';
+  const btn   = document.getElementById('btn-rec');
+
+  if (pass.length < 6) { showError('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass !== pass2)  { showError('Las contraseñas no coinciden.'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  try {
+    const { error } = await sb.auth.updateUser({ password: pass });
+    if (error) throw error;
+    showOk('Contraseña actualizada. Redirigiendo...');
+    setTimeout(async () => {
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) {
+        await redirectPorRol(user.id, true);
+      } else {
+        location.href = '/login.html';
+      }
+    }, 1500);
+  } catch (err) {
+    showError('No se pudo actualizar la contraseña. Intentá de nuevo.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar contraseña'; }
+  }
+};
 
 // ─── UI HELPERS ───────────────────────────────────────────────────────────────
 function showError(msg) {

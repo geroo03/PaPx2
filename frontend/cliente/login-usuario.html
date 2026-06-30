@@ -214,9 +214,57 @@ async function submitForm() {
 async function olvideClave() {
   const email = document.getElementById('input-email').value.trim();
   if (!email) { showError('Escribí tu email primero.'); return; }
-  try { await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href }); showOk('Te enviamos un email para restablecer tu contraseña.'); }
-  catch(e) { showError('Error al enviar el email.'); }
+  try {
+    await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    showOk('Te enviamos un email para restablecer tu contraseña. Revisá tu casilla.');
+  } catch(e) { showError('Error al enviar el email.'); }
 }
+
+function mostrarFormRecovery() {
+  const card = document.querySelector('.card');
+  if (!card) return;
+  card.innerHTML = `
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:36px;margin-bottom:8px;">🔑</div>
+      <div style="font-size:18px;font-weight:800;color:#111;margin-bottom:4px;">Nueva contraseña</div>
+      <div style="font-size:13px;color:#888;">Elegí una contraseña nueva para tu cuenta.</div>
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label class="form-label">Nueva contraseña <span>*</span></label>
+      <input class="form-input" id="rec-pass" type="password" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label class="form-label">Repetir contraseña <span>*</span></label>
+      <input class="form-input" id="rec-pass2" type="password" placeholder="Repetí la contraseña">
+    </div>
+    <button class="btn-login" id="btn-rec" onclick="guardarRecovery()">Guardar contraseña</button>
+    <div class="error-msg" id="msg-error" style="margin-top:12px;display:none"></div>
+    <div class="success-msg" id="msg-ok" style="margin-top:12px;display:none"></div>
+  `;
+}
+
+window.guardarRecovery = async function() {
+  const pass  = document.getElementById('rec-pass')?.value || '';
+  const pass2 = document.getElementById('rec-pass2')?.value || '';
+  const btn   = document.getElementById('btn-rec');
+  if (pass.length < 6) { showError('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass !== pass2)  { showError('Las contraseñas no coinciden.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  try {
+    const { error } = await sb.auth.updateUser({ password: pass });
+    if (error) throw error;
+    showOk('Contraseña actualizada. Ingresando...');
+    setTimeout(() => { location.replace('index.html'); }, 1500);
+  } catch(e) {
+    showError('No se pudo actualizar la contraseña. Intentá de nuevo.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar contraseña'; }
+  }
+};
+
+// Detectar retorno del email de reset
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') mostrarFormRecovery();
+});
 
 const __loginForm = document.getElementById('loginForm');
 if (__loginForm) { __loginForm.addEventListener('submit', function(e){ e.preventDefault(); submitForm(); }); }
