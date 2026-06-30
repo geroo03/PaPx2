@@ -1494,6 +1494,41 @@ if ('Notification' in window && Notification.permission === 'default') {
       }
     }
 
+    // Si hay pap_pending_role=cadete activo el usuario viene de un registro vía
+    // Google OAuth. El trigger de la DB le asignó 'cliente' por defecto; hay que
+    // corregirlo llamando set-role ANTES de validar el rol. NUNCA cerrar sesión
+    // mientras este flag esté activo — si set-role falla se muestra un reintento.
+    if (role !== 'cadete' && localStorage.getItem('pap_pending_role') === 'cadete') {
+      console.log('[cadete-guard] pap_pending_role=cadete — llamando set-role...');
+      try {
+        const { data: { session: s2 } } = await sb.auth.getSession();
+        const token = s2?.access_token;
+        if (token) {
+          const base = window.BACKEND_URL ?? '';
+          const resp = await fetch(`${base}/api/auth/set-role`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ role: 'cadete' }),
+          });
+          console.log('[cadete-guard] set-role status:', resp.status);
+          if (resp.ok) {
+            localStorage.removeItem('pap_pending_role');
+            role = 'cadete';
+          } else {
+            // Falló pero NO cerrar sesión — mostrar reintento
+            document.body.style.cssText = 'margin:0;background:#0d0d0d;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;';
+            document.body.innerHTML = '<div style="text-align:center;padding:32px;color:#fff"><div style="font-size:48px;margin-bottom:16px;">⚠️</div><h2 style="margin:0 0 8px">Registrando tu cuenta...</h2><p style="color:#888;margin:0 0 24px">Hubo un error al asignar el rol de cadete.<br>Tu sesión sigue activa.</p><button onclick="location.reload()" style="background:#FF6B35;color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;">Reintentar</button></div>';
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('[cadete-guard] set-role network error', e);
+        document.body.style.cssText = 'margin:0;background:#0d0d0d;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;';
+        document.body.innerHTML = '<div style="text-align:center;padding:32px;color:#fff"><div style="font-size:48px;margin-bottom:16px;">📡</div><h2 style="margin:0 0 8px">Sin conexión</h2><p style="color:#888;margin:0 0 24px">Verificá tu red e intentá de nuevo.<br>Tu sesión sigue activa.</p><button onclick="location.reload()" style="background:#FF6B35;color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;">Reintentar</button></div>';
+        return;
+      }
+    }
+
     if (role && role !== 'cadete') {
       console.warn('[cadete-guard] rol final no es cadete:', role, '— redirigiendo a /login.html');
       window._cadete_redirecting = true;

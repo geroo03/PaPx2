@@ -89,7 +89,7 @@ window.loginConGoogle = async function() {
         // antes de entrar a cadete.html. Si se redirige directo a cadete.html
         // y Railway está frío o la red falla, el guard expulsa al usuario sin
         // poder mostrar un error ni reintentar.
-        redirectTo: window.location.origin + '/cadete/registro-cadete.html',
+        redirectTo: window.location.origin + '/cadete/cadete.html',
         queryParams: { prompt: 'select_account' },
       }
     });
