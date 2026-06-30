@@ -1437,39 +1437,55 @@ if ('Notification' in window && Notification.permission === 'default') {
 ;(async function guardCadete() {
   if (window._cadete_redirecting || window._cadeteGuardDone) return;
   window._cadeteGuardDone = true;
+
+  // Fase 1: autenticación y rol. Solo esta fase puede expulsar al usuario
+  // (cerrar sesión + redirigir). Un error de boot del panel (fase 2) NO debe
+  // desloguear a un cadete recién autenticado — antes un catch-all compartido
+  // hacía exactamente eso, deshaciendo el fix de rol si cualquier función de
+  // init posterior fallaba.
+  let user, role;
   try {
+    console.log('[cadete-guard] verificando sesión...');
     // getSession() usa el cache local — instantáneo, sin round-trip de red
     const { data: { session }, error } = await sb.auth.getSession();
-    let user = session?.user ?? null;
+    user = session?.user ?? null;
 
     // Fallback de red: justo después de volver de un OAuth (registro con Google)
     // el cache local puede no haberse persistido todavía. getUser() valida contra
     // el server, evita expulsar al cadete recién registrado a login por error.
     if (!error && !user) {
+      console.log('[cadete-guard] sin sesión en cache, probando getUser() (red)...');
       const { data: { user: netUser } } = await sb.auth.getUser();
       user = netUser ?? null;
     }
 
     if (error || !user) {
+      console.warn('[cadete-guard] sin usuario autenticado — redirigiendo a login cliente', { error });
       window._cadete_redirecting = true;
       try { await sb.auth.signOut(); } catch {}
       window.location.replace('../cliente/login-usuario.html');
       return;
     }
 
+    console.log('[cadete-guard] usuario detectado', user.id, 'metadata.role=', user.user_metadata?.role);
+
     // Verificar rol desde user_metadata (sin extra DB call si ya está seteado)
-    let role = user.user_metadata?.role ?? null;
+    role = user.user_metadata?.role ?? null;
     if (!role || role !== 'cadete') {
       try {
         const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', user.id).maybeSingle();
         if (perfil?.rol) role = perfil.rol;
-      } catch {}
+        console.log('[cadete-guard] rol desde perfiles:', role);
+      } catch (e) {
+        console.warn('[cadete-guard] error consultando perfiles.rol', e);
+      }
     }
 
     // Recién registrado como cadete vía Google: el trigger de la DB le asignó
     // 'cliente' por defecto porque OAuth no soporta pasar metadata de rol.
     // Usamos el mismo endpoint que el onboarding para corregirlo antes del guard.
     if (role !== 'cadete' && localStorage.getItem('pap_pending_role') === 'cadete') {
+      console.log('[cadete-guard] pap_pending_role=cadete detectado, llamando /api/auth/set-role...');
       try {
         const { data: { session: freshSession } } = await sb.auth.getSession();
         const token = freshSession?.access_token;
@@ -1480,21 +1496,37 @@ if ('Notification' in window && Notification.permission === 'default') {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ role: 'cadete' }),
           });
+          console.log('[cadete-guard] set-role status:', resp.status);
           if (resp.ok) role = 'cadete';
+        } else {
+          console.warn('[cadete-guard] no hay token de sesión para llamar set-role');
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[cadete-guard] error llamando set-role', e);
+      }
       localStorage.removeItem('pap_pending_role');
     }
 
     if (role && role !== 'cadete') {
+      console.warn('[cadete-guard] rol final no es cadete:', role, '— redirigiendo a /login.html');
       window._cadete_redirecting = true;
       try { await sb.auth.signOut(); } catch {}
       window.location.replace('/login.html');
       return;
     }
 
-    cadeteUserId = user.id;
+    console.log('[cadete-guard] autenticación OK, rol=cadete. Iniciando panel...');
+  } catch (e) {
+    console.warn('cadete auth guard failed', e);
+    window._cadete_redirecting = true;
+    try { await sb.auth.signOut(); } catch {}
+    window.location.replace('../cliente/login-usuario.html');
+    return;
+  }
 
+  // Fase 2: boot del panel. Errores acá se loguean pero NO desloguean al cadete.
+  cadeteUserId = user.id;
+  try {
     mostrarTutorial();
     bindOnboardingForm();
     bindVehiculoSelect();
@@ -1515,14 +1547,8 @@ if ('Notification' in window && Notification.permission === 'default') {
 
     // Arrancar GPS si el cadete está disponible
     if (disp) iniciarReporteGPS();
-
   } catch (e) {
-    console.warn('cadete guard check failed', e);
-    if (!window._cadete_redirecting) {
-      window._cadete_redirecting = true;
-      try { await sb.auth.signOut(); } catch {}
-      window.location.replace('../cliente/login-usuario.html');
-    }
+    console.error('cadete panel boot failed (sesión válida, no se cierra sesión)', e);
   }
 })();
 
