@@ -1453,6 +1453,59 @@ END;
 $$;
 
 -- ============================================================
+-- SECCIÓN G2 — STORAGE POLICIES cadetes-antecedentes (bucket privado)
+-- Ejecutar DESPUÉS de crear el bucket en el Dashboard.
+-- ============================================================
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'cadetes-antecedentes') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Antecedentes: solo dueño sube'
+    ) THEN
+      EXECUTE $p$
+        CREATE POLICY "Antecedentes: solo dueño sube"
+        ON storage.objects FOR INSERT
+        WITH CHECK (
+          bucket_id = 'cadetes-antecedentes'
+          AND auth.uid()::text = (storage.foldername(name))[1]
+        );
+      $p$;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Antecedentes: dueño y admin leen'
+    ) THEN
+      EXECUTE $p$
+        CREATE POLICY "Antecedentes: dueño y admin leen"
+        ON storage.objects FOR SELECT
+        USING (
+          bucket_id = 'cadetes-antecedentes'
+          AND (
+            auth.uid()::text = (storage.foldername(name))[1]
+            OR (SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin'
+          )
+        );
+      $p$;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Antecedentes: solo dueño actualiza'
+    ) THEN
+      EXECUTE $p$
+        CREATE POLICY "Antecedentes: solo dueño actualiza"
+        ON storage.objects FOR UPDATE
+        USING (
+          bucket_id = 'cadetes-antecedentes'
+          AND auth.uid()::text = (storage.foldername(name))[1]
+        );
+      $p$;
+    END IF;
+  END IF;
+END;
+$$;
+
+-- ============================================================
 -- F. EMBAJADOR: patrocinios, comisiones, billetera, retiros
 -- ============================================================
 

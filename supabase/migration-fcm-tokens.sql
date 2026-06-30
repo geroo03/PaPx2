@@ -13,18 +13,26 @@ CREATE TABLE IF NOT EXISTS public.fcm_tokens (
 ALTER TABLE public.fcm_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Cada usuario gestiona solo sus propios tokens
-CREATE POLICY "fcm_tokens_select_own"
-  ON public.fcm_tokens FOR SELECT
-  USING (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY "fcm_tokens_select_own"
+    ON public.fcm_tokens FOR SELECT
+    USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "fcm_tokens_insert_own"
-  ON public.fcm_tokens FOR INSERT
-  WITH CHECK (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY "fcm_tokens_insert_own"
+    ON public.fcm_tokens FOR INSERT
+    WITH CHECK (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "fcm_tokens_update_own"
-  ON public.fcm_tokens FOR UPDATE
-  USING (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY "fcm_tokens_update_own"
+    ON public.fcm_tokens FOR UPDATE
+    USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "fcm_tokens_delete_own"
-  ON public.fcm_tokens FOR DELETE
-  USING (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY "fcm_tokens_delete_own"
+    ON public.fcm_tokens FOR DELETE
+    USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
