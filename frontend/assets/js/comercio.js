@@ -35,10 +35,12 @@ async function init() {
   const { data: { session }, error: authErr } = await sb.auth.getSession();
   if (authErr || !session) { location.href = './login.html'; return; }
 
-  const role = session.user.user_metadata?.role;
-  if (role !== 'comercio' && role !== 'admin') { location.href = '../index.html'; return; }
-
   S.uid = session.user.id;
+
+  // Verify role against DB (perfiles is source of truth)
+  const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', S.uid).maybeSingle();
+  const role = perfil?.rol ?? session.user.user_metadata?.role;
+  if (role !== 'comercio' && role !== 'admin') { location.href = '../index.html'; return; }
 
   const { data: com, error: comErr } = await sb
     .from('comercios').select('*').eq('usuario_id', S.uid).single();
@@ -756,8 +758,9 @@ async function loadFinanzasEstado() {
   hideLoading('facturas-loading'); showTableBody('tabla-facturas');
   const data = peds||[];
   const totalSum = data.reduce((a,p) => a+(p.total||0), 0);
-  setText('fin-ventas-netas',  formatARS(totalSum));
-  setText('fin-servicio',      formatARS(Math.round(totalSum * RECARGO)));
+  const ventasNetas = Math.round(totalSum / RECARGO_DIV);
+  setText('fin-ventas-netas',  formatARS(ventasNetas));
+  setText('fin-servicio',      formatARS(totalSum - ventasNetas));
   setText('fin-total-pagado',  formatARS(totalSum));
   setText('fin-total-pedidos', data.length);
   renderFacturas(data);
@@ -917,10 +920,10 @@ window.subirFotoComercio = async function() {
   if (btn) { btn.disabled = true; btn.textContent = 'Subiendo...'; }
   try {
     const ext  = file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-    const path = `${S.cid}/portada.${ext}`;
-    const { error: upErr } = await sb.storage.from('comercio').upload(path, file, { upsert: true, contentType: file.type });
+    const path = `covers/${S.cid}/portada.${ext}`;
+    const { error: upErr } = await sb.storage.from('productos').upload(path, file, { upsert: true, contentType: file.type });
     if (upErr) throw new Error(upErr.message);
-    const { data: urlData } = sb.storage.from('comercio').getPublicUrl(path);
+    const { data: urlData } = sb.storage.from('productos').getPublicUrl(path);
     const imagen_url = urlData?.publicUrl ?? null;
     const { error: dbErr } = await sb.from('comercios').update({ imagen_url }).eq('id', S.cid);
     if (dbErr) throw new Error(dbErr.message);
@@ -1025,7 +1028,7 @@ function saveCierre() {
 //   Base $1.000 → descuento 20% → base_promo $800 → cliente paga $920 (+15% PaP) → PaP gana $120
 
 async function loadPromociones() {
-  // Promociones view — real data loaded via switchPromoTab -> loadMisPromociones
+  switchPromoTab('mis-promociones');
 }
 
 function switchPromoTab(tab) {
