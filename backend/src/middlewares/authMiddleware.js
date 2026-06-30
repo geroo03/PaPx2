@@ -51,3 +51,21 @@ export async function requireAuth(req, res, next) {
   req.user = user;
   next();
 }
+
+export async function requireAdmin(req, res, next) {
+  await requireAuth(req, res, async () => {
+    try {
+      const { data: perfil } = await supabaseAdmin
+        .from('perfiles')
+        .select('rol')
+        .eq('usuario_id', req.user.id)
+        .maybeSingle();
+      if (perfil?.rol !== 'admin') {
+        return res.status(403).json({ error: 'Acceso denegado: se requiere rol admin.' });
+      }
+      next();
+    } catch (e) {
+      return res.status(500).json({ error: 'Error verificando permisos.' });
+    }
+  });
+}

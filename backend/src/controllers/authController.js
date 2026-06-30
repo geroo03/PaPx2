@@ -79,6 +79,58 @@ export async function register(req, res) {
   }
 }
 
+/**
+ * POST /api/auth/admin/crear-usuario
+ * Solo admin. Crea cualquier rol incluyendo embajador.
+ */
+export async function crearUsuarioAdmin(req, res) {
+  const { email, password, nombre, role } = req.body ?? {};
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email y password son requeridos.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  }
+
+  const ROLES_VALIDOS = new Set(['cliente', 'comercio', 'cadete', 'embajador']);
+  const rolFinal = ROLES_VALIDOS.has(role) ? role : 'cliente';
+
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { role: rolFinal, full_name: nombre ?? '' },
+    });
+
+    if (error) {
+      if (error.message.includes('already')) {
+        return res.status(409).json({ error: 'Este email ya tiene una cuenta.' });
+      }
+      return res.status(400).json({ error: error.message });
+    }
+
+    await supabaseAdmin.from('perfiles').upsert(
+      { usuario_id: data.user.id, email, rol: rolFinal, nombre: nombre ?? '' },
+      { onConflict: 'usuario_id', ignoreDuplicates: false },
+    );
+
+    if (rolFinal === 'cadete') {
+      await supabaseAdmin.from('cadetes').upsert(
+        { auth_uid: data.user.id, email, nombre: nombre ?? '' },
+        { onConflict: 'auth_uid', ignoreDuplicates: true },
+      );
+    }
+
+    console.log(`[crearUsuarioAdmin] ${email} → rol '${rolFinal}' creado por admin ${req.user.email}`);
+    return res.status(201).json({ ok: true, user: { id: data.user.id, email, role: rolFinal } });
+  } catch (err) {
+    console.error('[crearUsuarioAdmin]', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
 export async function setRole(req, res) {
   const { role } = req.body ?? {};
 

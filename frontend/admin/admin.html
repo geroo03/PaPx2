@@ -139,18 +139,26 @@
   <!-- TAB: Crear usuario -->
   <div class="tab-panel" id="tab-crear">
     <div class="panel" style="max-width:500px;">
-      <h2>Crear Embajador</h2>
+      <h2>Crear usuario</h2>
       <form id="form-crear" style="display:flex;flex-direction:column;gap:10px;">
+        <label style="font-size:12px;color:var(--muted);">Rol
+          <select id="crear-rol" required style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;background:#fff;">
+            <option value="embajador">Embajador</option>
+            <option value="cadete">Cadete</option>
+            <option value="comercio">Comercio</option>
+            <option value="cliente">Cliente</option>
+          </select>
+        </label>
         <label style="font-size:12px;color:var(--muted);">Email
           <input id="crear-email" type="email" required style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;"/>
         </label>
         <label style="font-size:12px;color:var(--muted);">Nombre
           <input id="crear-nombre" type="text" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;"/>
         </label>
-        <label style="font-size:12px;color:var(--muted);">Clave temporal
+        <label style="font-size:12px;color:var(--muted);">Contraseña temporal
           <input id="crear-pass" type="text" value="temporal123" required style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:14px;box-sizing:border-box;"/>
         </label>
-        <button type="submit" class="btn btn-primary" style="margin-top:8px;">Crear Embajador</button>
+        <button type="submit" class="btn btn-primary" style="margin-top:8px;">Crear usuario</button>
         <div id="crear-result" style="font-size:13px;color:var(--muted);"></div>
       </form>
     </div>
@@ -254,10 +262,10 @@ async function loadComercios() {
       .order('nombre');
     if (error) throw error;
     if (!data?.length) { el.innerHTML = '<div class="empty">Sin comercios.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Rubro</th><th>Direccion</th><th>Tel</th><th>GPS</th><th>Estado</th></tr></thead><tbody>${data.map(c => {
-      const gps = (c.lat && c.lng) ? '<span class="badge badge-green">Si</span>' : '<span class="badge badge-red">No</span>';
+    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Rubro</th><th>Direccion</th><th>Tel</th><th>GPS</th><th>Estado</th><th>Accion</th></tr></thead><tbody>${data.map(c => {
+      const gps = (c.lat && c.lng) ? `<span class="badge badge-green" title="${c.lat},${c.lng}">Si</span>` : '<span class="badge badge-red">No</span>';
       const est = c.estado_registro === 'activo' ? '<span class="badge badge-green">Activo</span>' : `<span class="badge badge-yellow">${c.estado_registro}</span>`;
-      return `<tr><td style="font-weight:600;">${c.nombre}</td><td>${c.categoria||'—'}</td><td>${c.direccion||'—'}</td><td>${c.telefono||'—'}</td><td>${gps}</td><td>${est}</td></tr>`;
+      return `<tr><td style="font-weight:600;">${c.nombre}</td><td>${c.categoria||'—'}</td><td>${c.direccion||'—'}</td><td>${c.telefono||'—'}</td><td>${gps}</td><td>${est}</td><td><button class="btn btn-outline" style="font-size:11px;padding:4px 8px;" onclick="editarGPS('${c.id}','${c.nombre}',${c.lat||'null'},${c.lng||'null'})">GPS</button></td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando comercios.</div>'; console.error(e); }
 }
@@ -511,39 +519,37 @@ window.rechazarRetiro = async function(id, btn) {
   } catch(e) { alert('Error: '+e.message); btn.disabled=false; }
 };
 
-// ── CREAR EMBAJADOR ──────────────────────────────────────────────────────────
+// ── CREAR USUARIO (admin) ─────────────────────────────────────────────────────
 document.getElementById('form-crear').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = document.getElementById('crear-email').value.trim();
+  const email  = document.getElementById('crear-email').value.trim();
   const nombre = document.getElementById('crear-nombre').value.trim();
-  const pass = document.getElementById('crear-pass').value;
-  const resEl = document.getElementById('crear-result');
-  resEl.textContent = 'Creando...';
+  const pass   = document.getElementById('crear-pass').value;
+  const role   = document.getElementById('crear-rol').value;
+  const resEl  = document.getElementById('crear-result');
+  const btn    = e.target.querySelector('button[type=submit]');
+
+  resEl.textContent = 'Creando...'; resEl.style.color = 'var(--muted)';
+  btn.disabled = true;
   try {
-    // Guardar sesion admin antes de signUp (signUp reemplaza la sesion activa)
-    const { data: { session: adminSession } } = await supabase.auth.getSession();
-
-    const { data, error } = await supabase.auth.signUp({
-      email, password: pass,
-      options: { data: { nombre, role: 'embajador' } },
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${window.BACKEND_URL||''}/api/auth/admin/crear-usuario`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ email, password: pass, nombre, role }),
     });
-    if (error) throw error;
-
-    // Restaurar sesion admin inmediatamente
-    if (adminSession?.refresh_token) {
-      await supabase.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-    }
-
-    resEl.textContent = 'Embajador creado: ' + (data?.user?.email || email);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || `Error ${res.status}`);
+    resEl.textContent = `Usuario creado: ${json.user.email} (${json.user.role})`;
     resEl.style.color = '#16a34a';
-    document.getElementById('form-crear').reset();
+    e.target.reset();
+    document.getElementById('crear-rol').value = 'embajador';
     loadKPIs();
   } catch(err) {
     resEl.textContent = 'Error: ' + (err.message || err);
     resEl.style.color = '#dc2626';
+  } finally {
+    btn.disabled = false;
   }
 });
 
@@ -576,6 +582,22 @@ window.loadRubros = async function() {
       </div>`;
     }).join('')}</div>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando rubros.</div>'; console.error(e); }
+};
+
+window.editarGPS = async function(id, nombre, latActual, lngActual) {
+  const lat = prompt(`GPS para "${nombre}"\nLatitud actual: ${latActual ?? 'no configurada'}\nIngresar latitud (ej: -27.7951):`, latActual ?? '');
+  if (lat === null) return;
+  const lng = prompt(`Longitud actual: ${lngActual ?? 'no configurada'}\nIngresar longitud (ej: -64.2615):`, lngActual ?? '');
+  if (lng === null) return;
+  const latN = parseFloat(lat);
+  const lngN = parseFloat(lng);
+  if (isNaN(latN) || isNaN(lngN)) { alert('Coordenadas inválidas.'); return; }
+  try {
+    const { error } = await supabase.from('comercios').update({ lat: latN, lng: lngN }).eq('id', id);
+    if (error) throw error;
+    alert(`GPS actualizado para "${nombre}": ${latN}, ${lngN}`);
+    loadComercios();
+  } catch(e) { alert('Error: ' + e.message); }
 };
 
 window.toggleRubro = async function(id, activo) {

@@ -24,6 +24,11 @@ async function init() {
   if (!session) { location.href = '/login.html'; return; }
   SESSION = session;
 
+  // Verificar rol
+  const { data: perfil } = await supabase.from('perfiles').select('rol').eq('usuario_id', session.user.id).maybeSingle();
+  const rol = perfil?.rol ?? session.user.user_metadata?.role;
+  if (rol !== 'embajador') { location.href = '/login.html'; return; }
+
   const nombre = session.user.user_metadata?.full_name ?? session.user.email;
   $('sub-nombre').textContent = nombre;
 

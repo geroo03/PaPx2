@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from '../middlewares/authMiddleware.js';
-import { setRole, register } from '../controllers/authController.js';
+import { requireAuth, requireAdmin } from '../middlewares/authMiddleware.js';
+import { setRole, register, crearUsuarioAdmin } from '../controllers/authController.js';
 
 const router = Router();
 
@@ -9,5 +9,8 @@ router.post('/register', register);
 
 // POST /api/auth/set-role — cadete/comercio/usuario asigna su propio rol post-registro
 router.post('/set-role', requireAuth, setRole);
+
+// POST /api/auth/admin/crear-usuario — solo admin, crea cualquier rol incluyendo embajador
+router.post('/admin/crear-usuario', requireAdmin, crearUsuarioAdmin);
 
 export default router;
