@@ -67,47 +67,87 @@
 <script type="module">
 import { supabase as sb } from '../assets/js/config.js';
 
+function mostrarErr(msg) {
+  const el = document.getElementById('err');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
 window.loginConGoogle = async function() {
   const chk = document.getElementById('chk-tyc-cadete');
-  if (chk && !chk.checked) {
-    const err = document.getElementById('err');
-    if (err) { err.textContent = 'Debes aceptar los terminos y condiciones.'; err.style.display = 'block'; }
-    return;
-  }
+  if (chk && !chk.checked) { mostrarErr('Debes aceptar los terminos y condiciones.'); return; }
   localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
-  // Le indica a cadete.html que asigne rol=cadete apenas vuelva de Google,
-  // porque el trigger de la DB defaultea a 'cliente' cuando no hay metadata de rol (OAuth no la soporta).
   localStorage.setItem('pap_pending_role', 'cadete');
   const btn = document.getElementById('btn-google');
   const loader = document.getElementById('loader');
   btn.disabled = true;
   loader.style.display = 'flex';
-
   try {
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + '/cadete/cadete.html',
+        // Redirigir de vuelta a ESTA página para que el set-role ocurra acá
+        // antes de entrar a cadete.html. Si se redirige directo a cadete.html
+        // y Railway está frío o la red falla, el guard expulsa al usuario sin
+        // poder mostrar un error ni reintentar.
+        redirectTo: window.location.origin + '/cadete/registro-cadete.html',
         queryParams: { prompt: 'select_account' },
       }
     });
     if (error) throw error;
   } catch (e) {
-    document.getElementById('err').textContent = 'Error: ' + (e.message || 'Intentá de nuevo.');
-    document.getElementById('err').style.display = 'block';
+    mostrarErr('Error: ' + (e.message || 'Intentá de nuevo.'));
     btn.disabled = false;
     loader.style.display = 'none';
   }
 };
 
-// Si ya tiene sesión de cadete, ir directo al panel
+// Al volver de Google OAuth esta página recibe la sesión.
+// Asigna el rol de cadete acá (no en cadete.html) para que si falla
+// el backend se muestre el error sin expulsar al usuario.
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) {
-      const role = session.user.user_metadata?.role;
-      if (role === 'cadete') location.replace('cadete.html');
+    if (!session?.user) return; // carga normal sin sesión, nada que hacer
+
+    const user = session.user;
+    const pendingRole = localStorage.getItem('pap_pending_role');
+
+    if (pendingRole === 'cadete') {
+      // Volvió de Google OAuth — asignar rol antes de ir al panel
+      const loader = document.getElementById('loader');
+      const btn = document.getElementById('btn-google');
+      if (loader) loader.style.display = 'flex';
+      if (btn) btn.disabled = true;
+      try {
+        const base = window.BACKEND_URL ?? '';
+        const resp = await fetch(`${base}/api/auth/set-role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ role: 'cadete' }),
+        });
+        if (resp.ok) {
+          localStorage.removeItem('pap_pending_role');
+          location.replace('cadete.html');
+          return;
+        }
+        const body = await resp.json().catch(() => ({}));
+        mostrarErr('No se pudo asignar el rol de cadete: ' + (body.error || `error ${resp.status}`) + '. Intentá de nuevo.');
+      } catch (e) {
+        mostrarErr('Error de conexión al asignar rol. Verificá tu red e intentá de nuevo.');
+      }
+      if (loader) loader.style.display = 'none';
+      if (btn) btn.disabled = false;
+      return;
     }
+
+    // Ya tiene rol cadete asignado → ir directo al panel
+    const role = user.user_metadata?.role;
+    if (role === 'cadete') { location.replace('cadete.html'); return; }
+    // Verificar en perfiles por si el rol ya fue asignado en otra sesión
+    try {
+      const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', user.id).maybeSingle();
+      if (perfil?.rol === 'cadete') { location.replace('cadete.html'); }
+    } catch {}
   } catch {}
 })();
 </script>

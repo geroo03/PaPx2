@@ -1494,32 +1494,6 @@ if ('Notification' in window && Notification.permission === 'default') {
       }
     }
 
-    // Recién registrado como cadete vía Google: el trigger de la DB le asignó
-    // 'cliente' por defecto porque OAuth no soporta pasar metadata de rol.
-    // Usamos el mismo endpoint que el onboarding para corregirlo antes del guard.
-    if (role !== 'cadete' && localStorage.getItem('pap_pending_role') === 'cadete') {
-      console.log('[cadete-guard] pap_pending_role=cadete detectado, llamando /api/auth/set-role...');
-      try {
-        const { data: { session: freshSession } } = await sb.auth.getSession();
-        const token = freshSession?.access_token;
-        if (token) {
-          const base = window.BACKEND_URL ?? '';
-          const resp = await fetch(`${base}/api/auth/set-role`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ role: 'cadete' }),
-          });
-          console.log('[cadete-guard] set-role status:', resp.status);
-          if (resp.ok) role = 'cadete';
-        } else {
-          console.warn('[cadete-guard] no hay token de sesión para llamar set-role');
-        }
-      } catch (e) {
-        console.warn('[cadete-guard] error llamando set-role', e);
-      }
-      localStorage.removeItem('pap_pending_role');
-    }
-
     if (role && role !== 'cadete') {
       console.warn('[cadete-guard] rol final no es cadete:', role, '— redirigiendo a /login.html');
       window._cadete_redirecting = true;
