@@ -428,7 +428,7 @@ export async function difundirPedido(req, res) {
     }
 
     // ── PASO 3: Posiciones GPS recientes (últimos 15 min) ─────────────────────
-    const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: posiciones } = await supabaseAdmin
       .from('ubicacion_cadetes')
       .select('cadete_id, latitud, longitud')

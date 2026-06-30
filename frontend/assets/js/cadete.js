@@ -153,7 +153,7 @@ function togDisp() {
 
   // Persistir en DB para que el admin y el matching lo vean
   if (cadeteUserId) {
-    sb.from('cadetes').update({ disponible: disp }).eq('auth_uid', cadeteUserId).then(() => {});
+    sb.from('cadetes').update({ disponible: disp, activo: disp }).eq('auth_uid', cadeteUserId).then(() => {});
   }
 
   renderViajes();
@@ -934,7 +934,7 @@ if (checkForm) {
       }
 
       const { error: dbErr } = await sb.from('cadetes').upsert(
-        { auth_uid: user.id, nombre, fecha_nacimiento, email, telefono, cvu, vehiculo, color, patente },
+        { auth_uid: user.id, nombre, fecha_nacimiento, email, telefono, cvu, vehiculo, color, patente, activo: true },
         { onConflict: 'auth_uid' },
       );
       if (dbErr) throw new Error('Error guardando en BD: ' + dbErr.message);
