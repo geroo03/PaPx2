@@ -437,11 +437,11 @@
 
   <!-- Estado de éxito (oculto hasta registrar) -->
   <div class="success-card" id="success-card">
-    <div class="success-icon">!</div>
-    <div class="success-title">¡Tu comercio está listo!</div>
+    <div class="success-icon">🎉</div>
+    <div class="success-title">¡Solicitud enviada!</div>
     <div class="success-sub">
-      Tu cuenta fue creada y activada.<br>
-      Ya podés ingresar a tu panel y empezar a recibir pedidos.
+      Tu cuenta fue creada. Vamos a revisar tu comercio y te avisamos en menos de 24 horas.<br><br>
+      Mientras tanto podés ingresar a tu panel para cargar tu menú y fotos.
     </div>
     <a class="btn-ir" href="comercio.html">Ir a mi panel →</a>
   </div>
@@ -569,76 +569,66 @@ async function registrar() {
   const pass      = (el('r-pass')?.value       || '');
   const pass2     = (el('r-pass2')?.value      || '');
 
-  // ── Validaciones ──────────────────────────────────────────
   if (!el('chk-tyc-reg')?.checked) { showErr('Debes aceptar los terminos y condiciones.'); return; }
-  if (!nombre)          { showErr('El nombre del comercio es obligatorio.'); return; }
-  if (!catSel)          { showErr('Seleccioná una categoría.'); return; }
-  if (!dir)             { showErr('La dirección del local es obligatoria.'); return; }
-  if (!email)           { showErr('El email es obligatorio.'); return; }
-  if (pass.length < 6)  { showErr('La contraseña debe tener al menos 6 caracteres.'); return; }
-  if (pass !== pass2)   { showErr('Las contraseñas no coinciden.'); return; }
+  if (!nombre)         { showErr('El nombre del comercio es obligatorio.'); return; }
+  if (!catSel)         { showErr('Seleccioná una categoría.'); return; }
+  if (!dir)            { showErr('La dirección del local es obligatoria.'); return; }
+  if (!email)          { showErr('El email es obligatorio.'); return; }
+  if (pass.length < 6) { showErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }
 
   hideErr();
   setBtnLoading(true);
 
+  const base = window.BACKEND_URL ?? '';
+
   try {
-    // ── 1. Crear cuenta en Supabase Auth ──────────────────────
-    const { data: authData, error: authErr } = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: {
-          role:   'comercio',
-          nombre: nombre,
-        },
-      },
+    // 1. Crear cuenta via backend (usa supabaseAdmin, no reemplaza sesión, confirma email)
+    const regRes = await fetch(`${base}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, full_name: nombre, role: 'comercio' }),
     });
-
-    if (authErr) {
-      if (authErr.message.includes('already registered') || authErr.message.includes('already exists')) {
-        showErr('Este email ya tiene una cuenta registrada. Ingresá con tus credenciales.');
+    const regJson = await regRes.json();
+    if (!regRes.ok) {
+      if (regRes.status === 409) {
+        showErr('Este email ya tiene una cuenta. Ingresá con tus credenciales.');
       } else {
-        showErr('Error al crear la cuenta: ' + authErr.message);
+        showErr(regJson.error || 'Error al crear la cuenta. Intentá de nuevo.');
       }
-      setBtnLoading(false);
       return;
     }
 
-    const userId = authData.user?.id;
-    if (!userId) {
-      showErr('No se pudo obtener el ID de usuario. Intentá de nuevo.');
-      setBtnLoading(false);
+    const userId = regJson.user?.id;
+    if (!userId) { showErr('Error inesperado. Intentá de nuevo.'); return; }
+
+    // 2. Login automático para tener sesión activa
+    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (loginErr) {
+      // Cuenta creada pero login falló — igual mostramos éxito, pueden ingresar después
+      console.warn('[Registro] Login automático falló:', loginErr.message);
+      el('form-card').style.display    = 'none';
+      el('success-card').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    // ── 2. Insertar en 'perfiles' ─────────────────────────────
-    // Se hace upsert para no romper si el trigger handle_new_auth_user_create_profile
-    // ya creó la fila automáticamente en Supabase.
-    await sb.from('perfiles').upsert(
-      { usuario_id: userId, rol: 'comercio', email },
-      { onConflict: 'usuario_id', ignoreDuplicates: false }
-    );
-
-    // ── 3. Insertar en 'comercios' ────────────────────────────
-    // Campos basados en el schema real del CSV:
-    // nombre, categoria, descripcion, direccion, telefono, email,
-    // usuario_id, estado_registro, tipo_delivery_defecto, activo, abierto_ahora, deuda
-    // embajador: creado_por_embajador_id queda NULL (desacoplado por diseño)
-    const { data: comData, error: comErr } = await sb
+    // 3. Insertar comercio con sesión activa (RLS satisfecha)
+    const { data: comData } = await sb
       .from('comercios')
       .insert({
-        nombre:                nombre,
+        nombre,
         categoria:             catSel,
         descripcion:           '',
         direccion:             dir,
-        provincia:             provincia,
-        ciudad:                ciudad,
-        telefono:              tel,
-        email:                 email,
+        provincia,
+        ciudad,
+        telefono:              tel || null,
+        email,
         usuario_id:            userId,
-        estado_registro:       'activo',
+        estado_registro:       'pendiente',
         tipo_delivery_defecto: 'app',
-        activo:                true,
+        activo:                false,
         abierto_ahora:         false,
         deuda:                 0,
         rating:                0,
@@ -649,20 +639,14 @@ async function registrar() {
       .select('id')
       .single();
 
-    if (comErr) {
-      // Cuenta creada pero fallo al guardar el comercio → no es fatal,
-      // el admin puede completarlo desde el panel.
-      console.warn('[Registro] Error al guardar comercio:', comErr.message);
-    }
-
-    // ── 4. Persistir en sessionStorage para redirigir directo al panel ──
+    // 4. Persistir en sessionStorage
     try {
       sessionStorage.setItem('pap_rol', 'comercio');
       sessionStorage.setItem('pap_uid', userId);
       if (comData?.id) sessionStorage.setItem('pap_cid', comData.id);
     } catch (_) {}
 
-    // ── 5. Mostrar éxito ──────────────────────────────────────
+    // 5. Mostrar éxito
     el('form-card').style.display    = 'none';
     el('success-card').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
