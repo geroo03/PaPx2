@@ -1429,8 +1429,9 @@ if ('Notification' in window && Notification.permission === 'default') {
   if (window._cadete_redirecting || window._cadeteGuardDone) return;
   window._cadeteGuardDone = true;
   try {
-    // getUser() valida el token contra el servidor (no cache local)
-    const { data: { user }, error } = await sb.auth.getUser();
+    // getSession() usa el cache local — instantáneo, sin round-trip de red
+    const { data: { session }, error } = await sb.auth.getSession();
+    const user = session?.user ?? null;
 
     if (error || !user) {
       window._cadete_redirecting = true;
@@ -1439,7 +1440,7 @@ if ('Notification' in window && Notification.permission === 'default') {
       return;
     }
 
-    // Verificar rol: primero user_metadata, después perfiles (fuente de verdad)
+    // Verificar rol desde user_metadata (sin extra DB call si ya está seteado)
     let role = user.user_metadata?.role ?? null;
     if (!role || role !== 'cadete') {
       try {
@@ -1448,7 +1449,6 @@ if ('Notification' in window && Notification.permission === 'default') {
       } catch {}
     }
 
-    // Si no es cadete ni usuario nuevo (sin rol), redirigir
     if (role && role !== 'cadete') {
       window._cadete_redirecting = true;
       try { await sb.auth.signOut(); } catch {}
@@ -1458,16 +1458,16 @@ if ('Notification' in window && Notification.permission === 'default') {
 
     cadeteUserId = user.id;
 
-    // Tutorial para cadetes nuevos (se muestra una sola vez)
     mostrarTutorial();
-
-    // Verificar si necesita completar onboarding antes de operar
-    await verificarOnboarding();
     bindOnboardingForm();
     bindVehiculoSelect();
-    cargarCodigoReferido();
 
-    await cargarOfertas();
+    // Paralelizar llamadas independientes de init
+    await Promise.all([
+      verificarOnboarding(),
+      cargarOfertas(),
+    ]);
+    cargarCodigoReferido();
     cargarEfectivo();
     iniciarRealtimeCadete();
     verificarAlertasCadete();
