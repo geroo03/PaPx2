@@ -68,7 +68,7 @@ async function cargarComercios(){
     try { allComercios = JSON.parse(cached); renderRubros(); } catch {}
   }
   try{
-    const{data,error}=await sb.from('comercios').select('*').order('nombre',{ascending:true});
+    const{data,error}=await sb.from('comercios').select('*').eq('activo',true).order('nombre',{ascending:true});
     if(error)throw error;
     allComercios=data||[];
     try { localStorage.setItem('pap_comercios_cache', JSON.stringify(allComercios)); } catch {}
@@ -589,6 +589,8 @@ async function cargarMensajesPedido(pedidoId){
   (data||[]).forEach(m=>agregarMsgPedidoUI(m));
 }
 
+function _escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 function agregarMsgPedidoUI(msg){
   const container=document.getElementById('chat-pedido-msgs');
   if(!container)return;
@@ -598,8 +600,8 @@ function agregarMsgPedidoUI(msg){
   const div=document.createElement('div');
   div.style.cssText=`display:flex;justify-content:${esCliente?'flex-end':'flex-start'};`;
   div.innerHTML=`<div style="max-width:80%;padding:8px 12px;border-radius:${esCliente?'12px 12px 4px 12px':'4px 12px 12px 12px'};background:${esCliente?'#FF6B35':'#e8e8e8'};color:${esCliente?'#fff':'#111'};font-size:13px;line-height:1.4;">
-    ${!esCliente?`<div style="font-size:10px;font-weight:700;margin-bottom:2px;opacity:.7;">${rolLabel}</div>`:''}
-    ${msg.mensaje}
+    ${!esCliente?`<div style="font-size:10px;font-weight:700;margin-bottom:2px;opacity:.7;">${_escHtml(rolLabel)}</div>`:''}
+    ${_escHtml(msg.mensaje)}
     <div style="font-size:9px;opacity:.5;text-align:right;margin-top:2px;">${hora}</div>
   </div>`;
   container.appendChild(div);
