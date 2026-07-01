@@ -292,9 +292,10 @@ async function loadPendientes() {
 window.aprobarComercio = async function(id, btn) {
   btn.disabled = true; btn.textContent = 'Aprobando...';
   try {
-    await supabase.from('comercios').update({estado_registro:'activo'}).eq('id',id);
+    const { error } = await supabase.from('comercios').update({estado_registro:'activo'}).eq('id',id);
+    if (error) throw error;
     loadPendientes(); loadComercios(); loadKPIs();
-  } catch(e) { alert('Error: '+e.message); btn.disabled=false; btn.textContent='Aprobar'; }
+  } catch(e) { alert('Error al aprobar: '+e.message); btn.disabled=false; btn.textContent='Aprobar'; }
 };
 
 // ── CADETES ──────────────────────────────────────────────────────────────────
