@@ -1247,6 +1247,8 @@ window.toggleChatComercio = async function(pedidoId) {
       msgs.innerHTML = '';
       (data || []).forEach(m => appendMsgComercio(pedidoId, m));
 
+      const _stale = sb.getChannels().find(c => c.topic === 'realtime:chat-com-rt-' + pedidoId);
+      if (_stale) sb.removeChannel(_stale);
       sb.channel('chat-com-rt-' + pedidoId)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes_pedido', filter: `pedido_id=eq.${pedidoId}` },
           payload => { appendMsgComercio(pedidoId, payload.new); })

@@ -566,6 +566,7 @@ function iniciarTracking(){
 
   // Chat del pedido en tiempo real
   cargarMensajesPedido(pedidoId);
+  if(window._chatPedidoCh)sb.removeChannel(window._chatPedidoCh);
   window._chatPedidoCh=sb.channel('chat-pedido-'+pedidoId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'mensajes_pedido',filter:`pedido_id=eq.${pedidoId}`},
       payload=>{agregarMsgPedidoUI(payload.new);})
