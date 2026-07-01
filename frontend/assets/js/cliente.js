@@ -640,7 +640,7 @@ async function cargarPedidos(){
       const chatBtn=reporte?`<button onclick="event.stopPropagation();reabrirChat('${reporte.id}','${reporte.tipo}','${reporte.limite_resolucion||''}')" style="width:100%;margin-top:10px;background:#FEF3C7;color:#92400E;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">Ver chat del reporte activo</button>`:'';
       const activo=['nuevo','preparando','en_camino'].includes(p.estado);
       const repeatBtn=p.estado==='entregado'?`<button onclick="event.stopPropagation();repetirPedido('${p.comercio_id}')" style="margin-top:10px;width:100%;background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;">Repetir pedido</button>`:'';
-  return`<div class="ped-card" onclick="${activo?"go('tracking')":`verDetallePedido('${p.id}')`}"><div class="ped-top"><div class="ped-name">${est.icon} ${p.comercios?.nombre||'Comercio'}</div><span class="estado-pill ${est.clase}">${est.label}</span></div><div style="font-size:12px;color:var(--gray-600);margin-bottom:6px;line-height:1.5;">${itemsStr||'Sin detalle'}</div><div style="display:flex;justify-content:space-between;align-items:center;"><div class="ped-meta">${ICONS.calendar} ${fecha} · ${ICONS.clock} ${hora}</div><div style="font-size:14px;font-weight:800;color:var(--brand);">$${Number(p.total||0).toLocaleString('es-AR')}</div></div>${p.notas?`<div style="margin-top:6px;font-size:11px;color:var(--gray-400);background:var(--gray-50);border-radius:8px;padding:6px 10px;">${ICONS.chat} ${p.notas}</div>`:''}${chatBtn}${repeatBtn}</div>`;
+  return`<div class="ped-card" onclick="${activo?`retomarTracking('${p.id}')`:`verDetallePedido('${p.id}')`}"><div class="ped-top"><div class="ped-name">${est.icon} ${p.comercios?.nombre||'Comercio'}</div><span class="estado-pill ${est.clase}">${est.label}</span></div><div style="font-size:12px;color:var(--gray-600);margin-bottom:6px;line-height:1.5;">${itemsStr||'Sin detalle'}</div><div style="display:flex;justify-content:space-between;align-items:center;"><div class="ped-meta">${ICONS.calendar} ${fecha} · ${ICONS.clock} ${hora}</div><div style="font-size:14px;font-weight:800;color:var(--brand);">$${Number(p.total||0).toLocaleString('es-AR')}</div></div>${p.notas?`<div style="margin-top:6px;font-size:11px;color:var(--gray-400);background:var(--gray-50);border-radius:8px;padding:6px 10px;">${ICONS.chat} ${p.notas}</div>`:''}${chatBtn}${repeatBtn}</div>`;
     }).join('');
   }catch{
     if(currentPedido){container.innerHTML=`<div class="ped-card" onclick="go('tracking')"><div class="ped-top"><div class="ped-name">${currentComercio?.nombre||'Tu pedido'}</div><span class="estado-pill ep-camino">En camino</span></div><div class="ped-meta">$${Number(currentPedido.total||0).toLocaleString('es-AR')} · Hoy</div></div>`;}
@@ -649,6 +649,15 @@ async function cargarPedidos(){
 }
 
 function verDetallePedido(id){go('pedido-detalle');cargarDetallePedido(id);}
+
+async function retomarTracking(pedidoId){
+  try{
+    const{data:p}=await sb.from('pedidos').select('*,comercios(nombre,imagen_url,categoria)').eq('id',pedidoId).single();
+    if(p){currentPedido=p;if(p.comercios)currentComercio=p.comercios;}
+  }catch{}
+  go('tracking');
+  iniciarTracking();
+}
 
 async function cargarDetallePedido(pedidoId){
   const cont=document.getElementById('pedido-detalle-content');if(!cont)return;
