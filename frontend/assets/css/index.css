@@ -109,6 +109,20 @@ body{background:#F5F5F5;display:flex;flex-direction:column;align-items:center;mi
 .dev-icono{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
 .menu-cat-label{padding:18px 18px 8px;font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.08em;background:var(--gray-50);border-top:1px solid var(--gray-100);}
 .section-card{background:var(--white);border-radius:var(--radius-md);overflow:hidden;margin:0 18px 14px;box-shadow:var(--shadow-sm);}
+/* ── Secciones home: nuevos & referidos ── */
+@keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes badgeNuevoPulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.45);}65%{box-shadow:0 0 0 5px rgba(22,163,74,0);}}
+@keyframes skShimmer{0%{background-position:-280px 0;}100%{background-position:280px 0;}}
+.tarjeta-com{transition:transform .18s ease,box-shadow .18s ease;}
+.tarjeta-com:active{transform:scale(.94);box-shadow:var(--shadow-sm);}
+.tarjeta-com img{transition:transform .3s ease;}
+.tarjeta-com:active img{transform:scale(1.04);}
+.badge-nuevo-anim{animation:badgeNuevoPulse 2.2s ease infinite;}
+.sk-wrap{width:130px;border-radius:14px;overflow:hidden;flex-shrink:0;background:var(--gray-50);}
+.sk-wrap-sq{border-radius:14px;overflow:hidden;background:var(--gray-50);}
+.sk-img{height:90px;background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%);background-size:280px 100%;animation:skShimmer 1.3s infinite linear;}
+.sk-line{height:10px;border-radius:4px;margin:8px 9px;background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%);background-size:280px 100%;animation:skShimmer 1.3s infinite linear;}
+.sk-line.s{height:8px;width:50%;margin-top:5px;}
 .cart-float{position:sticky;bottom:0;background:var(--brand);margin:0;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-radius:0;box-shadow:0 -4px 20px rgba(255,107,53,.25);}
 .cart-float:active{opacity:.9;transform:scale(.99);}
 .cart-float span{color:var(--white);font-size:13px;font-weight:700;}

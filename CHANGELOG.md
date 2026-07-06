@@ -2,6 +2,58 @@
 
 ---
 
+## [2.7.0] — 6 de julio 2026
+
+### Tarifas de cadete por vehículo + distancia real
+
+- `TARIFA_POR_KM` corregido de `$250` a `$750`
+- Tarifa base por vehículo: bici `$1.200`, moto `$1.800` (ya existía en código pero el km no se sumaba correctamente)
+- El pago ahora se calcula con la distancia **comercio → cliente** (la entrega real), no cadete → comercio (que era solo para filtrar cercanía)
+- Frontend: `latEntrega` / `lngEntrega` se capturan al detectar GPS y al mover el pin del mapa, y se envían en el pedido
+- DB: `pedidos.lat_entrega`, `pedidos.lng_entrega` — nuevas columnas (`migration-lat-entrega-pedidos.sql`)
+- Fallback: si el cliente no envía coordenadas, se cobra solo la tarifa base sin adicional por km
+
+### Home — Sección "Recién llegados" (carrusel)
+
+- Nueva sección `#nuevos-comercios-wrap` justo antes del filtro de categorías
+- Carrusel horizontal de las últimas tiendas activas ordenadas por `created_at DESC`
+- Badge **NUEVO** (verde) con animación `badgeNuevoPulse` en las que tienen menos de 30 días
+- Fallback: si ningún comercio tiene menos de 30 días, muestra los 8 más recientes igual
+- Skeletons de carga (shimmer) mientras espera la respuesta de Supabase
+- Animación `cardIn` escalonada por tarjeta (`delay: i × 60ms`)
+
+### Home — Sección "Recomendados" (grilla embajadores)
+
+- Nueva sección `#referidos-comercios-wrap` justo debajo del carrusel
+- Grilla 2 columnas con todos los comercios cuyo `creado_por_embajador_id IS NOT NULL`
+- Badge **RECOMENDADO** (naranja) en cada tarjeta
+- Se oculta automáticamente si no hay comercios referidos
+- Skeletons de carga + animación `cardIn` escalonada (`delay: i × 70ms`)
+
+### CSS — Animaciones (index.css)
+
+| Keyframe | Uso |
+|----------|-----|
+| `cardIn` | Entrada de tarjetas desde abajo con leve escala |
+| `badgeNuevoPulse` | Pulso de glow verde en badge "NUEVO" |
+| `skShimmer` | Efecto shimmer en skeletons de carga |
+
+- Clase `.tarjeta-com`: hover/active con scale y transición de sombra
+- Clase `.badge-nuevo-anim`: aplica `badgeNuevoPulse` continuo
+- Clases `.sk-wrap`, `.sk-wrap-sq`, `.sk-img`, `.sk-line`: skeletons reutilizables
+
+### Parche SQL (fix-criticos-importantes.sql)
+
+- Corregido `operator does not exist: uuid = text` en `reportes_comercio_ver`: cast `auth.uid()::text`
+- Corregido `relation already exists` en `referidos_cadete`: agregado `WHEN duplicate_table THEN NULL` al bloque EXCEPTION
+
+### DB — README-database.md
+
+- Documentación completa de las 27 tablas con columnas reales, tipos, constraints, triggers, RPCs y políticas RLS
+- Tabla de issues conocidos con estado de resolución
+
+---
+
 ## [2.6.0] — 29–30 de junio 2026
 
 ### Bugs críticos corregidos

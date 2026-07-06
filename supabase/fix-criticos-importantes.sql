@@ -78,7 +78,7 @@ CREATE POLICY reportes_owner_all
 CREATE POLICY reportes_comercio_ver
   ON public.reportes FOR SELECT
   USING (
-    auth.uid() = comercio_id
+    auth.uid()::text = comercio_id
     OR (SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) IN ('admin', 'comercio')
   );
 
@@ -206,7 +206,9 @@ DO $$ BEGIN
   BEGIN
     ALTER TABLE public.referidos_cadete
       ADD CONSTRAINT referidos_cadete_referido_key UNIQUE (referido_id);
-  EXCEPTION WHEN duplicate_object THEN NULL; END;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+            WHEN duplicate_table   THEN NULL;
+  END;
 END; $$;
 
 
@@ -270,8 +272,18 @@ CREATE POLICY banners_lectura_publica
 DROP POLICY IF EXISTS banners_admin_all ON public.banners;
 CREATE POLICY banners_admin_all
   ON public.banners FOR ALL
-  USING  ((SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin')
-  WITH CHECK ((SELECT rol FROM public.perfiles WHERE usuario_id = auth.uid()) = 'admin');
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.perfiles AS p
+      WHERE p.usuario_id = auth.uid() AND p.rol = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.perfiles AS p
+      WHERE p.usuario_id = auth.uid() AND p.rol = 'admin'
+    )
+  );
 
 
 -- ── FIN DEL PARCHE ────────────────────────────────────────────────────────────

@@ -220,6 +220,24 @@
       <div id="ofertas-slides" style="display:flex;gap:10px;width:max-content;"></div>
     </div>
   </div>
+  <!-- Carrusel: comercios nuevos -->
+  <div id="nuevos-comercios-wrap" style="display:none;padding:18px 0 0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 18px;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:800;color:var(--black);">Recién llegados</div>
+      <div style="font-size:11px;font-weight:700;color:#16A34A;background:#DCFCE7;padding:3px 10px;border-radius:20px;">Nuevos</div>
+    </div>
+    <div style="overflow-x:auto;padding:0 18px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+      <div id="nuevos-slides" style="display:flex;gap:10px;width:max-content;"></div>
+    </div>
+  </div>
+  <!-- Sección: comercios ingresados por embajadores -->
+  <div id="referidos-comercios-wrap" style="display:none;padding:18px 18px 0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;color:var(--black);">Recomendados</div>
+      <div style="font-size:11px;font-weight:700;color:var(--brand);background:#FFF3E0;padding:3px 10px;border-radius:20px;">Por embajadores</div>
+    </div>
+    <div id="referidos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+  </div>
   <div class="cats-wrap"><div class="cats" id="cats-row">
       <div class="cat active" onclick="filtrar(this,'todos')">Todos</div>
       <div class="cat" onclick="filtrar(this,'comida')"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path></svg> Restaurantes</div>

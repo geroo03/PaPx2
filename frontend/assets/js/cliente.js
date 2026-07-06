@@ -149,7 +149,7 @@ function cerrarResultados(){const cont=document.getElementById('search-results')
 function limpiarBusqueda(){const input=document.getElementById('search-input');const clearBtn=document.getElementById('search-clear');if(input)input.value='';if(clearBtn)clearBtn.style.display='none';cerrarResultados();renderRubros();}
 document.addEventListener('click',(e)=>{if(!e.target.closest('.search-box')&&!e.target.closest('#search-results'))cerrarResultados();});
 
-let _mapaListo=false,_mapaObj=null,_pinObj=null;
+let _mapaListo=false,_mapaObj=null,_pinObj=null,latEntrega=null,lngEntrega=null;
 function cargarMapaCarrito(lat,lng){
   const wrap=document.getElementById('mapa-wrap');
   const div=document.getElementById('mapa-carrito');
@@ -166,6 +166,7 @@ function cargarMapaCarrito(lat,lng){
   _pinObj=L.marker([lat,lng],{draggable:true}).addTo(_mapaObj);
   _pinObj.on('dragend',async()=>{
     const p=_pinObj.getLatLng();
+    latEntrega=p.lat;lngEntrega=p.lng;
     const dir=await obtenerDireccionDesdePin(p.lat,p.lng);
     const gpsTxt=document.getElementById('dir-gps-txt');
     if(gpsTxt)gpsTxt.textContent=dir;
@@ -277,7 +278,7 @@ function cargarDireccionesEnCarrito(){const dirs=JSON.parse(localStorage.getItem
 function selDireccion(tipo){dirEntregaSeleccionada=tipo;document.querySelectorAll('[id^="dot-"]').forEach(d=>{d.style.borderColor='#E0E0E0';d.style.background='#fff';d.innerHTML='';});document.querySelectorAll('[id^="dir-opt-"]').forEach(d=>{if(d.style){d.style.borderColor='#E0E0E0';d.style.background='#fff';}});const dotId=tipo==='gps'?'dot-gps':tipo==='nueva'?'dot-nueva':`dot-${tipo}`;const optId=tipo==='gps'?'dir-opt-gps':tipo==='nueva'?'dir-opt-nueva':`dir-opt-${tipo}`;const dot=document.getElementById(dotId);const opt=document.getElementById(optId);if(dot){dot.style.borderColor='#FF6B35';dot.style.background='#FF6B35';dot.innerHTML='<div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div>';}if(opt){opt.style.borderColor='#FF6B35';opt.style.background='#FFF8F6';}const inputNueva=document.getElementById('input-dir-nueva');if(inputNueva){inputNueva.style.display=tipo==='nueva'?'block':'none';if(tipo==='nueva'){setTimeout(()=>document.getElementById('dir-nueva-txt')?.focus(),100);cargarMapaCarrito(-27.7951,-64.2615);}}}
 async function obtenerDireccionDesdePin(lat,lng){try{const res=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es&addressdetails=1`);const data=await res.json();const a=data.address||{};const calle=a.road||a.pedestrian||'';const numero=a.house_number||'';const barrio=a.suburb||a.neighbourhood||a.village||a.locality||'';const ciudad=a.city||a.town||a.municipality||'';const provincia=a.state||'';const partes=[];if(calle&&numero)partes.push(`${calle} ${numero}`);else if(calle)partes.push(calle);if(barrio&&barrio!==ciudad)partes.push(barrio);if(ciudad)partes.push(ciudad);if(provincia&&provincia!==ciudad)partes.push(provincia);return partes.join(', ')||'Ubicación seleccionada';}catch{return'Ubicación seleccionada';}}
 function getDireccionEntrega(){if(dirEntregaSeleccionada==='gps')return ubicacionActual||'Ubicación actual';if(dirEntregaSeleccionada==='nueva'){const txt=document.getElementById('dir-nueva-txt')?.value.trim();return txt||'Dirección no especificada';}const idx=parseInt(dirEntregaSeleccionada.replace('saved-',''));const dirs=JSON.parse(localStorage.getItem('pap_direcciones')||'[]');return dirs[idx]?`${dirs[idx].nombre}: ${dirs[idx].dir}`:ubicacionActual;}
-async function actualizarDirGPS(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(async(pos)=>{const lat=pos.coords.latitude;const lng=pos.coords.longitude;const dir=await obtenerDireccionDesdePin(lat,lng);const gpsTxt=document.getElementById('dir-gps-txt');if(gpsTxt)gpsTxt.textContent=dir;ubicacionActual=dir;localStorage.setItem('pap_ubicacion',dir);cargarMapaCarrito(lat,lng);},()=>{},{enableHighAccuracy:true,maximumAge:0});}
+async function actualizarDirGPS(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(async(pos)=>{const lat=pos.coords.latitude;const lng=pos.coords.longitude;latEntrega=lat;lngEntrega=lng;const dir=await obtenerDireccionDesdePin(lat,lng);const gpsTxt=document.getElementById('dir-gps-txt');if(gpsTxt)gpsTxt.textContent=dir;ubicacionActual=dir;localStorage.setItem('pap_ubicacion',dir);cargarMapaCarrito(lat,lng);},()=>{},{enableHighAccuracy:true,maximumAge:0});}
 
 function renderCarrito(){const items=Object.entries(window.state?window.state.cart:{}).filter(([,i])=>i.qty>0);if(!items.length){document.getElementById('cart-list').innerHTML='<div class="empty"><div class="big"></div><p>Tu carrito está vacío.<br>Elegí algo rico.</p></div>';document.getElementById('r-sub').textContent='$0';document.getElementById('r-total').textContent='$1.200';document.getElementById('btn-confirmar').disabled=true;return;}document.getElementById('btn-confirmar').disabled=false;let sub=0;document.getElementById('cart-list').innerHTML='<div class="section-card">'+items.map(([id,item])=>{sub+=item.precio*item.qty;return`<div class="cart-item"><div><div class="ci-name">${item.nombre}</div><div class="ci-sub">$${item.precio.toLocaleString('es-AR')} c/u</div></div><div class="qty-row"><button class="qty-btn" onclick="cambiarQty('${id}',-1)">−</button><span class="qty-n">${item.qty}</span><button class="qty-btn" onclick="cambiarQty('${id}',1)">+</button><span style="font-size:14px;font-weight:700;color:var(--black);min-width:62px;text-align:right;">$${(item.precio*item.qty).toLocaleString('es-AR')}</span></div></div>`;}).join('')+'</div>';const envio=1200;document.getElementById('r-sub').textContent=`$${sub.toLocaleString('es-AR')}`;document.getElementById('r-envio').textContent=`$${envio.toLocaleString('es-AR')}`;
   // 4c: Inyectar selector de propina si el contenedor existe en el HTML
@@ -311,6 +312,8 @@ async function confirmarPedido(){
       comercio_id:comercioId,
       cliente_id:userId,
       direccion_entrega:getDireccionEntrega(),
+      lat_entrega:latEntrega,
+      lng_entrega:lngEntrega,
       metodo_pago:'mercadopago'
     }));
     localStorage.setItem('pap_pedido_actual','pending_mp');
@@ -321,7 +324,7 @@ async function confirmarPedido(){
   }
 
   // Efectivo y Transferencia: crear pedido inmediatamente
-  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
+  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),lat_entrega:latEntrega,lng_entrega:lngEntrega,propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}currentPedido=data;}catch(e){console.error('Excepcion:',e);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
   if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
@@ -925,8 +928,63 @@ async function cargarOfertasBanner(){
   }catch(e){document.getElementById('ofertas-banner-wrap').style.display='none';console.error('Error loading banners',e);}
 }
 
+const _SK_CARD=`<div class="sk-wrap"><div class="sk-img"></div><div class="sk-line" style="width:70%;"></div><div class="sk-line s"></div></div>`;
+const _SK_GRID=`<div class="sk-wrap-sq"><div class="sk-img"></div><div class="sk-line" style="width:70%;"></div><div class="sk-line s"></div></div>`;
+
+async function cargarNuevosComercios(){
+  const wrap=document.getElementById('nuevos-comercios-wrap');
+  const slides=document.getElementById('nuevos-slides');
+  if(!wrap||!slides)return;
+  // mostrar skeletons inmediatamente
+  wrap.style.display='block';
+  slides.innerHTML=Array(5).fill(_SK_CARD).join('');
+  try{
+    const hace30dias=new Date(Date.now()-30*24*60*60*1000).toISOString();
+    const{data}=await sb.from('comercios')
+      .select('id,nombre,categoria,imagen_url,rating,created_at')
+      .eq('estado_registro','activo')
+      .order('created_at',{ascending:false})
+      .limit(12);
+    const recientes=(data||[]).filter(c=>c.created_at>=hace30dias);
+    const items=recientes.length?recientes:(data||[]).slice(0,8);
+    if(!items.length){wrap.style.display='none';return;}
+    slides.innerHTML=items.map((c,i)=>{
+      const img=c.imagen_url||imgsCategorias[c.categoria]||'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80';
+      const rating=c.rating?Number(c.rating).toFixed(1):'5.0';
+      const esNuevo=c.created_at>=hace30dias;
+      return`<div onclick="abrirComercio('${c.id}')" class="tarjeta-com" style="width:130px;border-radius:14px;overflow:hidden;background:var(--white);flex-shrink:0;cursor:pointer;box-shadow:var(--shadow-md);border:1px solid var(--gray-100);animation:cardIn .32s ease both;animation-delay:${i*0.06}s;"><div style="position:relative;height:90px;overflow:hidden;"><img src="${img}" alt="${c.nombre}" loading="lazy" style="width:100%;height:90px;object-fit:cover;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.28) 0%,transparent 55%);pointer-events:none;"></div>${esNuevo?`<div class="badge-nuevo-anim" style="position:absolute;top:6px;left:6px;background:#16A34A;color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.04em;">NUEVO</div>`:''}
+      </div><div style="padding:8px 9px 10px;"><div style="font-size:12px;font-weight:700;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre}</div><div style="font-size:10px;color:var(--gray-400);margin-top:2px;text-transform:capitalize;">${c.categoria||''}</div><div style="font-size:10px;font-weight:700;color:#F59E0B;margin-top:3px;">★ ${rating}</div></div></div>`;
+    }).join('');
+  }catch(e){wrap.style.display='none';}
+}
+
+async function cargarComerciosReferidos(){
+  const wrap=document.getElementById('referidos-comercios-wrap');
+  const grid=document.getElementById('referidos-grid');
+  if(!wrap||!grid)return;
+  // mostrar skeletons inmediatamente
+  wrap.style.display='block';
+  grid.innerHTML=Array(4).fill(_SK_GRID).join('');
+  try{
+    const{data}=await sb.from('comercios')
+      .select('id,nombre,categoria,imagen_url,rating,descripcion')
+      .eq('estado_registro','activo')
+      .not('creado_por_embajador_id','is',null)
+      .order('created_at',{ascending:false})
+      .limit(20);
+    if(!data?.length){wrap.style.display='none';return;}
+    grid.innerHTML=data.map((c,i)=>{
+      const img=c.imagen_url||imgsCategorias[c.categoria]||'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80';
+      const rating=c.rating?Number(c.rating).toFixed(1):'5.0';
+      return`<div onclick="abrirComercio('${c.id}')" class="tarjeta-com" style="border-radius:14px;overflow:hidden;background:var(--white);cursor:pointer;box-shadow:var(--shadow-sm);border:1px solid var(--gray-100);animation:cardIn .32s ease both;animation-delay:${i*0.07}s;"><div style="position:relative;height:90px;overflow:hidden;"><img src="${img}" alt="${c.nombre}" loading="lazy" style="width:100%;height:90px;object-fit:cover;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.28) 0%,transparent 55%);pointer-events:none;"></div><div style="position:absolute;top:6px;left:6px;background:var(--brand);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.04em;">RECOMENDADO</div></div><div style="padding:8px 10px 10px;"><div style="font-size:12px;font-weight:700;color:var(--black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.nombre}</div><div style="font-size:10px;color:var(--gray-400);margin-top:2px;text-transform:capitalize;">${c.categoria||''}</div><div style="font-size:10px;font-weight:700;color:#F59E0B;margin-top:3px;">★ ${rating}</div></div></div>`;
+    }).join('');
+  }catch(e){wrap.style.display='none';}
+}
+
 detectarUbicacion();
 cargarComercios();
 cargarOfertasBanner();
+cargarNuevosComercios();
+cargarComerciosReferidos();
 
 

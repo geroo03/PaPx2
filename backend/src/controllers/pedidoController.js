@@ -439,7 +439,7 @@ export async function difundirPedido(req, res) {
     // ── PASO 2: Dirección de entrega del pedido ───────────────────────────────
     const { data: pedido, error: pedErr } = await supabaseAdmin
       .from('pedidos')
-      .select('id, direccion_entrega')
+      .select('id, direccion_entrega, lat_entrega, lng_entrega')
       .eq('id', pedidoId)
       .single();
 
@@ -468,7 +468,7 @@ export async function difundirPedido(req, res) {
 
     const RADIO_MAX_KM  = 10;
     const MAX_OFERTAS   = 5;
-    const TARIFA_POR_KM = 250;
+    const TARIFA_POR_KM = 750;
     const TARIFA_BASE_VEHICULO = { moto: 1800, bici: 1200 };
 
     // Todos los cadetes con disponible=true (activo es opcional para mayor cobertura)
@@ -513,9 +513,19 @@ export async function difundirPedido(req, res) {
       candidatos = candidatos.slice(0, MAX_OFERTAS);
     }
 
+    // Distancia real del viaje: comercio → cliente (para calcular el pago)
+    // Si el cliente no envió coords, se usa solo la tarifa base.
+    const cliLat = Number(pedido.lat_entrega ?? 0);
+    const cliLng = Number(pedido.lng_entrega ?? 0);
+    const distEntregaKm = (cliLat && cliLng)
+      ? Math.round(haversineKm(comLat, comLng, cliLat, cliLng) * 10) / 10
+      : null;
+
     const ofertas = candidatos.map(c => {
-      const dist     = Math.round(c.distancia_km * 10) / 10;
-      const ganancia = Math.round((c.tarifa_base + dist * TARIFA_POR_KM) / 50) * 50;
+      const distProximidad = Math.round(c.distancia_km * 10) / 10; // cadete→comercio (solo para info)
+      const ganancia = distEntregaKm !== null
+        ? Math.round((c.tarifa_base + distEntregaKm * TARIFA_POR_KM) / 50) * 50
+        : c.tarifa_base; // sin coords: pago base sin adicional por km
       return {
         pedido_id:          pedidoId,
         cadete_id:          c.auth_uid,
@@ -524,9 +534,9 @@ export async function difundirPedido(req, res) {
         comercio_lat:       comLat,
         comercio_lng:       comLng,
         cliente_direccion:  pedido.direccion_entrega || '',
-        distancia_km:       dist,
+        distancia_km:       distProximidad,
         ganancia_estimada:  ganancia,
-        distancia_estimada: dist,
+        distancia_estimada: distEntregaKm ?? distProximidad,
         pago_cadete:        ganancia,
         estado:             'pendiente',
       };
