@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../middlewares/authMiddleware.js';
+import { requireAuth, requireAdmin } from '../middlewares/authMiddleware.js';
 import {
   actualizarUbicacion,
   getEfectivo,
@@ -20,9 +20,9 @@ router.post('/solicitar-liquidacion',          requireAuth, solicitarLiquidacion
 router.post('/validar-referido',               requireAuth, validarReferido);
 
 // Admin
-router.patch('/liquidacion/:id/confirmar',     requireAuth, confirmarLiquidacion);
-router.patch('/liquidacion/:id/rechazar',      requireAuth, rechazarLiquidacion);
-router.patch('/:id/efectivo',                  requireAuth, adminActualizarEfectivo);
-router.get('/admin/lista',                     requireAuth, adminListaCadetes);
+router.patch('/liquidacion/:id/confirmar',     requireAdmin, confirmarLiquidacion);
+router.patch('/liquidacion/:id/rechazar',      requireAdmin, rechazarLiquidacion);
+router.patch('/:id/efectivo',                  requireAdmin, adminActualizarEfectivo);
+router.get('/admin/lista',                     requireAdmin, adminListaCadetes);
 
 export default router;

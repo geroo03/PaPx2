@@ -411,12 +411,19 @@ export async function difundirPedido(req, res) {
     // ── PASO 1: Coordenadas del comercio ──────────────────────────────────────
     const { data: comercio, error: comErr } = await supabaseAdmin
       .from('comercios')
-      .select('id, nombre, direccion, lat, lng')
+      .select('id, nombre, direccion, lat, lng, usuario_id')
       .eq('id', comercioId)
       .single();
 
     if (comErr || !comercio) {
       return res.status(404).json({ error: 'Comercio no encontrado.' });
+    }
+
+    if (comercio.usuario_id !== req.user.id) {
+      const { data: perfil } = await supabaseAdmin.from('perfiles').select('rol').eq('usuario_id', req.user.id).maybeSingle();
+      if (perfil?.rol !== 'admin') {
+        return res.status(403).json({ error: 'Solo el comercio propietario puede difundir pedidos.' });
+      }
     }
 
     const comLat = Number(comercio.lat ?? 0);
@@ -596,6 +603,10 @@ export async function valorarPedido(req, res) {
       return res.status(403).json({ error: 'No podés valorar un pedido que no es tuyo' });
     }
 
+    if (pedido.estado !== 'entregado') {
+      return res.status(400).json({ error: 'Solo podés valorar pedidos que ya fueron entregados' });
+    }
+
     if (tipo === 'comercio') {
       if (!pedido.comercio_id) {
         return res.status(400).json({ error: 'El pedido no tiene comercio asignado' });
@@ -674,6 +685,43 @@ export async function valorarPedido(req, res) {
  * El cliente llama esto después de crear un pedido para pushear al comercio.
  * Body: { pedido_id }
  */
+/**
+ * POST /api/pedidos/no-show
+ * El cadete reporta que el cliente no estaba al momento de la entrega.
+ * Cancela el pedido con motivo 'no_show_cliente'.
+ * Body: { pedido_id }
+ */
+export async function reportarNoShow(req, res) {
+  const { pedido_id } = req.body ?? {};
+  if (!pedido_id) return res.status(400).json({ error: 'pedido_id requerido' });
+
+  try {
+    const { data: pedido, error: fetchErr } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, cadete_id, estado')
+      .eq('id', pedido_id)
+      .single();
+
+    if (fetchErr || !pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
+    if (pedido.cadete_id !== req.user.id) {
+      return res.status(403).json({ error: 'Solo el cadete asignado puede reportar no-show' });
+    }
+    if (pedido.estado !== 'en_camino') {
+      return res.status(400).json({ error: 'Solo se puede reportar no-show cuando el pedido está en camino' });
+    }
+
+    await supabaseAdmin
+      .from('pedidos')
+      .update({ estado: 'cancelado' })
+      .eq('id', pedido_id);
+
+    return res.json({ ok: true, mensaje: 'Pedido cancelado por no-show. Contactá al soporte si necesitás asistencia.' });
+  } catch (err) {
+    console.error('[reportarNoShow] Error:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
 export async function notificarNuevoPedido(req, res) {
   const { pedido_id } = req.body ?? {};
   if (!pedido_id) return res.status(400).json({ error: 'pedido_id requerido' });
@@ -686,6 +734,13 @@ export async function notificarNuevoPedido(req, res) {
       .single();
 
     if (!pedido?.comercio_id) return res.json({ ok: true, notificado: false });
+
+    if (pedido.cliente_id !== req.user.id) {
+      const { data: perfil } = await supabaseAdmin.from('perfiles').select('rol').eq('usuario_id', req.user.id).maybeSingle();
+      if (perfil?.rol !== 'admin') {
+        return res.status(403).json({ error: 'Solo el cliente del pedido puede disparar esta notificación.' });
+      }
+    }
 
     const { data: comercio } = await supabaseAdmin
       .from('comercios')

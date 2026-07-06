@@ -106,6 +106,11 @@ export async function mpWebhook(req, res) {
     return res.status(401).json({ error: 'Firma invalida' });
   }
 
+  if (!process.env.MP_WEBHOOK_SECRET) {
+    console.error('[Webhook] MP_WEBHOOK_SECRET no configurado en variables de entorno.');
+    return res.status(500).json({ error: 'Webhook no configurado correctamente.' });
+  }
+
   const manifest = `id:${notifId};request-id:${xRequestId};ts:${ts};`;
   const expected  = crypto
     .createHmac('sha256', process.env.MP_WEBHOOK_SECRET)

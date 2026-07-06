@@ -153,7 +153,13 @@ function togDisp() {
 
   // Persistir en DB para que el admin y el matching lo vean
   if (cadeteUserId) {
-    sb.from('cadetes').update({ disponible: disp, activo: disp }).eq('auth_uid', cadeteUserId).then(() => {});
+    sb.from('cadetes').update({ disponible: disp, activo: disp }).eq('auth_uid', cadeteUserId)
+      .then(({ error }) => {
+        if (error) {
+          console.error('[togDisp] Error al actualizar disponibilidad en DB:', error.message);
+          toast('Error al guardar disponibilidad. Verificá tu conexión.', 3000);
+        }
+      });
   }
 
   renderViajes();
@@ -175,7 +181,7 @@ function suscribirKmCadete(pedidoId, targetLat, targetLng, elementId) {
       table:  'ubicacion_cadetes',
       filter: `pedido_id=eq.${pedidoId}`,
     }, payload => {
-      const { lat, lng } = payload.new ?? {};
+      const { latitud: lat, longitud: lng } = payload.new ?? {};
       if (lat == null || lng == null) return;
       const el = document.getElementById(elementId);
       if (el) el.textContent = fmtKm(haversineKm(lat, lng, targetLat, targetLng));
@@ -761,17 +767,26 @@ async function cambiarVehiculo(tipo) {
   }
 }
 
-function actualizarStats() {
-  const hoy   = ofertasPendientes.filter(o => {
-    const d = new Date(o.created_at), n = new Date();
-    return d.getDate() === n.getDate() && d.getMonth() === n.getMonth();
-  });
-  const earn = hoy.reduce((acc, o) => acc + (o.ganancia_estimada ?? 0), 0);
+async function actualizarStats() {
+  if (!cadeteUserId) return;
+  try {
+    const hoy    = new Date(); hoy.setHours(0, 0, 0, 0);
+    const semana = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [hoyRes, semRes] = await Promise.all([
+      sb.from('pedidos').select('pago_cadete').eq('cadete_id', cadeteUserId).eq('estado', 'entregado').gte('created_at', hoy.toISOString()),
+      sb.from('pedidos').select('pago_cadete').eq('cadete_id', cadeteUserId).eq('estado', 'entregado').gte('created_at', semana.toISOString()),
+    ]);
+    const viajesHoy = hoyRes.data ?? [];
+    const viajesSem = semRes.data ?? [];
+    const earnHoy   = viajesHoy.reduce((a, p) => a + Number(p.pago_cadete ?? 0), 0);
+    const earnSem   = viajesSem.reduce((a, p) => a + Number(p.pago_cadete ?? 0), 0);
 
-  document.getElementById('s-hoy')?.textContent  != null && (document.getElementById('s-hoy').textContent = hoy.length);
-  document.getElementById('s-earn')?.textContent != null && (document.getElementById('s-earn').textContent = earn > 0 ? `$${earn.toLocaleString('es-AR')}` : '$0');
-  document.getElementById('earn-sem')?.textContent != null && (document.getElementById('earn-sem').textContent = `$${(ofertasPendientes.reduce((a,o)=>a+(o.ganancia_estimada??0),0)).toLocaleString('es-AR')}`);
-  document.getElementById('eg-viajes')?.textContent != null && (document.getElementById('eg-viajes').textContent = ofertasPendientes.length);
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('s-hoy',    viajesHoy.length);
+    set('s-earn',   earnHoy > 0 ? `$${earnHoy.toLocaleString('es-AR')}` : '$0');
+    set('earn-sem', `$${earnSem.toLocaleString('es-AR')}`);
+    set('eg-viajes', viajesSem.length);
+  } catch {}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1249,7 +1264,8 @@ function bindVehiculoSelect() {
 // CÓDIGO DE REFERIDO — cada cadete tiene un código único para invitar otros
 // ═══════════════════════════════════════════════════════════════════════════════
 function generarCodigoReferido(uid) {
-  return 'PAP-' + uid.slice(0, 4).toUpperCase();
+  // Usa 8 chars del UUID (~4 mil millones de combinaciones, evita colisiones)
+  return 'PAP-' + uid.replace(/-/g, '').slice(0, 8).toUpperCase();
 }
 
 async function cargarCodigoReferido() {
@@ -1422,19 +1438,19 @@ function iniciarTimerNoShow() {
 
 async function cancelarPorNoShow() {
   if (!activeTrip) return;
+  const pedidoId = activeTrip.id ?? activeTrip.pedido_id;
   try {
-    await apiPost('/api/pedidos/cambiar-estado', {
-      pedido_id: activeTrip.id ?? activeTrip.pedido_id,
-      nuevo_estado: 'entregado',
-      codigo_entrega: '0000',
-    });
-  } catch {}
-  // Forzar finalización local
+    await apiPost('/api/pedidos/no-show', { pedido_id: pedidoId });
+  } catch (e) {
+    console.error('[NoShow] Error al reportar no-show:', e.message);
+    toast('Error al registrar el no-show. El pedido fue cancelado localmente, contactá soporte.', 4000);
+  }
+  activeTrip = null;
   activeTripState = 3;
   if (_noShowTimer) { clearInterval(_noShowTimer); _noShowTimer = null; }
   removeAlertBtn();
   renderViajes();
-  toast('Entrega marcada como no-show. Contactá soporte si es necesario.');
+  toast('Pedido cancelado por no-show.', 3000);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

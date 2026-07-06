@@ -57,17 +57,23 @@ export async function register(req, res) {
     }
 
     // Sincronizar en perfiles
-    await supabaseAdmin.from('perfiles').upsert(
+    const { error: perfilErr } = await supabaseAdmin.from('perfiles').upsert(
       { usuario_id: data.user.id, email, rol: rolNormalizado, nombre: full_name ?? '' },
       { onConflict: 'usuario_id', ignoreDuplicates: false },
     );
+    if (perfilErr) {
+      console.error('[register] Error sincronizando perfil:', perfilErr.message);
+    }
 
     // Para cadetes: crear fila placeholder
     if (rolNormalizado === 'cadete') {
-      await supabaseAdmin.from('cadetes').upsert(
+      const { error: cadeteErr } = await supabaseAdmin.from('cadetes').upsert(
         { auth_uid: data.user.id, email, nombre: full_name ?? '' },
         { onConflict: 'auth_uid', ignoreDuplicates: true },
       );
+      if (cadeteErr) {
+        console.error('[register] Error sincronizando cadete:', cadeteErr.message);
+      }
     }
 
     console.log(`[register] ${email} → rol '${rolNormalizado}'`);
@@ -111,16 +117,22 @@ export async function crearUsuarioAdmin(req, res) {
       return res.status(400).json({ error: error.message });
     }
 
-    await supabaseAdmin.from('perfiles').upsert(
+    const { error: perfilErr2 } = await supabaseAdmin.from('perfiles').upsert(
       { usuario_id: data.user.id, email, rol: rolFinal, nombre: nombre ?? '' },
       { onConflict: 'usuario_id', ignoreDuplicates: false },
     );
+    if (perfilErr2) {
+      console.error('[crearUsuarioAdmin] Error sincronizando perfil:', perfilErr2.message);
+    }
 
     if (rolFinal === 'cadete') {
-      await supabaseAdmin.from('cadetes').upsert(
+      const { error: cadeteErr2 } = await supabaseAdmin.from('cadetes').upsert(
         { auth_uid: data.user.id, email, nombre: nombre ?? '' },
         { onConflict: 'auth_uid', ignoreDuplicates: true },
       );
+      if (cadeteErr2) {
+        console.error('[crearUsuarioAdmin] Error sincronizando cadete:', cadeteErr2.message);
+      }
     }
 
     console.log(`[crearUsuarioAdmin] ${email} → rol '${rolFinal}' creado por admin ${req.user.email}`);
@@ -165,22 +177,28 @@ export async function setRole(req, res) {
     const rolNormalizado = role === 'usuario' ? 'cliente' : role;
 
     // Sincronizar en 'perfiles' usando usuario_id (FK a auth.users, no la PK random)
-    await supabaseAdmin
+    const { error: perfilErr3 } = await supabaseAdmin
       .from('perfiles')
       .upsert(
-        { usuario_id: req.user.id, rol: rolNormalizado },
+        { usuario_id: req.user.id, email: req.user.email ?? '', rol: rolNormalizado },
         { onConflict: 'usuario_id', ignoreDuplicates: false },
       );
+    if (perfilErr3) {
+      console.error('[setRole] Error sincronizando perfil:', perfilErr3.message);
+    }
 
     // Para cadetes: crear fila placeholder en 'cadetes' si aún no existe.
     // El cadete completa el resto (vehículo, patente, etc.) desde su perfil en el dashboard.
     if (role === 'cadete') {
-      await supabaseAdmin
+      const { error: cadeteErr3 } = await supabaseAdmin
         .from('cadetes')
         .upsert(
           { auth_uid: req.user.id, email: req.user.email ?? '' },
           { onConflict: 'auth_uid', ignoreDuplicates: true },
         );
+      if (cadeteErr3) {
+        console.error('[setRole] Error sincronizando cadete:', cadeteErr3.message);
+      }
     }
 
     return res.status(200).json({ ok: true, role });
