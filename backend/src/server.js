@@ -25,10 +25,15 @@ const PORT = Number(process.env.PORT) || 3000;
 
 // FRONTEND_URL acepta varios orígenes separados por coma:
 //   FRONTEND_URL=http://localhost:5173,https://puertaapuerta.vercel.app
-const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:5173')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
+// Los orígenes de Capacitor (app nativa Android/iOS) siempre se permiten.
+const _CAPACITOR_ORIGINS = ['capacitor://localhost', 'https://localhost', 'http://localhost'];
+const allowedOrigins = [
+  ..._CAPACITOR_ORIGINS,
+  ...(process.env.FRONTEND_URL ?? 'http://localhost:5173')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean),
+];
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 

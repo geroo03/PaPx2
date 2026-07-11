@@ -56,3 +56,8 @@ __pycache__/
 
 # ── Deploy ────────────────────────────────────────────────────────────────────
 .vercel
+
+# ── Capacitor — proyecto Android/iOS generado (se regenera con npx cap add android)
+android/
+ios/
+*.keystore

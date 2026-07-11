@@ -1,0 +1,30 @@
+{
+  "appId": "com.puertaapuertax.app",
+  "appName": "Puerta a Puerta X",
+  "webDir": "frontend",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "puertaapuertax.keystore",
+      "keystoreAlias": "puertaapuertax"
+    }
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#0d0d0d",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "Geolocation": {
+      "requestLocationWhenInUseAuthorization": true
+    }
+  }
+}

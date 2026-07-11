@@ -2,6 +2,20 @@
 
 ---
 
+## [3.0.0] — 11 de julio 2026
+
+### Soporte Capacitor — Android (y futuro iOS)
+
+- `package.json` raíz con dependencias de Capacitor 7: core, cli, android, geolocation, push-notifications, camera, splash-screen, status-bar
+- `capacitor.config.json`: appId `com.puertaapuertax.app`, webDir `frontend`, androidScheme `https`, splash screen negro con 1.5 s
+- Backend CORS: agrega `capacitor://localhost` y `https://localhost` automáticamente sin necesitar cambios en las env vars de Railway
+- `push.js`: detecta entorno nativo (`window.Capacitor.isNativePlatform()`) y usa FCM (`@capacitor/push-notifications`) en app nativa; sigue usando VAPID en web
+- `.gitignore`: excluye `android/` e `ios/` (se generan con `npx cap add android/ios`) y `*.keystore`
+- `ANDROID-BUILD.md`: guía completa de build para quien tenga Android Studio (permisos, Firebase, keystore, íconos, splash)
+- Próximos pasos antes del APK final: correr `npm install && npx cap add android && npx cap sync android`, agregar `google-services.json` de Firebase, configurar íconos nativos
+
+---
+
 ## [2.9.0] — 11 de julio 2026
 
 ### Tarifa clima para cadetes (+20%)
