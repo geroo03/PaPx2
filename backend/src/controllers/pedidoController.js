@@ -474,7 +474,7 @@ export async function difundirPedido(req, res) {
     // Todos los cadetes con disponible=true (activo es opcional para mayor cobertura)
     const { data: todosDisp } = await supabaseAdmin
       .from('cadetes')
-      .select('auth_uid, nombre, vehiculo')
+      .select('auth_uid, nombre, vehiculo, tarifa_clima')
       .eq('disponible', true);
 
     if (!todosDisp?.length) {
@@ -501,7 +501,7 @@ export async function difundirPedido(req, res) {
       const distancia_km = pos
         ? haversineKm(Number(pos.latitud), Number(pos.longitud), comLat, comLng)
         : 0; // sin GPS → incluir igual con distancia desconocida
-      return { ...c, tarifa_base: base, distancia_km, tiene_gps: !!pos };
+      return { ...c, tarifa_base: base, distancia_km, tiene_gps: !!pos, tarifa_clima: !!c.tarifa_clima };
     });
 
     // Si hay cadetes con GPS, filtrar por radio; si no hay ninguno con GPS, notificar a todos
@@ -523,9 +523,12 @@ export async function difundirPedido(req, res) {
 
     const ofertas = candidatos.map(c => {
       const distProximidad = Math.round(c.distancia_km * 10) / 10; // cadete→comercio (solo para info)
-      const ganancia = distEntregaKm !== null
+      const gananciaBase = distEntregaKm !== null
         ? Math.round((c.tarifa_base + distEntregaKm * TARIFA_POR_KM) / 50) * 50
-        : c.tarifa_base; // sin coords: pago base sin adicional por km
+        : c.tarifa_base;
+      const ganancia = c.tarifa_clima
+        ? Math.round((gananciaBase * 1.20) / 50) * 50
+        : gananciaBase;
       return {
         pedido_id:          pedidoId,
         cadete_id:          c.auth_uid,

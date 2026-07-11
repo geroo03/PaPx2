@@ -2,6 +2,18 @@
 
 ---
 
+## [2.9.0] — 11 de julio 2026
+
+### Tarifa clima para cadetes (+20%)
+
+- Nueva columna `cadetes.tarifa_clima boolean DEFAULT false` (`migration-tarifa-clima.sql`)
+- Toggle "Clima" en la barra de vehículo del panel del cadete — persiste en Supabase
+- Cuando está activo, el backend multiplica la ganancia estimada ×1.20 (redondeado a $50) al difundir la oferta
+- El 20% aplica sobre el total calculado (base + km), no solo sobre la base
+- El cliente **no** ve el recargo en el precio del pedido — el aumento va directo al cadete
+
+---
+
 ## [2.8.0] — 11 de julio 2026
 
 ### Link de referidos para embajadores

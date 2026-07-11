@@ -51,6 +51,14 @@
   </button>
   <span style="margin-left:auto;font-size:11px;color:#6B7280;">Base: <strong id="tarifa-base-display" style="color:#FF6B35;">$1.200</strong></span>
 </div>
+<div id="clima-toggle-bar" style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:#111;border-top:1px solid rgba(255,255,255,.06);">
+  <span style="font-size:11px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Clima</span>
+  <button id="btn-clima-toggle" onclick="togClima()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;background:rgba(255,255,255,0.08);color:#9CA3AF;transition:.15s;">
+    <span id="clima-dot" style="width:8px;height:8px;border-radius:50%;background:#4B5563;display:inline-block;transition:.15s;flex-shrink:0;"></span>
+    <span id="clima-lbl">Normal</span>
+  </button>
+  <span style="margin-left:auto;font-size:11px;color:#6B7280;">+20% si lo activás</span>
+</div>
 
 <div class="tabs">
   <div class="tab active" id="tab-v" onclick="stab('v')">Viajes <span class="badge-n" id="bn" style="display:none">0</span></div>

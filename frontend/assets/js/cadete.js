@@ -724,10 +724,40 @@ async function confirmarEntrega() {
 // ESTADÍSTICAS
 // ═══════════════════════════════════════════════════════════════════════════════
 let cadeteVehiculo = 'bici'; // se actualiza desde el perfil del cadete
+let cadeteClima    = false;  // tarifa clima +20%, se guarda en cadetes.tarifa_clima
 
 function calcularGananciaLocal(distanciaKm) {
   const base = cadeteVehiculo === 'moto' ? 1800 : 1200;
   return Math.round((base + distanciaKm * 250) / 50) * 50;
+}
+
+function actualizarToggleClima() {
+  const btn = document.getElementById('btn-clima-toggle');
+  const dot = document.getElementById('clima-dot');
+  const lbl = document.getElementById('clima-lbl');
+  if (!btn) return;
+  if (cadeteClima) {
+    btn.style.background = 'rgba(99,102,241,.25)';
+    btn.style.color      = '#A5B4FC';
+    dot.style.background = '#A5B4FC';
+    lbl.textContent      = '+20% activo';
+  } else {
+    btn.style.background = 'rgba(255,255,255,0.08)';
+    btn.style.color      = '#9CA3AF';
+    dot.style.background = '#4B5563';
+    lbl.textContent      = 'Normal';
+  }
+}
+
+async function togClima() {
+  cadeteClima = !cadeteClima;
+  actualizarToggleClima();
+  toast(cadeteClima ? '🌧️ Tarifa clima +20% activa' : 'Tarifa clima desactivada');
+  if (cadeteUserId) {
+    try {
+      await sb.from('cadetes').update({ tarifa_clima: cadeteClima }).eq('auth_uid', cadeteUserId);
+    } catch { toast('Error guardando configuración'); }
+  }
 }
 
 function actualizarSelectorVehiculo() {
@@ -994,6 +1024,8 @@ if (checkForm) {
     const veh = (data.vehiculo ?? '').toLowerCase();
     cadeteVehiculo = (veh === 'moto') ? 'moto' : 'bici';
     actualizarSelectorVehiculo();
+    cadeteClima = !!data.tarifa_clima;
+    actualizarToggleClima();
 
     // Actualizar header con nombre real de la tabla cadetes
     if (data.nombre) {
