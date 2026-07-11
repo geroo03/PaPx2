@@ -2,6 +2,26 @@
 
 ---
 
+## [2.8.0] — 11 de julio 2026
+
+### Link de referidos para embajadores
+
+- Dashboard del embajador: nueva sección "Tu Link de Referidos" con el link listo para compartir, botón **Copiar** y botón **Compartir por WhatsApp** con mensaje pre-escrito
+- El link incluye `?ref=<usuario_id>` del embajador autenticado
+- `registro-comercio.html`: lee `?ref=` de la URL al cargar y lo almacena en `_REF_EMBAJADOR`; se envía como `creado_por_embajador_id` en el insert al registrar el comercio
+
+### Widget del clima (wttr.in)
+
+- `index.html` (home del cliente): nueva barra `#clima-bar` entre la ubicación y la búsqueda que muestra temperatura (°C), emoji de condición y descripción
+- Fetch a `wttr.in/?format=j1` — sin API key, gratuito, falla silenciosamente si no hay red
+- Íconos dinámicos según `weatherCode` de wttr.in (☀️⛅☁️🌧️⛈️❄️🌫️)
+
+### Tarifa verificada
+
+- Confirmado `TARIFA_POR_KM = 750` en `pedidoController.js` — código correcto y desplegado en Railway
+
+---
+
 ## [2.7.0] — 6 de julio 2026
 
 ### Tarifas de cadete por vehículo + distancia real

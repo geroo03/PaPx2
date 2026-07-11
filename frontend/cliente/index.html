@@ -197,6 +197,11 @@
       </div>
       <div class="addr-btn" onclick="pedirUbicacion()"><svg width="11" height="11" viewBox="0 0 16 16" fill="#FF6B35"><path d="M8 1C5.2 1 3 3.2 3 6c0 4 5 9 5 9s5-5 5-9c0-2.8-2.2-5-5-5zm0 7a2 2 0 110-4 2 2 0 010 4z"/></svg><span id="ubicacion-txt">Detectando...</span></div>
     </div>
+    <div id="clima-bar" style="display:none;align-items:center;gap:6px;padding:6px 0 2px;font-size:12px;color:rgba(255,255,255,.8);font-family:'Plus Jakarta Sans',sans-serif;">
+      <span id="clima-icono" style="font-size:15px;line-height:1"></span>
+      <span id="clima-temp" style="font-weight:700;color:#fff"></span>
+      <span id="clima-desc" style="opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px"></span>
+    </div>
     <div class="search-box" style="position:relative;">
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="rgba(255,255,255,.4)" stroke-width="1.8"/><path d="M14 14l3 3" stroke="rgba(255,255,255,.4)" stroke-width="1.8" stroke-linecap="round"/></svg>
       <input type="text" placeholder="Buscar restaurante o producto..." id="search-input" oninput="buscarTiempoReal(this.value)" autocomplete="off"/>

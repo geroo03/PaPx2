@@ -451,6 +451,7 @@
 <!-- ── Módulo de lógica — CERO handlers inline ── -->
 <script type="module">
 import { supabase as sb } from '../assets/js/config.js';
+const _REF_EMBAJADOR = new URLSearchParams(window.location.search).get('ref') ?? null;
 
 // ── Estado local ──────────────────────────────────────────
 let catSel = '';
@@ -626,6 +627,7 @@ async function registrar() {
         telefono:              tel || null,
         email,
         usuario_id:            userId,
+        creado_por_embajador_id: _REF_EMBAJADOR || null,
         estado_registro:       'pendiente',
         tipo_delivery_defecto: 'app',
         activo:                false,

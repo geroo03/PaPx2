@@ -38,6 +38,7 @@ async function init() {
   bindFormAlta();
 
   await cargarDashboard();
+  cargarLinkReferidos();
 }
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
@@ -251,6 +252,33 @@ function bindFormAlta() {
       btn.disabled    = false;
       btn.textContent = 'Registrar Comercio';
     }
+  });
+}
+
+// ─── LINK DE REFERIDOS ────────────────────────────────────────────────────────
+
+function cargarLinkReferidos() {
+  const uid = SESSION.user.id;
+  const url = `${window.location.origin}/comercio/registro-comercio.html?ref=${uid}`;
+  const input = $('ref-link');
+  if (input) input.value = url;
+
+  $('btn-copy-ref')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Link copiado al portapapeles.');
+    } catch {
+      try { input?.select(); document.execCommand('copy'); toast('Link copiado.'); } catch {}
+    }
+  });
+
+  $('btn-wa-ref')?.addEventListener('click', () => {
+    const msg = encodeURIComponent(
+      `¡Hola! Te invito a registrar tu comercio en Puerta a Puerta X 🚀\n` +
+      `Recibí pedidos a domicilio sin complicaciones.\n\n` +
+      `Registrate acá: ${url}`
+    );
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
   });
 }
 

@@ -981,10 +981,39 @@ async function cargarComerciosReferidos(){
   }catch(e){wrap.style.display='none';}
 }
 
+// ─── CLIMA ──────────────────────────────────────────────────────────────────
+async function cargarClima(){
+  try{
+    const res=await fetch('https://wttr.in/?format=j1',{cache:'no-store'});
+    if(!res.ok)return;
+    const data=await res.json();
+    const cc=data.current_condition?.[0];
+    if(!cc)return;
+    const temp=cc.temp_C;
+    const desc=(cc.lang_es?.[0]?.value??cc.weatherDesc?.[0]?.value??'').toLowerCase();
+    const code=Number(cc.weatherCode??0);
+    let icon='🌤️';
+    if(code===113)icon='☀️';
+    else if(code===116)icon='⛅';
+    else if(code===119||code===122)icon='☁️';
+    else if([143,248,260].includes(code))icon='🌫️';
+    else if([200,386,389,392,395].includes(code))icon='⛈️';
+    else if([179,182,185,323,326,329,332,335,338,350,368,371].includes(code))icon='❄️';
+    else if(code>=176)icon='🌧️';
+    const bar=document.getElementById('clima-bar');
+    if(!bar)return;
+    document.getElementById('clima-icono').textContent=icon;
+    document.getElementById('clima-temp').textContent=`${temp}°C`;
+    document.getElementById('clima-desc').textContent=desc;
+    bar.style.display='flex';
+  }catch(_){}
+}
+
 detectarUbicacion();
 cargarComercios();
 cargarOfertasBanner();
 cargarNuevosComercios();
 cargarComerciosReferidos();
+cargarClima();
 
 
