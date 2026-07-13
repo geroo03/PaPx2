@@ -29,9 +29,9 @@ App de delivery local para Santiago del Estero, Argentina. Conecta clientes con 
 | Pagos | MercadoPago (preferencias + webhook HMAC) |
 | Push notifications | Web Push / VAPID (web) · FCM vía Capacitor (nativo, pendiente Firebase) |
 | App nativa | Capacitor 7 (configurado, APK pendiente de build) |
-| CI/CD | GitHub → Railway auto-deploy en push a `main` |
+| CI/CD | GitHub → Railway (backend) y Vercel (frontend, `pa-px2.vercel.app`) auto-deploy en push a `main` |
 
-> ⚠️ **Hosting del frontend sin confirmar:** `README.md` afirma que el frontend se sirve desde Vercel, pero `vercel.json` y `_redirects` fueron eliminados (ver CHANGELOG v2.6.0) por romper el deploy. No se sabe si Vercel sigue siendo la plataforma real o si cambió. No asumir la plataforma de hosting del frontend — confirmar con el usuario antes de dar instrucciones de deploy.
+**Hosting del frontend confirmado (2026-07-13):** Vercel, dominio `pa-px2.vercel.app` (hardcodeado en `frontend/qr.html`). Verificado en vivo: header `Server: Vercel` y el HTML servido es idéntico al de `frontend/index.html` en este repo — está conectado a este repo y se actualiza solo con `git push` a `main`. `vercel.json`/`_redirects` fueron eliminados (CHANGELOG v2.6.0) pero Vercel no los necesita para su preset "Other" (estático sin build), así que su ausencia no significa que se dejó de usar Vercel.
 
 ---
 

@@ -591,9 +591,9 @@ npx serve -l 8000           # o python -m http.server 8000
 | Servicio | Plataforma | Root | Start |
 |----------|-----------|------|-------|
 | Backend | Railway | `backend/` | `npm start` |
-| Frontend | ⚠️ Sin confirmar (ver nota abajo) | `frontend/` | Sin build, output: `.` |
+| Frontend | Vercel (`pa-px2.vercel.app`) | `frontend/` | Sin build, output: `.` |
 | DB | Supabase | — | SQL en Dashboard |
 
-Post-deploy: actualizar `FRONTEND_URL` en Railway y `BACKEND_URL` donde corresponda.
+Post-deploy: actualizar `FRONTEND_URL` en Railway y `BACKEND_URL` en `frontend/env.js`.
 
-> ⚠️ Esta tabla decía "Vercel", pero `vercel.json` y `_redirects` fueron eliminados del repo (CHANGELOG v2.6.0) por romper el deploy. Además el proyecto ahora empaqueta `frontend/` como `webDir` de Capacitor para la app nativa. No está confirmado si Vercel sigue siendo el hosting web actual — confirmar con el usuario antes de asumirlo o dar instrucciones de deploy.
+> Confirmado en vivo (2026-07-13): `pa-px2.vercel.app` responde con header `Server: Vercel` y sirve el mismo HTML que `frontend/index.html` de este repo — sigue siendo el hosting real, conectado a este repo, y se actualiza con cada `git push` a `main`. `vercel.json`/`_redirects` fueron eliminados (CHANGELOG v2.6.0) pero no hacían falta para el preset "Other" que usa este proyecto.
