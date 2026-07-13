@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-11.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-13.
 
 ---
 
@@ -30,6 +30,8 @@ App de delivery local para Santiago del Estero, Argentina. Conecta clientes con 
 | Push notifications | Web Push / VAPID (web) · FCM vía Capacitor (nativo, pendiente Firebase) |
 | App nativa | Capacitor 7 (configurado, APK pendiente de build) |
 | CI/CD | GitHub → Railway auto-deploy en push a `main` |
+
+> ⚠️ **Hosting del frontend sin confirmar:** `README.md` afirma que el frontend se sirve desde Vercel, pero `vercel.json` y `_redirects` fueron eliminados (ver CHANGELOG v2.6.0) por romper el deploy. No se sabe si Vercel sigue siendo la plataforma real o si cambió. No asumir la plataforma de hosting del frontend — confirmar con el usuario antes de dar instrucciones de deploy.
 
 ---
 
@@ -203,6 +205,10 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 | POST | `/crear-preferencia` | JWT | Crea preferencia de pago. Retorna init_point. |
 | POST | `/webhook` | Público | Recibe notificación MP. Verifica HMAC. Crea pedido si pago aprobado. |
 
+> ⚠️ **Alerta para IA:** MercadoPago es la pasarela de pago actual e integrada, pero se está **evaluando migrar a Payway** (pasarela de pagos argentina) como alternativa. Todavía no es una decisión firme. No asumir que MercadoPago es definitivo, no proponer ni empezar una migración de pasarela por cuenta propia — confirmar con el usuario primero si el trabajo pedido toca esta área.
+>
+> También hay una Edge Function `supabase/functions/mp-webhook/index.ts` en el repo que **no parece estar en uso**: `mpController.js` configura `notification_url` apuntando al propio backend (`/api/mp/webhook`), no a la Edge Function, y esta no fue tocada desde la modularización inicial. Antes de tocarla o borrarla, confirmar con el usuario si sigue siendo necesaria (podría ser un remanente de un diseño anterior).
+
 ### Diagnóstico
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
@@ -344,6 +350,9 @@ El frontend usa el bundle UMD de Supabase cargado desde CDN:
 **El backend usa dos clientes:**
 - `supabase` (anon key) → solo para validar JWTs en authMiddleware
 - `supabaseAdmin` (service_role) → todos los controllers. Bypasea RLS.
+
+### Edge Function `asistente` (chat IA — no vive en este repo)
+`cliente.js` (`enviarAsistente()`) y `cadete.js` llaman directo a una Edge Function de Supabase alojada en `https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/asistente` con `Authorization: Bearer <ANON_KEY>` y body `{ messages, rol }`. Esta función **no está en `supabase/functions/`** de este repo — solo existe en el Dashboard de Supabase del proyecto. No hay documentación de qué modelo/prompt usa. Si se necesita modificar este asistente, hay que pedirle el código/config al usuario o acceder al Dashboard directamente; no asumir su comportamiento a partir del frontend.
 
 ---
 

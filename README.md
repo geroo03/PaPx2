@@ -3,6 +3,8 @@
 Plataforma de delivery en tiempo real para Santiago del Estero, Argentina.
 Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador** y **admin**.
 
+> ⚠️ **Para IAs:** este README quedó desactualizado en varios puntos (deploy del frontend, tarifas de cadete, endpoints nuevos de efectivo/liquidaciones, Capacitor). **[`CLAUDE.md`](CLAUDE.md) es la fuente de verdad actualizada** — leerlo primero. Este archivo se mantiene como introducción general y detalle de funciones por archivo, pero ante cualquier contradicción con CLAUDE.md, confiar en CLAUDE.md.
+
 ---
 
 ## Stack tecnológico
@@ -73,9 +75,8 @@ puertaapuerta-main/
 │   ├── index.html          # Redirect / → /login.html
 │   ├── login.html          # Login general (todos los roles)
 │   ├── sw.js               # Service Worker para push notifications
-│   ├── env.js.template     # Template: SUPABASE_URL, SUPABASE_ANON_KEY, BACKEND_URL
-│   ├── _redirects          # Netlify redirects
-│   └── vercel.json         # Config Vercel: SPA routing, output: "."
+│   └── env.js.template     # Template: SUPABASE_URL, SUPABASE_ANON_KEY, BACKEND_URL
+│   # Nota: _redirects y vercel.json fueron ELIMINADOS (rompían el deploy, ver CHANGELOG v2.6.0) — no existen más en el repo
 │
 ├── supabase/
 │   ├── schema-definitivo-v2.sql   # TODO el schema en un solo archivo
@@ -438,10 +439,14 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 
 ## Tarifas cadete
 
+> Corregido: la tabla anterior usaba `$250/km`, que fue la tarifa vigente hasta el fix de CHANGELOG v2.7.0. El valor real desde entonces es `$750/km` (verificado en `backend/src/controllers/pedidoController.js`).
+
 | Vehículo | Base | Fórmula | 3 km | 5 km | 10 km |
 |----------|------|---------|------|------|-------|
-| Bici | $1.200 | `round((base + km × 250) / 50) × 50` | $1.950 | $2.450 | $3.700 |
-| Moto | $1.800 | `round((base + km × 250) / 50) × 50` | $2.550 | $3.050 | $4.300 |
+| Bici | $1.200 | `round((base + km × 750) / 50) × 50` | $3.450 | $4.950 | $8.700 |
+| Moto | $1.800 | `round((base + km × 750) / 50) × 50` | $4.050 | $5.550 | $9.300 |
+
+Con tarifa clima activa (`cadetes.tarifa_clima = true`), el resultado se multiplica ×1.20 (redondeado a $50). Ver [CLAUDE.md](CLAUDE.md) sección 6.
 
 ---
 
@@ -586,7 +591,9 @@ npx serve -l 8000           # o python -m http.server 8000
 | Servicio | Plataforma | Root | Start |
 |----------|-----------|------|-------|
 | Backend | Railway | `backend/` | `npm start` |
-| Frontend | Vercel | `frontend/` | Sin build, output: `.` |
+| Frontend | ⚠️ Sin confirmar (ver nota abajo) | `frontend/` | Sin build, output: `.` |
 | DB | Supabase | — | SQL en Dashboard |
 
-Post-deploy: actualizar `FRONTEND_URL` en Railway y `BACKEND_URL` en Vercel.
+Post-deploy: actualizar `FRONTEND_URL` en Railway y `BACKEND_URL` donde corresponda.
+
+> ⚠️ Esta tabla decía "Vercel", pero `vercel.json` y `_redirects` fueron eliminados del repo (CHANGELOG v2.6.0) por romper el deploy. Además el proyecto ahora empaqueta `frontend/` como `webDir` de Capacitor para la app nativa. No está confirmado si Vercel sigue siendo el hosting web actual — confirmar con el usuario antes de asumirlo o dar instrucciones de deploy.
