@@ -100,10 +100,17 @@ Luego rebuild desde Android Studio.
 
 ## Iconos de la app
 
-Reemplazar los íconos por defecto en:
-- `android/app/src/main/res/mipmap-*/ic_launcher.png`
+Los íconos ya están generados en `frontend/assets/img/android-icons/`. Copiarlos a las carpetas de Android:
 
-Tamaños necesarios:
+```
+frontend/assets/img/android-icons/ic_launcher_mdpi.png     → android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+frontend/assets/img/android-icons/ic_launcher_hdpi.png     → android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+frontend/assets/img/android-icons/ic_launcher_xhdpi.png    → android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+frontend/assets/img/android-icons/ic_launcher_xxhdpi.png   → android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+frontend/assets/img/android-icons/ic_launcher_xxxhdpi.png  → android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+```
+
+Tamaños de referencia:
 | Carpeta | Tamaño |
 |---------|--------|
 | mipmap-mdpi | 48x48 |
@@ -111,8 +118,6 @@ Tamaños necesarios:
 | mipmap-xhdpi | 96x96 |
 | mipmap-xxhdpi | 144x144 |
 | mipmap-xxxhdpi | 192x192 |
-
-Generador de íconos: https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html
 
 ---
 

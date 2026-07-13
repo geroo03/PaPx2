@@ -65,6 +65,9 @@ puertaapuerta-main/
 │   │   └── crear-embajador.html
 │   ├── assets/
 │   │   ├── css/               # index.css, cadete.css, comercio.css, embajador.css, ...
+│   │   ├── img/
+│   │   │   ├── logo-original.png   # Logo fuente 1024x1024 (PNG original)
+│   │   │   └── android-icons/      # Íconos Android (mdpi→xxxhdpi + playstore)
 │   │   └── js/
 │   │       ├── config.js      # Shim: exporta `supabase` desde window.sb (UMD)
 │   │       ├── main.js        # Init global: state, push, helpers
@@ -76,10 +79,8 @@ puertaapuerta-main/
 │   │       ├── state.js       # Estado global (LocalStorage persistence)
 │   │       ├── ui.js          # sanitizeHTML, formatARS, navigateSeguro
 │   │       └── icons.js       # Objeto ICONS con emojis/SVG
-│   ├── logo-192.png           # Ícono PWA 192x192
-│   ├── logo-512.png           # Ícono PWA 512x512
-│   ├── android-icons/         # Íconos Android (mdpi→xxxhdpi + playstore)
-│   └── puertaApuerta.png      # Logo original fuente (1024x1024 aprox)
+│   ├── logo-192.png           # Ícono PWA 192x192 (referenciado en manifest.json)
+│   └── logo-512.png           # Ícono PWA 512x512 (referenciado en manifest.json)
 │
 ├── backend/
 │   ├── src/
@@ -109,13 +110,19 @@ puertaapuerta-main/
 │   ├── README-database.md     # Documentación completa de las 27 tablas (LEER PRIMERO)
 │   ├── schema-definitivo-v2.sql
 │   ├── fix-criticos-importantes.sql  # Parche de bugs críticos (ya aplicado)
-│   ├── migration-lat-entrega-pedidos.sql  # lat_entrega/lng_entrega en pedidos (ya aplicado)
-│   ├── migration-tarifa-clima.sql    # cadetes.tarifa_clima (PENDIENTE aplicar en Supabase)
-│   └── [otras migraciones ya aplicadas]
+│   └── migrations/            # Migraciones incrementales (aplicar en orden)
+│       ├── migration-lat-entrega-pedidos.sql
+│       ├── migration-tarifa-clima.sql  # ⚠ PENDIENTE aplicar en Supabase
+│       ├── migration-efectivo-comercio.sql
+│       ├── migration-efectivo-referidos-banking.sql
+│       ├── migration-fcm-tokens.sql
+│       ├── migration-fix-mensajes-rls.sql
+│       └── migration-referido-comision-admin-efectivo.sql
 │
+├── docs/
+│   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
 ├── package.json               # Raíz: dependencias Capacitor 7
 ├── capacitor.config.json      # appId: com.puertaapuertax.app, webDir: frontend
-├── ANDROID-BUILD.md           # Guía paso a paso para el builder con Android Studio
 ├── CHANGELOG.md               # Historial de cambios por versión
 └── .gitignore                 # Excluye android/, ios/, node_modules/, *.keystore
 ```
@@ -275,7 +282,7 @@ auth.uid()::text = comercio_id
 
 ### Migración pendiente de aplicar
 ```sql
--- migration-tarifa-clima.sql (NO aplicada aún)
+-- supabase/migrations/migration-tarifa-clima.sql (NO aplicada aún)
 ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS tarifa_clima boolean DEFAULT false;
 ```
 
@@ -393,7 +400,7 @@ npx cap open android         # abre Android Studio
 # En Android Studio: Build → Build APK(s)
 ```
 
-**Íconos listos:** `frontend/android-icons/ic_launcher_[mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi].png`
+**Íconos listos:** `frontend/assets/img/android-icons/ic_launcher_[mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi].png`
 
 **Migraciones pendientes post-capicator:**
 - `cadetes.tarifa_clima` (ver sección 7)
@@ -406,7 +413,7 @@ npx cap open android         # abre Android Studio
 | # | Tarea | Impacto |
 |---|-------|---------|
 | 1 | Configurar `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` en Railway | Push notifications rotas en producción |
-| 2 | Aplicar `migration-tarifa-clima.sql` en Supabase | Toggle clima del cadete no persiste |
+| 2 | Aplicar `supabase/migrations/migration-tarifa-clima.sql` en Supabase | Toggle clima del cadete no persiste |
 | 3 | Build del APK Android (requiere alguien con Android Studio) | App nativa |
 | 4 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
 | 5 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
