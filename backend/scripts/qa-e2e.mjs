@@ -49,6 +49,26 @@ const RUN_ID = Date.now();
 const results = [];
 const creados = []; // emails/IDs de prueba creados, para poder identificarlos después
 
+// Referencias para poder apagar 'disponible' de los cadetes de prueba al final
+// (éxito o fracaso) — sin esto, cada corrida deja cadetes fantasma con
+// disponible=true que compiten por los cupos de difundirPedido (MAX_OFERTAS=5)
+// en corridas futuras.
+let cadeteCleanup = null;
+let cadete2Cleanup = null;
+
+async function limpiarCadetesPrueba() {
+  for (const c of [cadeteCleanup, cadete2Cleanup]) {
+    if (!c) continue;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/cadetes?auth_uid=eq.${c.id}`, {
+        method: 'PATCH',
+        headers: sbHeaders(c.jwt),
+        body: JSON.stringify({ disponible: false }),
+      });
+    } catch { /* best-effort */ }
+  }
+}
+
 function log(msg) { console.log(msg); }
 
 async function step(nombre, fn) {
@@ -174,6 +194,9 @@ async function main() {
   const jwtCadete = await step('Login cadete', () => signIn(cadeteEmail, pass));
   const jwtCadete2 = await step('Login cadete 2', () => signIn(cadete2Email, pass));
 
+  cadeteCleanup  = { id: cadete.id,  jwt: jwtCadete };
+  cadete2Cleanup = { id: cadete2.id, jwt: jwtCadete2 };
+
   // Coordenadas reales de Santiago del Estero, separadas ~2-3km
   const comLat = -27.7834, comLng = -64.2642;
   const cliLat = -27.7950, cliLng = -64.2500;
@@ -280,6 +303,13 @@ async function main() {
     const r = await apiPost('/api/pedidos/aceptar', { pedidoId: pedido1.id, cadeteId: cadete2.id, ofertaId: ofertasCadete2.id }, jwtCadete2);
     assert(r.status === 409, `esperaba 409 PEDIDO_YA_TOMADO, obtuve HTTP ${r.status}: ${JSON.stringify(r.json)}`);
   });
+
+  // Cadete 2 ya cumplió su propósito (probar anti-colisión). Lo apagamos ya
+  // para que no compita por el cupo del pedido #2 más abajo (MAX_OFERTAS=5
+  // ordenado por cercanía) — y para no dejarlo como fantasma disponible=true.
+  await step('Cadete 2: desactivar disponible (ya no se necesita)', () => sbUpdate(
+    'cadetes', `auth_uid=eq.${cadete2.id}`, { disponible: false }, jwtCadete2,
+  ));
 
   const codigoRetiro = await step('Comercio: leer codigo_retiro (select directo, RLS)', async () => {
     const rows = await sbSelect('pedidos', `id=eq.${pedido1.id}&select=codigo_retiro,estado`, jwtComercio);
@@ -407,12 +437,16 @@ async function main() {
   log(`   'cadetes.deuda_efectivo'. El trigger real (pedidos_acumular_deuda_efectivo)`);
   log(`   acumula esa deuda en 'comercios.deuda' (15% de comisión hacia la plataforma).`);
   log(`   Confirmar cuál es el comportamiento que realmente se quiere antes de lanzar.`);
+
+  await limpiarCadetesPrueba();
+  log(`\nCadetes de prueba dejados con disponible=false (no van a competir por pedidos reales).`);
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   log(`\n=== FALLÓ: ${err.message} ===`);
   log(`\n${results.filter(r => r.ok).length}/${results.length} pasos completados antes de la falla.`);
   log(`\nCuentas de prueba parcialmente creadas (revisar/limpiar a mano):`);
   creados.forEach(e => log(`  - ${e}`));
+  await limpiarCadetesPrueba();
   process.exit(1);
 });
