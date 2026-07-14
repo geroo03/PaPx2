@@ -38,7 +38,6 @@ export async function actualizarUbicacion(req, res) {
     cadete_id:           cadeteId,
     latitud:             latNum,
     longitud:            lngNum,
-    activo:              true,
     ultima_actualizacion: new Date().toISOString(),
     ...(pedido_id && { pedido_id }),
   };
