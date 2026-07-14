@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-13.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-14.
 
 ---
 
@@ -120,7 +120,7 @@ puertaapuerta-main/
 │       ├── migration-fcm-tokens.sql
 │       ├── migration-fix-mensajes-rls.sql
 │       ├── migration-referido-comision-admin-efectivo.sql
-│       └── migration-fix-resenas-cadete-fk.sql  # ⚠ PENDIENTE aplicar en Supabase
+│       └── migration-fix-resenas-cadete-fk.sql  # ✅ aplicada 2026-07-14
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -287,16 +287,12 @@ auth.uid()::text = comercio_id
 - `ubicacion_cadetes` — cliente ve el mapa del cadete en tiempo real
 - `mensajes_pedido` — chat en tiempo real entre cliente/comercio/cadete
 
-### Migración pendiente de aplicar
-```sql
--- supabase/migrations/migration-fix-resenas-cadete-fk.sql (NO aplicada aún)
--- resenas.cadete_id tenía la FK apuntando a cadetes.id en vez de auth.users.id
--- (inconsistente con pedidos/ofertas_cadetes/ubicacion_cadetes, que sí usan
--- auth uid). Esto hace que valorar a un cadete falle siempre con FK violation.
--- Encontrado corriendo backend/scripts/qa-e2e.mjs contra producción 2026-07-14.
-ALTER TABLE public.resenas DROP CONSTRAINT IF EXISTS resenas_cadete_id_fkey;
--- + bloque DO $$ con el ADD CONSTRAINT correcto — ver el archivo de migración completo.
-```
+### Migraciones — estado
+No hay ninguna migración pendiente de aplicar en Supabase al 2026-07-14.
+`migration-tarifa-clima.sql` y `migration-fix-resenas-cadete-fk.sql` ya están
+aplicadas en producción (esta última corrige que `resenas.cadete_id` apuntaba
+con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
+`backend/scripts/qa-e2e.mjs`).
 
 ---
 
@@ -425,8 +421,7 @@ npx cap open android         # abre Android Studio
 **Íconos listos:** `frontend/assets/img/android-icons/ic_launcher_[mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi].png`
 
 **Migraciones pendientes post-capicator:**
-- `migration-fix-resenas-cadete-fk.sql` (ver sección 7/13)
-- Firebase / FCM para push nativas
+- Firebase / FCM para push nativas (ninguna migración de Supabase pendiente)
 
 ---
 
@@ -434,13 +429,12 @@ npx cap open android         # abre Android Studio
 
 | # | Tarea | Impacto |
 |---|-------|---------|
-| 1 | Aplicar `supabase/migrations/migration-fix-resenas-cadete-fk.sql` en Supabase | Valorar a un cadete falla siempre (FK apunta a la tabla equivocada) |
-| 2 | Build del APK Android (requiere alguien con Android Studio) | App nativa |
-| 3 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
-| 4 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
-| 5 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
-| 6 | Horarios automáticos de comercios (hoy es toggle manual) | UX |
-| 7 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+| 1 | Build del APK Android (requiere Android Studio — no instalado en la máquina de desarrollo actual) | App nativa |
+| 2 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
+| 3 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
+| 4 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
+| 5 | Horarios automáticos de comercios (hoy es toggle manual) | UX |
+| 6 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
 
 ---
 

@@ -2,6 +2,48 @@
 
 ---
 
+## [3.1.0] — 14 de julio 2026
+
+### QA end-to-end automatizado + 4 bugs críticos de producción corregidos
+
+Se agrega `backend/scripts/qa-e2e.mjs`: simula el flujo completo de un pedido
+(cliente → comercio → cadete → entrega → rating, más anti-colisión y
+comparación de tarifa clima) pegando directo a la API real y a Supabase real,
+con las mismas llamadas que usa el frontend — sin `service_role`. Pensado para
+volver a correrlo antes de cada lanzamiento. Corriéndolo por primera vez contra
+producción encontró:
+
+- **GPS del cadete devolvía 500 siempre**: `actualizarUbicacion` intentaba
+  escribir una columna `activo` en `ubicacion_cadetes` que no existe ahí (existe
+  en `cadetes`, copy-paste). El tracking en vivo del cadete nunca funcionó en
+  producción. Fix en `cadeteController.js`.
+- **La comisión de la plataforma y de los embajadores nunca se calculó
+  bien, en ningún pedido real, con ningún medio de pago**: ni `cliente.js` ni
+  el webhook de MercadoPago (`mpController.js`) enviaban `subtotal` al crear un
+  pedido. El trigger `pedidos_compute_totals` calcula `monto_comision_app` y
+  `total_final` exclusivamente desde `subtotal`, así que ambos quedaban en
+  0/incorrectos — y de ahí dependen la deuda del comercio por efectivo y la
+  comisión de los embajadores (calculada sobre `total_final`).
+- **Valorar a un cadete fallaba siempre**: `resenas` no tiene columna `rating`
+  (son `rating_comercio`/`rating_cadete`), y además `resenas.cadete_id` tenía
+  la FK apuntando a `cadetes.id` en vez de `auth.users.id` (inconsistente con
+  el resto del schema). Fix de código en `pedidoController.js` + migración
+  `migration-fix-resenas-cadete-fk.sql`.
+- **Comisión de embajador nunca llegaba a 0% en mes 13+**: `calcularComision`
+  solo tenía dos tramos (5%/2%), pese a que la regla documentada siempre fue
+  de tres. Fix en `comisionUtils.js`.
+
+También: se extrajeron `tarifaUtils.js` y `codigoUtils.js` desde
+`pedidoController.js` (misma lógica, ahora testeable), y se agregaron 23 tests
+unitarios con `node:test` (nativo de Node 22, `node --test` desde `backend/`,
+sin dependencias nuevas).
+
+Confirmado con el usuario: la deuda de efectivo (15%) acumulándose en
+`comercios.deuda` es el comportamiento correcto — no es un bug, aunque
+contradice lo que decían versiones previas de este documento.
+
+---
+
 ## [3.0.0] — 11 de julio 2026
 
 ### Soporte Capacitor — Android (y futuro iOS)
