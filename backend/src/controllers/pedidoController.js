@@ -17,24 +17,11 @@
  *   ubicacion_cadetes → cadete_id, latitud, longitud, ultima_actualizacion
  */
 
-import crypto from 'node:crypto';
 import { supabaseAdmin }            from '../lib/supabaseClient.js';
 import { registrarComisionSiAplica } from './embajadorController.js';
 import { notificarCadeteNuevoViaje, notificarClienteEstado, notificarComercioNuevoPedido } from './pushController.js';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Genera un código numérico de 4 dígitos como string con ceros a la izquierda.
- * Ejemplos: "0432", "9999", "0001"
- *
- * crypto.randomInt(min, max) es CSPRNG (Cryptographically Secure Pseudo-Random
- * Number Generator) — a diferencia de Math.random(), no es predecible.
- * Rango [0, 10000) → 0 a 9999 → siempre 4 dígitos con padStart.
- */
-function generarCodigo4Digitos() {
-  return String(crypto.randomInt(0, 10000)).padStart(4, '0');
-}
+import { generarCodigo4Digitos, codigosIguales } from '../lib/codigoUtils.js';
+import { calcularTarifa } from '../lib/tarifaUtils.js';
 
 // ─── Controller ───────────────────────────────────────────────────────────────
 
@@ -165,20 +152,6 @@ export async function aceptarPedido(req, res) {
     // Captura errores de red, timeouts, etc.
     console.error('[aceptarPedido] Excepción no controlada:', err?.message ?? err);
     return res.status(500).json({ error: 'Error interno del servidor.' });
-  }
-}
-
-// ─── Helpers privados ──────────────────────────────────────────────────────────
-
-// Comparación de códigos en tiempo constante (previene timing attacks).
-// Ambos strings se normalizan a 4 chars para que los buffers tengan igual longitud.
-function codigosIguales(a, b) {
-  try {
-    const ba = Buffer.from(String(a ?? '').slice(0, 4).padEnd(4, '\0'));
-    const bb = Buffer.from(String(b ?? '').slice(0, 4).padEnd(4, '\0'));
-    return crypto.timingSafeEqual(ba, bb);
-  } catch {
-    return false;
   }
 }
 
@@ -468,8 +441,6 @@ export async function difundirPedido(req, res) {
 
     const RADIO_MAX_KM  = 10;
     const MAX_OFERTAS   = 5;
-    const TARIFA_POR_KM = 750;
-    const TARIFA_BASE_VEHICULO = { moto: 1800, bici: 1200 };
 
     // Todos los cadetes con disponible=true (activo es opcional para mayor cobertura)
     const { data: todosDisp } = await supabaseAdmin
@@ -496,12 +467,10 @@ export async function difundirPedido(req, res) {
     // Armar candidatos: con GPS → ordenar por cercanía; sin GPS → distancia 0 (fallback)
     let candidatos = todosDisp.filter(c => !yaOfertados.has(c.auth_uid)).map(c => {
       const pos = posMap[c.auth_uid];
-      const veh = (c.vehiculo ?? '').toLowerCase();
-      const base = TARIFA_BASE_VEHICULO[veh] ?? TARIFA_BASE_VEHICULO.bici;
       const distancia_km = pos
         ? haversineKm(Number(pos.latitud), Number(pos.longitud), comLat, comLng)
         : 0; // sin GPS → incluir igual con distancia desconocida
-      return { ...c, tarifa_base: base, distancia_km, tiene_gps: !!pos, tarifa_clima: !!c.tarifa_clima };
+      return { ...c, distancia_km, tiene_gps: !!pos, tarifa_clima: !!c.tarifa_clima };
     });
 
     // Si hay cadetes con GPS, filtrar por radio; si no hay ninguno con GPS, notificar a todos
@@ -523,12 +492,7 @@ export async function difundirPedido(req, res) {
 
     const ofertas = candidatos.map(c => {
       const distProximidad = Math.round(c.distancia_km * 10) / 10; // cadete→comercio (solo para info)
-      const gananciaBase = distEntregaKm !== null
-        ? Math.round((c.tarifa_base + distEntregaKm * TARIFA_POR_KM) / 50) * 50
-        : c.tarifa_base;
-      const ganancia = c.tarifa_clima
-        ? Math.round((gananciaBase * 1.20) / 50) * 50
-        : gananciaBase;
+      const ganancia = calcularTarifa(c.vehiculo, distEntregaKm, c.tarifa_clima);
       return {
         pedido_id:          pedidoId,
         cadete_id:          c.auth_uid,
