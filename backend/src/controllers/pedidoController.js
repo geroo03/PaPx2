@@ -608,10 +608,10 @@ export async function valorarPedido(req, res) {
       }
       const { error } = await supabaseAdmin.from('resenas').insert({
         pedido_id,
-        cadete_id:  pedido.cadete_id,
-        cliente_id: clienteId,
-        rating:     estrellasNum,
-        comentario: comentario?.trim() ?? null,
+        cadete_id:      pedido.cadete_id,
+        cliente_id:     clienteId,
+        rating_cadete:  estrellasNum,
+        comentario:     comentario?.trim() ?? null,
       });
       if (error) {
         if (error.code === '23505') {
@@ -625,9 +625,9 @@ export async function valorarPedido(req, res) {
     if (tipo === 'cadete' && pedido.cadete_id) {
       try {
         const { data: resenas } = await supabaseAdmin
-          .from('resenas').select('rating').eq('cadete_id', pedido.cadete_id);
+          .from('resenas').select('rating_cadete').eq('cadete_id', pedido.cadete_id);
         if (resenas?.length) {
-          const avg = resenas.reduce((s, r) => s + Number(r.rating), 0) / resenas.length;
+          const avg = resenas.reduce((s, r) => s + Number(r.rating_cadete), 0) / resenas.length;
           await supabaseAdmin.from('cadetes')
             .update({ rating: Math.round(avg * 10) / 10 })
             .eq('auth_uid', pedido.cadete_id);

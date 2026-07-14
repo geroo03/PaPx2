@@ -44,11 +44,20 @@ export async function crearPreferencia(req, res) {
       }] : []),
     ];
 
+    // Subtotal real de los productos (sin envío ni propina) — lo necesita
+    // pedidos_compute_totals() en la DB para calcular monto_comision_app y
+    // total_final. Sin esto, ambos quedan en 0 para todo pedido pagado por MP.
+    const subtotal = items.reduce(
+      (s, item) => s + Number(item.precio ?? item.unit_price ?? 0) * Number(item.qty ?? item.quantity ?? 1),
+      0,
+    );
+
     // Guardar datos del pedido en external_reference como JSON
     const refData = {
       comercio_id:      comercio_id || null,
       cliente_id:       cliente_id || req.user.id,
       productos:        items,
+      subtotal,
       total:            Number(total),
       direccion_entrega: direccion_entrega || '',
       propina_cadete:   propinaNum,
@@ -164,6 +173,7 @@ export async function mpWebhook(req, res) {
             comercio_id:      refData.comercio_id,
             cliente_id:       refData.cliente_id,
             productos:        refData.productos,
+            subtotal:         refData.subtotal ?? 0,
             total:            refData.total,
             direccion_entrega: refData.direccion_entrega,
             propina_cadete:   refData.propina_cadete || 0,

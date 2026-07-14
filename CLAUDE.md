@@ -114,12 +114,13 @@ puertaapuerta-main/
 │   ├── fix-criticos-importantes.sql  # Parche de bugs críticos (ya aplicado)
 │   └── migrations/            # Migraciones incrementales (aplicar en orden)
 │       ├── migration-lat-entrega-pedidos.sql
-│       ├── migration-tarifa-clima.sql  # ⚠ PENDIENTE aplicar en Supabase
+│       ├── migration-tarifa-clima.sql  # ✅ aplicada 2026-07-14
 │       ├── migration-efectivo-comercio.sql
 │       ├── migration-efectivo-referidos-banking.sql
 │       ├── migration-fcm-tokens.sql
 │       ├── migration-fix-mensajes-rls.sql
-│       └── migration-referido-comision-admin-efectivo.sql
+│       ├── migration-referido-comision-admin-efectivo.sql
+│       └── migration-fix-resenas-cadete-fk.sql  # ⚠ PENDIENTE aplicar en Supabase
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -288,8 +289,13 @@ auth.uid()::text = comercio_id
 
 ### Migración pendiente de aplicar
 ```sql
--- supabase/migrations/migration-tarifa-clima.sql (NO aplicada aún)
-ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS tarifa_clima boolean DEFAULT false;
+-- supabase/migrations/migration-fix-resenas-cadete-fk.sql (NO aplicada aún)
+-- resenas.cadete_id tenía la FK apuntando a cadetes.id en vez de auth.users.id
+-- (inconsistente con pedidos/ofertas_cadetes/ubicacion_cadetes, que sí usan
+-- auth uid). Esto hace que valorar a un cadete falle siempre con FK violation.
+-- Encontrado corriendo backend/scripts/qa-e2e.mjs contra producción 2026-07-14.
+ALTER TABLE public.resenas DROP CONSTRAINT IF EXISTS resenas_cadete_id_fkey;
+-- + bloque DO $$ con el ADD CONSTRAINT correcto — ver el archivo de migración completo.
 ```
 
 ---
@@ -329,7 +335,14 @@ ALTER TABLE public.cadetes ADD COLUMN IF NOT EXISTS tarifa_clima boolean DEFAULT
    - Cadete ingresa el código → POST /api/pedidos/cambiar-estado {estado:'entregado'}
    - Trigger: acredita comisión al embajador (si aplica)
    - Trigger: acredita comisión al cadete referente (si aplica)
-   - Trigger: si metodo_pago='efectivo' → acumula deuda_efectivo en cadetes
+   - Trigger: si metodo_pago='efectivo' → marca cobrado_efectivo=true y acumula
+     el 15% (monto_comision_app) como deuda en **comercios.deuda** — NO en
+     cadetes.deuda_efectivo pese a que este documento y CHANGELOG.md decían eso
+     antes. Verificado contra el trigger real (pedidos_acumular_deuda_efectivo,
+     schema-definitivo-v2.sql) corriendo qa-e2e.mjs 2026-07-14. Si la intención
+     original era que la deuda quedara en el cadete, hay que confirmarlo y
+     corregir el trigger — no se tocó porque es una decisión de negocio, no un
+     bug obvio de sintaxis.
 
 8. Cliente califica → POST /api/pedidos/valorar
    - Actualiza rating de comercio y cadete
@@ -412,7 +425,7 @@ npx cap open android         # abre Android Studio
 **Íconos listos:** `frontend/assets/img/android-icons/ic_launcher_[mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi].png`
 
 **Migraciones pendientes post-capicator:**
-- `cadetes.tarifa_clima` (ver sección 7)
+- `migration-fix-resenas-cadete-fk.sql` (ver sección 7/13)
 - Firebase / FCM para push nativas
 
 ---
@@ -421,14 +434,13 @@ npx cap open android         # abre Android Studio
 
 | # | Tarea | Impacto |
 |---|-------|---------|
-| 1 | Configurar `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` en Railway | Push notifications rotas en producción |
-| 2 | Aplicar `supabase/migrations/migration-tarifa-clima.sql` en Supabase | Toggle clima del cadete no persiste |
-| 3 | Build del APK Android (requiere alguien con Android Studio) | App nativa |
-| 4 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
-| 5 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
-| 6 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
-| 7 | Horarios automáticos de comercios (hoy es toggle manual) | UX |
-| 8 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+| 1 | Aplicar `supabase/migrations/migration-fix-resenas-cadete-fk.sql` en Supabase | Valorar a un cadete falla siempre (FK apunta a la tabla equivocada) |
+| 2 | Build del APK Android (requiere alguien con Android Studio) | App nativa |
+| 3 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
+| 4 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
+| 5 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
+| 6 | Horarios automáticos de comercios (hoy es toggle manual) | UX |
+| 7 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
 
 ---
 

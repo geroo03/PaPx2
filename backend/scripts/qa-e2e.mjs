@@ -232,6 +232,7 @@ async function main() {
     comercio_id: comercioRow.id,
     cliente_id:  cliente.id,
     productos:   [{ id: producto.id, nombre: 'Producto QA', precio: 1000, qty: 2 }],
+    subtotal:    2000,
     total:       3200,
     estado:      'nuevo',
     direccion_entrega: 'Dirección de entrega de prueba',
@@ -240,6 +241,13 @@ async function main() {
     propina_cadete: 0,
     metodo_pago: 'efectivo',
   }, jwtCliente));
+
+  await step('Trigger: monto_comision_app y total_final se calcularon desde subtotal (no quedaron en 0)', async () => {
+    const rows = await sbSelect('pedidos', `id=eq.${pedido1.id}&select=monto_comision_app,total_final,subtotal`, jwtComercio);
+    const p = rows[0];
+    assert(Number(p.monto_comision_app) === 300, `monto_comision_app=${p.monto_comision_app}, esperaba 300 (15% de 2000)`);
+    assert(Number(p.total_final) === 2800, `total_final=${p.total_final}, esperaba 2800 (subtotal 2000 + costo_envio 800 default)`);
+  });
 
   await step('Comercio: aceptar pedido → preparando', () => sbUpdate(
     'pedidos', `id=eq.${pedido1.id}`, { estado: 'preparando' }, jwtComercio,
@@ -319,9 +327,9 @@ async function main() {
     return r.json.codigo_entrega;
   });
 
-  const cadeteDeudaAntes = await step('Cadete: leer deuda_efectivo ANTES de entregar', async () => {
-    const rows = await sbSelect('cadetes', `auth_uid=eq.${cadete.id}&select=deuda_efectivo`, jwtCadete);
-    return Number(rows[0]?.deuda_efectivo ?? 0);
+  const comercioDeudaAntes = await step('Comercio: leer deuda ANTES de entregar', async () => {
+    const rows = await sbSelect('comercios', `id=eq.${comercioRow.id}&select=deuda`, jwtComercio);
+    return Number(rows[0]?.deuda ?? 0);
   });
 
   await step('Cadete: confirmar entrega con código correcto → entregado', async () => {
@@ -331,10 +339,14 @@ async function main() {
     assert(r.status === 200 && r.json.ok !== false, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
   });
 
-  await step('Trigger efectivo: deuda_efectivo del cadete aumentó tras la entrega', async () => {
-    const rows = await sbSelect('cadetes', `auth_uid=eq.${cadete.id}&select=deuda_efectivo`, jwtCadete);
-    const despues = Number(rows[0]?.deuda_efectivo ?? 0);
-    assert(despues > cadeteDeudaAntes, `deuda_efectivo no aumentó (antes=${cadeteDeudaAntes}, después=${despues})`);
+  // OJO: el trigger real (pedidos_acumular_deuda_efectivo, schema-definitivo-v2.sql)
+  // acumula la deuda del 15% en el COMERCIO cuando metodo_pago='efectivo', no en el
+  // cadete. Esto contradice lo que documentan CLAUDE.md y CHANGELOG.md ("acumula
+  // deuda_efectivo en cadetes") — ver aviso en el resumen final del script.
+  await step('Trigger efectivo: la deuda del COMERCIO aumentó tras la entrega (no la del cadete)', async () => {
+    const rows = await sbSelect('comercios', `id=eq.${comercioRow.id}&select=deuda`, jwtComercio);
+    const despues = Number(rows[0]?.deuda ?? 0);
+    assert(despues > comercioDeudaAntes, `comercios.deuda no aumentó (antes=${comercioDeudaAntes}, después=${despues})`);
   });
 
   await step('Cliente: valorar comercio (5★)', async () => {
@@ -391,6 +403,10 @@ async function main() {
   creados.forEach(e => log(`  - ${e}`));
   log(`\nComercio de prueba: "${comercioRow.nombre}" (id ${comercioRow.id})`);
   log(`\nNo cubierto por este script (requiere navegador real): pago MercadoPago real, push notifications, chat/mapa visual.`);
+  log(`\n⚠️  Aviso: CLAUDE.md/CHANGELOG.md dicen que el pago en efectivo acumula deuda en`);
+  log(`   'cadetes.deuda_efectivo'. El trigger real (pedidos_acumular_deuda_efectivo)`);
+  log(`   acumula esa deuda en 'comercios.deuda' (15% de comisión hacia la plataforma).`);
+  log(`   Confirmar cuál es el comportamiento que realmente se quiere antes de lanzar.`);
 }
 
 main().catch((err) => {

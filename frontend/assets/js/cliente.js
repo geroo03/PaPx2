@@ -324,7 +324,7 @@ async function confirmarPedido(){
   }
 
   // Efectivo y Transferencia: crear pedido inmediatamente
-  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),lat_entrega:latEntrega,lng_entrega:lngEntrega,propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
+  const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,subtotal:sub,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),lat_entrega:latEntrega,lng_entrega:lngEntrega,propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}currentPedido=data;}catch(e){console.error('Excepcion:',e);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
   if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
