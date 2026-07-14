@@ -336,13 +336,13 @@ ALTER TABLE public.resenas DROP CONSTRAINT IF EXISTS resenas_cadete_id_fkey;
    - Trigger: acredita comisión al embajador (si aplica)
    - Trigger: acredita comisión al cadete referente (si aplica)
    - Trigger: si metodo_pago='efectivo' → marca cobrado_efectivo=true y acumula
-     el 15% (monto_comision_app) como deuda en **comercios.deuda** — NO en
-     cadetes.deuda_efectivo pese a que este documento y CHANGELOG.md decían eso
-     antes. Verificado contra el trigger real (pedidos_acumular_deuda_efectivo,
-     schema-definitivo-v2.sql) corriendo qa-e2e.mjs 2026-07-14. Si la intención
-     original era que la deuda quedara en el cadete, hay que confirmarlo y
-     corregir el trigger — no se tocó porque es una decisión de negocio, no un
-     bug obvio de sintaxis.
+     el 15% (monto_comision_app) como deuda en **comercios.deuda**. Confirmado
+     con el usuario (2026-07-14) que este es el comportamiento correcto — el
+     comercio le debe a la plataforma su comisión cuando el cobro fue en
+     efectivo y no pasó por MercadoPago. `cadetes.deuda_efectivo` es un campo
+     distinto, no relacionado a este trigger. CHANGELOG.md (v2.5.0) describe
+     una versión más vieja de este feature donde la deuda iba al cadete; quedó
+     desactualizado, el trigger actual (comercios.deuda) es la fuente de verdad.
 
 8. Cliente califica → POST /api/pedidos/valorar
    - Actualiza rating de comercio y cadete

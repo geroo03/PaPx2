@@ -433,10 +433,8 @@ async function main() {
   creados.forEach(e => log(`  - ${e}`));
   log(`\nComercio de prueba: "${comercioRow.nombre}" (id ${comercioRow.id})`);
   log(`\nNo cubierto por este script (requiere navegador real): pago MercadoPago real, push notifications, chat/mapa visual.`);
-  log(`\n⚠️  Aviso: CLAUDE.md/CHANGELOG.md dicen que el pago en efectivo acumula deuda en`);
-  log(`   'cadetes.deuda_efectivo'. El trigger real (pedidos_acumular_deuda_efectivo)`);
-  log(`   acumula esa deuda en 'comercios.deuda' (15% de comisión hacia la plataforma).`);
-  log(`   Confirmar cuál es el comportamiento que realmente se quiere antes de lanzar.`);
+  log(`\nNota: el pago en efectivo acumula la deuda del 15% en 'comercios.deuda' (no en`);
+  log(`cadetes.deuda_efectivo) — confirmado con el usuario que es el comportamiento correcto.`);
 
   await limpiarCadetesPrueba();
   log(`\nCadetes de prueba dejados con disponible=false (no van a competir por pedidos reales).`);
