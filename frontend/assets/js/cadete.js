@@ -1091,9 +1091,19 @@ async function verificarOnboarding() {
 function bindOnboardingForm() {
   const form = document.getElementById('onboarding-form');
   if (!form) return;
-  form.addEventListener('submit', async (e) => {
+
+  const checkLegal = document.getElementById('ob-legal-check');
+  checkLegal?.addEventListener('change', () => {
+    const btn = document.getElementById('ob-legal-btn');
+    if (!btn) return;
+    btn.disabled = !checkLegal.checked;
+    btn.style.background = checkLegal.checked ? '#FF6B35' : '#555';
+    btn.style.color = '#fff';
+    btn.style.cursor = checkLegal.checked ? 'pointer' : 'not-allowed';
+  });
+
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const btn = document.getElementById('ob-btn');
     const errEl = document.getElementById('ob-err');
     const nombre = document.getElementById('ob-nombre')?.value.trim();
     const cvu    = document.getElementById('ob-cvu')?.value.trim();
@@ -1102,10 +1112,38 @@ function bindOnboardingForm() {
     if (!nombre) { errEl.textContent = 'Ingresá tu nombre completo.'; errEl.style.display = 'block'; return; }
     if (!dniFile) { errEl.textContent = 'Subí la foto de tu DNI.'; errEl.style.display = 'block'; return; }
     if (!cvu) { errEl.textContent = 'Ingresá tu CVU o alias.'; errEl.style.display = 'block'; return; }
+    if (_obVehiculo === 'moto' && !(document.getElementById('ob-patente')?.value ?? '').trim()) {
+      errEl.textContent = 'Ingresá la patente de tu moto.'; errEl.style.display = 'block'; return;
+    }
 
-    btn.disabled = true; btn.textContent = 'Guardando...'; errEl.style.display = 'none';
+    errEl.style.display = 'none';
+    mostrarPasoLegalOnboarding();
+  });
+}
 
-    try {
+function mostrarPasoLegalOnboarding() {
+  document.getElementById('onboarding-step-form').style.display = 'none';
+  document.getElementById('onboarding-step-legal').style.display = 'block';
+  document.getElementById('onboarding-overlay').scrollTo({ top: 0 });
+}
+
+function volverFormOnboarding() {
+  document.getElementById('onboarding-step-legal').style.display = 'none';
+  document.getElementById('onboarding-step-form').style.display = 'block';
+}
+
+async function aceptarAcuerdoCadete() {
+  const checkLegal = document.getElementById('ob-legal-check');
+  if (!checkLegal?.checked) return;
+
+  const btn = document.getElementById('ob-legal-btn');
+  const errEl = document.getElementById('ob-legal-err');
+  btn.disabled = true; btn.textContent = 'Guardando...'; errEl.style.display = 'none';
+
+  try {
+    const nombre = document.getElementById('ob-nombre')?.value.trim();
+    const cvu    = document.getElementById('ob-cvu')?.value.trim();
+    const dniFile = document.getElementById('ob-dni')?.files?.[0];
       // Subir foto DNI a Storage
       const dniPath = `${cadeteUserId}/dni/${Date.now()}_${dniFile.name}`;
       const { error: upErr } = await sb.storage.from('cadetes-antecedentes').upload(dniPath, dniFile, { cacheControl: '3600', upsert: true });
@@ -1181,18 +1219,17 @@ function bindOnboardingForm() {
         }
       } catch {}
 
-      cadeteVehiculo = _obVehiculo;
-      localStorage.setItem('pap_onboarding_completo', 'true');
-      document.getElementById('onboarding-overlay').style.display = 'none';
-      actualizarSelectorVehiculo();
-      toast(`${ICONS.confetti} ¡Perfil completo! Ya podes recibir viajes`);
+    cadeteVehiculo = _obVehiculo;
+    localStorage.setItem('pap_onboarding_completo', 'true');
+    document.getElementById('onboarding-overlay').style.display = 'none';
+    actualizarSelectorVehiculo();
+    toast(`${ICONS.confetti} ¡Perfil completo! Ya podes recibir viajes`);
 
-    } catch (err) {
-      errEl.textContent = err.message; errEl.style.display = 'block';
-    } finally {
-      btn.disabled = false; btn.textContent = 'Empezar a repartir →';
-    }
-  });
+  } catch (err) {
+    errEl.textContent = err.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Aceptar y continuar';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1824,6 +1861,8 @@ Object.assign(window, {
   stab,
   abrirMenuLateral,
   cerrarMenuLateral,
+  aceptarAcuerdoCadete,
+  volverFormOnboarding,
   aceptarViaje,
   rechazarOferta,
   confirmarRetiro,

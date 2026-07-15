@@ -375,7 +375,7 @@
 
 <!-- ONBOARDING OVERLAY — se muestra si el cadete no completó datos obligatorios -->
 <div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:#0d0d0d;z-index:9000;overflow-y:auto;padding:24px 16px 48px;">
-  <div style="max-width:480px;margin:0 auto;">
+  <div id="onboarding-step-form" style="max-width:480px;margin:0 auto;">
     <div style="text-align:center;margin-bottom:28px;">
       <div style="font-size:40px;margin-bottom:12px;"></div>
       <h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;">¡Bienvenido al equipo!</h2>
@@ -454,6 +454,49 @@
       </button>
       <div id="ob-err" style="display:none;font-size:13px;color:#ff6b6b;text-align:center;"></div>
     </form>
+  </div>
+
+  <!-- Paso 2 del onboarding: Acuerdo de Cadete Independiente -->
+  <div id="onboarding-step-legal" style="display:none;max-width:480px;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <h2 style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;">Acuerdo de Cadete Independiente</h2>
+      <p style="font-size:12px;color:#888;line-height:1.5;">Leelo con atención — es un compromiso real, no un trámite más.</p>
+    </div>
+
+    <div style="background:#111;border:1px solid #333;border-radius:12px;padding:16px;max-height:min(340px,45vh);overflow-y:auto;font-size:13px;color:#ccc;line-height:1.65;margin-bottom:16px;">
+      <p style="color:#FF6B35;font-weight:700;margin-bottom:10px;">Borrador — pendiente de revisión legal profesional. No reemplaza asesoramiento de un abogado.</p>
+
+      <p style="font-weight:700;color:#fff;margin-top:12px;">1. Sos un prestador independiente</p>
+      <p>Al usar Puerta a Puerta X como cadete no sos empleado de la Plataforma. No hay relación de dependencia, no hay aportes patronales, y administrás tus propios horarios y disponibilidad.</p>
+
+      <p style="font-weight:700;color:#fff;margin-top:12px;">2. Tu vehículo, tu seguro, tu responsabilidad</p>
+      <p>El vehículo que usás para repartir es tuyo (o de un tercero que te autoriza a usarlo) y vos sos responsable de que esté en condiciones legales para circular: documentación al día, patente y — si es moto — seguro vigente. Puerta a Puerta X no provee seguro de responsabilidad civil, seguro de accidentes personales, ni cobertura médica para cadetes. Si no tenés seguro vigente, estás asumiendo ese riesgo personalmente.</p>
+
+      <p style="font-weight:700;color:#fff;margin-top:12px;">3. Vos manejás, vos sos responsable en la vía pública</p>
+      <p>Sos responsable de circular respetando las normas de tránsito. Puerta a Puerta X no controla ni supervisa tu forma de manejar. Ante un accidente, infracción o daño a terceros durante una entrega, la responsabilidad es tuya — no de la Plataforma. Esto incluye daños a tu persona, a tu vehículo, o a terceros.</p>
+
+      <p style="font-weight:700;color:#fff;margin-top:12px;">4. Indemnidad</p>
+      <p>Si un tercero le reclama algo a Puerta a Puerta X por un hecho ocurrido durante una entrega tuya (choque, lesión, daño a un producto o a la vía pública), te comprometés a responder vos por ese reclamo, no la Plataforma.</p>
+
+      <p style="font-weight:700;color:#fff;margin-top:12px;">5. Impuestos y obra social</p>
+      <p>Sos responsable de tu propia situación impositiva (monotributo u otro régimen aplicable) y de tu cobertura de salud. Puerta a Puerta X no retiene ni paga aportes en tu nombre.</p>
+
+      <p style="font-weight:700;color:#fff;margin-top:12px;">6. Documentación al día</p>
+      <p>Puerta a Puerta X puede pedirte que actualices tu documentación (seguro, carnet, patente) en cualquier momento, y puede suspenderte si no la mantenés vigente.</p>
+
+      <p style="margin-top:12px;">Esto es un resumen de los puntos clave para cadetes. El documento completo de Términos y Condiciones aplica igual — podés leerlo en <a href="/legal.html" target="_blank" style="color:#FF6B35;">/legal.html</a>.</p>
+    </div>
+
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:#ccc;line-height:1.5;margin-bottom:16px;">
+      <input type="checkbox" id="ob-legal-check" style="margin-top:3px;accent-color:#FF6B35;width:18px;height:18px;flex-shrink:0;">
+      Leí y acepto este Acuerdo de Cadete Independiente, incluyendo que el seguro y mi seguridad en la vía pública son responsabilidad mía.
+    </label>
+
+    <button type="button" id="ob-legal-btn" onclick="aceptarAcuerdoCadete()" disabled style="width:100%;background:#555;color:#aaa;border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:800;cursor:not-allowed;font-family:inherit;">
+      Aceptar y continuar
+    </button>
+    <button type="button" onclick="volverFormOnboarding()" style="width:100%;background:transparent;border:none;color:#888;padding:12px;font-size:13px;margin-top:4px;cursor:pointer;font-family:inherit;">← Volver</button>
+    <div id="ob-legal-err" style="display:none;font-size:13px;color:#ff6b6b;text-align:center;margin-top:8px;"></div>
   </div>
 </div>
 
