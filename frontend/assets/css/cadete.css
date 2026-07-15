@@ -85,4 +85,20 @@ body{background:#f5f5f5;-webkit-overflow-scrolling:touch;overscroll-behavior-y:c
 .no-disp h3{font-size:16px;font-weight:700;color:#111;margin-bottom:8px;}
 .no-disp p{font-size:13px;color:#888;line-height:1.7;margin-bottom:20px;}
 .btn-activar{background:#FF6B35;color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:700;cursor:pointer;}
+
+/* Menú lateral (hamburguesa) */
+.hamburger-btn{background:transparent;border:none;color:#fff;padding:4px;cursor:pointer;display:flex;align-items:center;flex-shrink:0;}
+.hamburger-btn svg{width:24px;height:24px;}
+.side-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:900;}
+.side-drawer-overlay.open{opacity:1;pointer-events:auto;}
+.side-drawer{position:fixed;top:0;left:0;height:100%;width:78%;max-width:300px;background:#111;transform:translateX(-100%);transition:transform .25s ease;z-index:901;display:flex;flex-direction:column;}
+.side-drawer.open{transform:translateX(0);}
+.side-drawer-header{display:flex;align-items:center;gap:12px;padding:18px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+.side-drawer-header .header-name,.side-drawer-header .header-sub{color:#fff;}
+.side-drawer-close{margin-left:auto;background:transparent;border:none;color:#9CA3AF;font-size:18px;cursor:pointer;padding:4px 8px;}
+.side-drawer-items{flex:1;overflow-y:auto;padding:10px 0;}
+.side-drawer-item{display:flex;align-items:center;gap:14px;padding:14px 20px;color:#e5e5e5;cursor:pointer;font-size:14px;font-weight:600;}
+.side-drawer-item svg{width:20px;height:20px;flex-shrink:0;color:#9CA3AF;}
+.side-drawer-item:active{background:rgba(255,255,255,.06);}
+.side-drawer-logout{margin:12px 16px 20px;background:transparent;border:1.5px solid #B71C1C;color:#ff6b6b;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}

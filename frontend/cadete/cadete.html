@@ -16,6 +16,9 @@
 <div class="toast" id="toast"></div>
 
 <div class="header">
+  <button class="hamburger-btn" onclick="abrirMenuLateral()" aria-label="Abrir menú">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
   <div class="header-logo">
     <img src="/puertaapuertax.jpg" alt="PaP X" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">
   </div>
@@ -26,6 +29,46 @@
   <button class="disp-btn" onclick="togDisp()">
     <div class="disp-dot on" id="disp-dot"></div>
     <span id="disp-lbl">Disponible</span>
+  </button>
+</div>
+
+<!-- Menú lateral (hamburguesa) -->
+<div class="side-drawer-overlay" id="side-drawer-overlay" onclick="cerrarMenuLateral()"></div>
+<div class="side-drawer" id="side-drawer">
+  <div class="side-drawer-header">
+    <div class="header-logo">
+      <img src="/puertaapuertax.jpg" alt="PaP X" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">
+    </div>
+    <div>
+      <div class="header-name" id="menu-cad-nombre">Cadete</div>
+      <div class="header-sub">Cadete · Puerta a Puerta X</div>
+    </div>
+    <button class="side-drawer-close" onclick="cerrarMenuLateral()" aria-label="Cerrar menú">✕</button>
+  </div>
+  <div class="side-drawer-items">
+    <div class="side-drawer-item" onclick="stab('v');cerrarMenuLateral()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Viajes</span>
+    </div>
+    <div class="side-drawer-item" onclick="stab('h');cargarHistorial();cerrarMenuLateral()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 106 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+      <span>Historial</span>
+    </div>
+    <div class="side-drawer-item" onclick="stab('g');cerrarMenuLateral()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <span>Ganancias</span>
+    </div>
+    <div class="side-drawer-item" onclick="stab('p');cerrarMenuLateral()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </div>
+    <div class="side-drawer-item" onclick="stab('ia');iniciarAsistenteCadete();cerrarMenuLateral()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+      <span>Ayuda</span>
+    </div>
+  </div>
+  <button class="side-drawer-logout" onclick="sb.auth.signOut().then(()=>location.href='registro-cadete.html')">
+    Cerrar sesión
   </button>
 </div>
 

@@ -119,6 +119,19 @@ function toast(m, d = 2500) {
   setTimeout(() => (t.style.display = 'none'), d);
 }
 
+function abrirMenuLateral() {
+  const nombre = document.getElementById('cad-nombre')?.textContent ?? 'Cadete';
+  const menuNombre = document.getElementById('menu-cad-nombre');
+  if (menuNombre) menuNombre.textContent = nombre;
+  document.getElementById('side-drawer')?.classList.add('open');
+  document.getElementById('side-drawer-overlay')?.classList.add('open');
+}
+
+function cerrarMenuLateral() {
+  document.getElementById('side-drawer')?.classList.remove('open');
+  document.getElementById('side-drawer-overlay')?.classList.remove('open');
+}
+
 function stab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
@@ -1809,6 +1822,8 @@ async function verificarAlertasCadete() {
 Object.assign(window, {
   togDisp,
   stab,
+  abrirMenuLateral,
+  cerrarMenuLateral,
   aceptarViaje,
   rechazarOferta,
   confirmarRetiro,
