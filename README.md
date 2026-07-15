@@ -524,6 +524,8 @@ END; $$;
 5. **Códigos CSPRNG:** `crypto.randomInt(0, 10000)` — validados con `crypto.timingSafeEqual`.
 6. **HMAC webhook:** Firma SHA256 verificada antes de procesar pagos.
 7. **CORS allowlist:** Solo orígenes de `FRONTEND_URL`.
+8. **Idempotencia del webhook MP:** antes de crear un pedido nuevo se chequea si ya existe uno con ese `mp_payment_id` — reintentos/duplicados de MercadoPago no crean pedidos repetidos.
+9. **Rate limiting + helmet:** `server.js` aplica `helmet()` (headers de seguridad) y `express-rate-limit` (300 req/min general, 20 req/15min en `/api/auth/register` y `/api/auth/admin/crear-usuario`).
 
 ---
 

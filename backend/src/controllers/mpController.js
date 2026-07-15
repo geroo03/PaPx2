@@ -166,6 +166,21 @@ export async function mpWebhook(req, res) {
           .eq('id', refData.pedido_id);
         console.log(`[Webhook] Pedido ${refData.pedido_id} → pagado`);
       } else {
+        // Idempotencia: MercadoPago puede reenviar la misma notificación
+        // (reintentos si no respondemos rápido, o duplicados de su lado).
+        // Sin este chequeo, cada reenvío insertaría un pedido nuevo para el
+        // mismo pago.
+        const { data: pedidoExistente } = await supabaseAdmin
+          .from('pedidos')
+          .select('id')
+          .eq('mp_payment_id', String(data.id))
+          .maybeSingle();
+
+        if (pedidoExistente) {
+          console.log(`[Webhook] Pago ${data.id} ya tiene pedido (${pedidoExistente.id}) — notificación duplicada, se ignora.`);
+          return res.sendStatus(200);
+        }
+
         // Crear el pedido ahora que el pago fue confirmado
         const { data: nuevoPedido, error: insertErr } = await supabaseAdmin
           .from('pedidos')

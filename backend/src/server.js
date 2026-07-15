@@ -12,6 +12,8 @@ import 'dotenv/config';   // Carga .env antes de cualquier otro módulo
 import express     from 'express';
 import cors        from 'cors';
 import compression from 'compression';
+import helmet      from 'helmet';
+import rateLimit   from 'express-rate-limit';
 
 import pedidoRoutes   from './routes/pedidoRoutes.js';
 import authRoutes     from './routes/authRoutes.js';
@@ -39,6 +41,7 @@ const allowedOrigins = [
 
 const app = express();
 
+app.use(helmet());
 app.use(compression());
 
 // CORS — solo acepta peticiones de los orígenes configurados
@@ -48,6 +51,29 @@ app.use(cors({
   methods:        ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Rate limiting — límite general generoso (la app hace polling frecuente:
+// GPS cada 5-10s, ofertas cada 30s, etc.) para no frenar uso legítimo, más
+// uno estricto en los endpoints de registro para frenar creación masiva de
+// cuentas. Ventanas cortas en vez de 15 min largos para no castigar de más
+// a IPs compartidas (varios cadetes en la misma red/operador).
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit:    300,
+  standardHeaders: true,
+  legacyHeaders:    false,
+});
+app.use('/api', apiLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit:    20,
+  standardHeaders: true,
+  legacyHeaders:    false,
+  message: { error: 'Demasiados intentos. Probá de nuevo en unos minutos.' },
+});
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/admin/crear-usuario', authLimiter);
 
 // Parseo de JSON nativo de Express (no necesita body-parser por separado)
 app.use(express.json());
