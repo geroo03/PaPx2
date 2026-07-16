@@ -46,11 +46,22 @@ Y agregar dentro de `<manifest>`, antes de `<application>`:
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 <uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 ```
+No agregar `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE` ni `RECEIVE_BOOT_COMPLETED` — el código no los usa (el GPS es `navigator.geolocation.watchPosition()`, foreground-only), y declarar permisos sensibles sin usarlos suma fricción en la revisión de Play Store.
+
+### 6.1 Deep link para login con Google (OAuth nativo)
+
+Google bloquea el login OAuth dentro del WebView embebido — la app lo resuelve abriendo un navegador in-app (`@capacitor/browser`) y recibiendo la vuelta por un deep link. Agregar este intent-filter DENTRO de la `<activity>` de `MainActivity` (junto al de `MAIN`/`LAUNCHER`):
+```xml
+<intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="com.puertaapuertax.app" android:host="oauth-callback" />
+</intent-filter>
+```
+Y en **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**, agregar: `com.puertaapuertax.app://oauth-callback` (paso manual, no está en el código — sin esto Google redirige pero Supabase rechaza el destino).
 
 ### 7. Configurar Firebase (Push Notifications)
 

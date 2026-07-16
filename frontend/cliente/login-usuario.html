@@ -75,6 +75,7 @@
 const SUPABASE_URL     = window.SUPABASE_URL      || '';
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.sb = sb; // auth-service.js (módulo aparte) lo usa para el login nativo de Google
 
 let currentTab = 'login';
 let rolSeleccionado = null;
@@ -129,18 +130,16 @@ async function loginGoogle() {
   try {
     // Compute a sensible redirect for local development when running on port 8000
     const origin = (window && window.location && window.location.origin) ? window.location.origin : '';
-    let returnUrl = origin + '/cliente/login-usuario.html';
+    let returnPath = '/cliente/login-usuario.html';
     if(origin.indexOf('127.0.0.1:8000') !== -1 || origin.indexOf('localhost:8000') !== -1){
       // When serving from the project root, prefer the root index which we've placed at /index.html
-      returnUrl = origin + '/index.html';
+      returnPath = '/index.html';
     }
 
-    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: returnUrl } });
-    if (error) {
-      console.error('DEBUG SUPABASE: OAuth error', error && error.message ? error.message : error);
-      try { alert('Error de Supabase (OAuth): ' + (error?.message || JSON.stringify(error))); } catch(e){}
-      throw error;
-    }
+    // window.authService lo carga el <script type="module"> de más abajo
+    // (auth-service.js) — usa navegador in-app + deep link en la app nativa,
+    // y el redirect normal en la web.
+    await window.authService.iniciarLoginGoogleNativo(returnPath);
   } catch(e) {
     console.error('DEBUG SUPABASE: loginGoogle catch', e && e.message ? e.message : e);
     try { alert('Error de Supabase (OAuth): ' + (e && e.message ? e.message : String(e))); } catch(_){ }
@@ -273,6 +272,15 @@ if (__loginForm) { __loginForm.addEventListener('submit', function(e){ e.prevent
 sb.auth.getSession().then(({ data: { session } }) => {
   if (session) { sessionActual = session; }
 });
+</script>
+<script type="module">
+  import { escucharCallbackOAuthNativo } from '../assets/js/auth-service.js';
+  // En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
+  escucharCallbackOAuthNativo((session) => {
+    const rol = session?.user?.user_metadata?.role || 'usuario';
+    try { localStorage.setItem('role', rol); } catch (e) {}
+    window.redirigirSegunRol?.(rol);
+  });
 </script>
 </body>
 </html>

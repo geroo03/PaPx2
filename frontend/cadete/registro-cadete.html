@@ -91,8 +91,12 @@
 
 <script type="module">
 import { supabase as sb } from '../assets/js/config.js';
+import { iniciarLoginGoogleNativo, escucharCallbackOAuthNativo } from '../assets/js/auth-service.js';
 
 const base = window.BACKEND_URL ?? '';
+
+// En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal)
+escucharCallbackOAuthNativo(() => { window.location.href = '/cadete/cadete.html'; });
 
 function mostrarErr(msg) {
   const el = document.getElementById('err');
@@ -116,14 +120,7 @@ window.loginConGoogle = async function() {
   localStorage.setItem('pap_pending_role', 'cadete');
   setLoading(true);
   try {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/cadete/cadete.html',
-        queryParams: { prompt: 'select_account' },
-      }
-    });
-    if (error) throw error;
+    await iniciarLoginGoogleNativo('/cadete/cadete.html');
   } catch (e) {
     mostrarErr('Error: ' + (e.message || 'Intentá de nuevo.'));
     setLoading(false);
