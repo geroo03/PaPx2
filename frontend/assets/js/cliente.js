@@ -188,7 +188,7 @@ function cargarMapaCarrito(lat,lng){
 }
 function actualizarNumCasa(){const num=document.getElementById('num-casa')?.value.trim();const base=ubicacionActual||'';if(num){const dirConNum=base.replace(/\s+\d+,/,',').replace(/^([^,]+)/,`$1 ${num}`);document.getElementById('dir-gps-txt').textContent=dirConNum;ubicacionActual=dirConNum;}}
 
-async function cargarRatingsComercio(comercioId){const sec=document.getElementById('ratings-comercio');if(!sec)return;try{const{data}=await sb.from('ratings').select('*').eq('comercio_id',comercioId).order('created_at',{ascending:false}).limit(10);if(!data||!data.length){sec.style.display='none';return;}sec.style.display='block';const total=data.length;const promedio=(data.reduce((s,r)=>s+r.rating,0)/total).toFixed(1);const barras=[5,4,3,2,1].map(n=>{const cant=data.filter(r=>r.rating===n).length;const pct=total?Math.round(cant/total*100):0;return`<div class="rating-bar-row"><div class="rating-bar-label">${n}</div><div class="rating-bar-bg"><div class="rating-bar-fill" style="width:${pct}%"></div></div><div style="font-size:10px;color:#9DA3AE;width:24px;">${pct}%</div></div>`;}).join('');const estrellas=n=>{const full='<svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';const empty='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';return full.repeat(n)+empty.repeat(5-n);};sec.innerHTML=`<div style="font-size:14px;font-weight:800;color:#0D0D0D;margin-bottom:12px;">Opiniones de clientes</div><div class="rating-resumen"><div><div class="rating-num-grande">${promedio}</div><div style="font-size:18px;margin:4px 0;">${estrellas(Math.round(promedio))}</div><div style="font-size:11px;color:#9DA3AE;">${total} opinión${total>1?'es':''}</div></div><div class="rating-bars">${barras}</div></div>${data.filter(r=>r.comentario).slice(0,3).map(r=>`<div class="comentario-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:13px;font-weight:700;">Usuario</div><div style="font-size:14px;">${estrellas(r.rating)}</div></div><div style="font-size:12px;color:#5C6270;">${r.comentario}</div></div>`).join('')}`;}catch{sec.style.display='none';}}
+async function cargarRatingsComercio(comercioId){const sec=document.getElementById('ratings-comercio');if(!sec)return;try{const{data}=await sb.from('ratings').select('*').eq('comercio_id',comercioId).order('created_at',{ascending:false}).limit(10);if(!data||!data.length){sec.style.display='none';return;}sec.style.display='block';const total=data.length;const promedio=(data.reduce((s,r)=>s+r.rating,0)/total).toFixed(1);const barras=[5,4,3,2,1].map(n=>{const cant=data.filter(r=>r.rating===n).length;const pct=total?Math.round(cant/total*100):0;return`<div class="rating-bar-row"><div class="rating-bar-label">${n}</div><div class="rating-bar-bg"><div class="rating-bar-fill" style="width:${pct}%"></div></div><div style="font-size:10px;color:#9DA3AE;width:24px;">${pct}%</div></div>`;}).join('');const estrellas=n=>{const full='<svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';const empty='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';return full.repeat(n)+empty.repeat(5-n);};sec.innerHTML=`<div style="font-size:14px;font-weight:800;color:#0D0D0D;margin-bottom:12px;">Opiniones de clientes</div><div class="rating-resumen"><div><div class="rating-num-grande">${promedio}</div><div style="font-size:18px;margin:4px 0;">${estrellas(Math.round(promedio))}</div><div style="font-size:11px;color:#9DA3AE;">${total} opinión${total>1?'es':''}</div></div><div class="rating-bars">${barras}</div></div>${data.filter(r=>r.comentario).slice(0,3).map(r=>`<div class="comentario-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:13px;font-weight:700;">Usuario</div><div style="font-size:14px;">${estrellas(r.rating)}</div></div><div style="font-size:12px;color:#5C6270;">${(window.sanitizeHTML?window.sanitizeHTML(r.comentario):String(r.comentario).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])))}</div></div>`).join('')}`;}catch{sec.style.display='none';}}
 
 function abrirDevolucion(){document.getElementById('devolucion-screen').classList.add('visible');}
 function cerrarDevolucion(){document.getElementById('devolucion-screen').classList.remove('visible');}
@@ -249,7 +249,7 @@ const menusFallback={};
 
 async function abrirComercio(id){const com=allComercios.find(c=>c.id===id);if(!com)return;currentComercio=com;window.state.cart={};document.getElementById('det-name').textContent=com.nombre;document.getElementById('det-meta').textContent=`${com.abierto_ahora?'Abierto':'Cerrado'} · ${com.rating} · ${com.total_pedidos||0} pedidos · Envio desde $1.200`;document.getElementById('cart-comercio-name').textContent=com.nombre;document.getElementById('cart-float').style.display='none';document.getElementById('ratings-comercio').style.display='none';go('detail');cargarRatingsComercio(id);try{const[{data,error},{data:catData}]=await Promise.all([window.sb.from('productos').select('*').eq('comercio_id',id).eq('disponible',true),window.sb.from('categorias_producto').select('id,nombre').eq('comercio_id',id)]);if(error){console.error('[PaP] Error cargando productos:',error.message);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">'+(ICONS.warn||'')+'</div><p>Error al cargar el menú. Intentá de nuevo.</p></div>';return;}const cerradoBanner=!com.abierto_ahora?'<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 16px;margin-bottom:12px;font-size:13px;font-weight:600;color:#DC2626;text-align:center;">Cerrado ahora — podés explorar el menú pero no hacer pedidos.</div>':'';if(!data||!data.length){document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="empty"><div class="big"></div><p>Este comercio no tiene productos disponibles.</p></div>';return;}const catMap=Object.fromEntries((catData||[]).map(c=>[c.id,c.nombre]));const cats=[...new Set(data.map(p=>p.categoria_id||'General'))];document.getElementById('menu-container').innerHTML=cerradoBanner+'<div class="section-card">'+cats.map(cat=>`<div class="menu-cat-label">${catMap[cat]||cat}</div>${data.filter(p=>(p.categoria_id||'General')===cat).map(p=>{const precio=Math.round(Number(p.precio_base??p.precio??0)*1.15);const imgEl=p.imagen_url?`<img class="mi-img" src="${p.imagen_url}" loading="lazy" onerror="this.style.display='none'"/>`:`<div class="mi-img-emoji">🍽️</div>`;const addDisabled=!com.abierto_ahora?' disabled style="opacity:.4;cursor:not-allowed;"':'';return`<div class="menu-item"><div class="mi-left">${imgEl}<div class="mi-info"><div class="mi-name">${p.nombre}</div><div class="mi-desc">${p.descripcion||''}</div></div></div><div class="mi-right"><div class="mi-price">$${precio.toLocaleString('es-AR')}</div><button class="add-btn" onclick="addCart('${p.id}','${p.nombre.replace(/'/g,"\\'")}',${precio})"${addDisabled}>+</button></div></div>`;}).join('')}`).join('')+'</div>';}catch(e){console.error('[PaP] Excepción al cargar productos:',e);document.getElementById('menu-container').innerHTML='<div class="empty"><div class="big">'+(ICONS.warn||'')+'</div><p>No se pudo cargar el menú. Revisá tu conexión.</p></div>';}}
 
-function addCart(id,nombre,precio){if(!window.state.cart[id])window.state.cart[id]={nombre,precio,qty:0};window.state.cart[id].qty++;const qtyRow=document.getElementById(`qty-row-${id}`);const qtyN=document.getElementById(`qty-n-${id}`);if(qtyRow)qtyRow.style.display='flex';if(qtyN)qtyN.textContent=window.state.cart[id].qty;actualizarCartFloat();showToast('Agregado al carrito');}
+function addCart(id,nombre,precio){if(!window.state.cart[id])window.state.cart[id]={nombre,precio,qty:0};window.state.cart[id].qty++;window.state.saveCart();const qtyRow=document.getElementById(`qty-row-${id}`);const qtyN=document.getElementById(`qty-n-${id}`);if(qtyRow)qtyRow.style.display='flex';if(qtyN)qtyN.textContent=window.state.cart[id].qty;actualizarCartFloat();showToast('Agregado al carrito');}
 function addCartMenu(id,nombre,precio){addCart(id,nombre,precio);}
 function cambiarCantMenu(id,nombre,precio,delta){if(!window.state.cart[id])return;window.state.cart[id].qty=Math.max(0,window.state.cart[id].qty+delta);const qtyRow=document.getElementById(`qty-row-${id}`);const qtyN=document.getElementById(`qty-n-${id}`);if(window.state.cart[id].qty===0){delete window.state.cart[id]; window.state.saveCart();if(qtyRow)qtyRow.style.display='none';if(qtyN)qtyN.textContent='0';}else{if(qtyN)qtyN.textContent=window.state.cart[id].qty;}actualizarCartFloat();}
 function mostrarConfirmado(numPedido){
@@ -317,7 +317,7 @@ async function confirmarPedido(){
       metodo_pago:'mercadopago'
     }));
     localStorage.setItem('pap_pedido_actual','pending_mp');
-    if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();
+    if(window.state)window.state.clearCart();try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();
     btn.disabled=false;btn.textContent='Confirmar pedido';
     window.location.href='pago.html';
     return;
@@ -326,7 +326,7 @@ async function confirmarPedido(){
   // Efectivo y Transferencia: crear pedido inmediatamente
   const pedido={comercio_id:comercioId,cliente_id:userId,productos:items,subtotal:sub,total,estado:'nuevo',direccion_entrega:getDireccionEntrega(),lat_entrega:latEntrega,lng_entrega:lngEntrega,propina_cadete:propinaSeleccionada||0,metodo_pago:payMethod};
   try{const{data,error}=await sb.from('pedidos').insert([pedido]).select().single();if(error){console.error('Error:',error.message);showToast('Error al guardar el pedido: '+error.message,5000);btn.disabled=false;btn.textContent='Confirmar pedido';return;}currentPedido=data;}catch(e){console.error('Excepcion:',e);btn.disabled=false;btn.textContent='Confirmar pedido';return;}
-  if(window.state)window.state.cart={};try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
+  if(window.state)window.state.clearCart();try{localStorage.removeItem('pap_cart');}catch{}actualizarCartFloat();btn.disabled=false;btn.textContent='Confirmar pedido';propinaSeleccionada=0;
 
   // Notificar al comercio via push
   if(currentPedido?.id){
@@ -473,6 +473,10 @@ function iniciarTracking(){
         }).catch(()=>{});
       }
     }
+    if(estado==='listo'){
+      activarDot(2);
+      document.getElementById('track-sub').textContent='Tu pedido está listo — esperando que un cadete lo retire';
+    }
     if(estado==='entregado'){
       activarDot(2);activarDot(3);activarDot(4);
       document.getElementById('track-sub').textContent='¡Pedido entregado!';
@@ -488,6 +492,18 @@ function iniciarTracking(){
         showToast('¡Tu pedido fue entregado!',3000);
         try{mostrarBotonDevolucion();}catch{}
         setTimeout(()=>{try{mostrarRating(currentComercio?.nombre||'el comercio');}catch{}},1000);
+      }
+    }
+    if(estado==='cancelado'||estado==='rechazado'){
+      document.getElementById('track-sub').textContent='El comercio canceló este pedido';
+      // Mismo cleanup que al entregar: ya no hay nada más que trackear
+      if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
+      if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
+      if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
+      if(window.state)window.state.setPedido(null);
+      if(!_entregadoYaVisto){
+        _entregadoYaVisto=true;
+        showToast('Tu pedido fue cancelado por el comercio',4000);
       }
     }
   };

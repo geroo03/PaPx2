@@ -260,9 +260,25 @@ window.guardarRecovery = async function() {
   }
 };
 
-// Detectar retorno del email de reset
-sb.auth.onAuthStateChange((event) => {
-  if (event === 'PASSWORD_RECOVERY') mostrarFormRecovery();
+// Detectar retorno del email de reset, y del redirect de Google OAuth (web).
+// SIGNED_IN solo dispara con una sesión nueva (login por password, o la
+// sesión que supabase-js detecta en el hash de la URL al volver de Google) —
+// una sesión ya guardada en localStorage al recargar la página dispara
+// INITIAL_SESSION, no SIGNED_IN, así que esto no pisa el "no auto-redirect"
+// de más abajo para una visita normal a la página de login.
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') { mostrarFormRecovery(); return; }
+  if (event === 'SIGNED_IN' && session) {
+    sessionActual = session;
+    const rol = session.user?.user_metadata?.role || 'usuario';
+    try {
+      localStorage.setItem('access_token', session.access_token || '');
+      localStorage.setItem('user_id', session.user?.id || '');
+      localStorage.setItem('user_email', session.user?.email || '');
+      localStorage.setItem('role', rol);
+    } catch(e) {}
+    redirigirSegunRol(rol);
+  }
 });
 
 const __loginForm = document.getElementById('loginForm');

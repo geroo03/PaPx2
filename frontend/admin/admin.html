@@ -170,6 +170,23 @@
 <script type="module">
 import { supabase } from '../assets/js/config.js';
 
+// Escapa texto para uso seguro tanto en contenido de texto como dentro de
+// atributos HTML (value="", title="", etc.) — a diferencia de sanitizeHTML
+// de ui.js, esta también escapa comillas, necesarias en contexto atributo.
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Guarda el último listado de comercios cargado para poder buscar el nombre
+// sin tener que pasarlo (sin escapar) como argumento de un onclick inline.
+let _comerciosCache = [];
+
 // ── ROUTE GUARD ──────────────────────────────────────────────────────────────
 (async function(){
   try {
@@ -247,7 +264,7 @@ async function loadPedidos() {
     if (!data?.length) { el.innerHTML = '<div class="empty">Sin pedidos activos.</div>'; return; }
     el.innerHTML = `<table><thead><tr><th>#</th><th>Comercio</th><th>Estado</th><th>Total</th><th>Direccion</th><th>Fecha</th></tr></thead><tbody>${data.map(p => {
       const badge = {nuevo:'badge-yellow',preparando:'badge-yellow',en_preparacion:'badge-yellow',listo:'badge-green',en_camino:'badge-green'}[p.estado]||'badge-gray';
-      return `<tr><td>${p.numero||'—'}</td><td>${p.comercios?.nombre||'—'}</td><td><span class="badge ${badge}">${p.estado}</span></td><td>$${Number(p.total||0).toLocaleString('es-AR')}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.direccion_entrega||'—'}</td><td>${new Date(p.created_at).toLocaleString('es-AR')}</td></tr>`;
+      return `<tr><td>${esc(p.numero)||'—'}</td><td>${esc(p.comercios?.nombre)||'—'}</td><td><span class="badge ${badge}">${esc(p.estado)}</span></td><td>$${Number(p.total||0).toLocaleString('es-AR')}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.direccion_entrega)||'—'}</td><td>${new Date(p.created_at).toLocaleString('es-AR')}</td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando pedidos.</div>'; console.error(e); }
 }
@@ -261,11 +278,12 @@ async function loadComercios() {
       .select('id, nombre, categoria, direccion, telefono, estado_registro, lat, lng')
       .order('nombre');
     if (error) throw error;
+    _comerciosCache = data || [];
     if (!data?.length) { el.innerHTML = '<div class="empty">Sin comercios.</div>'; return; }
     el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Rubro</th><th>Direccion</th><th>Tel</th><th>GPS</th><th>Estado</th><th>Accion</th></tr></thead><tbody>${data.map(c => {
-      const gps = (c.lat && c.lng) ? `<span class="badge badge-green" title="${c.lat},${c.lng}">Si</span>` : '<span class="badge badge-red">No</span>';
-      const est = c.estado_registro === 'activo' ? '<span class="badge badge-green">Activo</span>' : `<span class="badge badge-yellow">${c.estado_registro}</span>`;
-      return `<tr><td style="font-weight:600;">${c.nombre}</td><td>${c.categoria||'—'}</td><td>${c.direccion||'—'}</td><td>${c.telefono||'—'}</td><td>${gps}</td><td>${est}</td><td><button class="btn btn-outline" style="font-size:11px;padding:4px 8px;" onclick="editarGPS('${c.id}','${c.nombre}',${c.lat||'null'},${c.lng||'null'})">GPS</button></td></tr>`;
+      const gps = (c.lat && c.lng) ? `<span class="badge badge-green" title="${esc(c.lat)},${esc(c.lng)}">Si</span>` : '<span class="badge badge-red">No</span>';
+      const est = c.estado_registro === 'activo' ? '<span class="badge badge-green">Activo</span>' : `<span class="badge badge-yellow">${esc(c.estado_registro)}</span>`;
+      return `<tr><td style="font-weight:600;">${esc(c.nombre)}</td><td>${esc(c.categoria)||'—'}</td><td>${esc(c.direccion)||'—'}</td><td>${esc(c.telefono)||'—'}</td><td>${gps}</td><td>${est}</td><td><button class="btn btn-outline" style="font-size:11px;padding:4px 8px;" onclick="editarGPS('${c.id}')">GPS</button></td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando comercios.</div>'; console.error(e); }
 }
@@ -283,7 +301,7 @@ async function loadPendientes() {
     if (!data?.length) { el.innerHTML = '<div class="empty">Sin comercios pendientes.</div>'; return; }
     el.innerHTML = data.map(c => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #f1f5f9;border-radius:10px;margin-bottom:8px;">
-        <div><div style="font-weight:700;">${c.nombre}</div><div style="font-size:12px;color:var(--muted);">${c.direccion||''} ${c.telefono?'- '+c.telefono:''}</div></div>
+        <div><div style="font-weight:700;">${esc(c.nombre)}</div><div style="font-size:12px;color:var(--muted);">${esc(c.direccion)||''} ${c.telefono?'- '+esc(c.telefono):''}</div></div>
         <button class="action-btn" onclick="aprobarComercio('${c.id}',this)">Aprobar</button>
       </div>`).join('');
   } catch(e) { el.innerHTML = '<div class="empty">Error.</div>'; }
@@ -317,9 +335,9 @@ async function loadCadetes() {
       const pct = limite > 0 ? Math.round((deuda/limite)*100) : 0;
       const barColor = pct > 80 ? '#EF4444' : pct > 50 ? '#F59E0B' : '#22C55E';
       return `<tr>
-        <td style="font-weight:600;">${c.nombre||'—'}</td>
-        <td style="font-size:12px;">${c.email||'—'}</td>
-        <td>${c.vehiculo||'—'}</td>
+        <td style="font-weight:600;">${esc(c.nombre)||'—'}</td>
+        <td style="font-size:12px;">${esc(c.email)||'—'}</td>
+        <td>${esc(c.vehiculo)||'—'}</td>
         <td>${estado}</td>
         <td>
           <div style="display:flex;align-items:center;gap:6px;">
@@ -393,10 +411,10 @@ async function loadLiquidaciones() {
            <button class="btn btn-danger" style="font-size:11px;padding:4px 8px;" onclick="adminRechazarLiq('${l.id}')">Rechazar</button>`
         : '—';
       return `<tr>
-        <td style="font-weight:600;">${nombre}</td>
+        <td style="font-weight:600;">${esc(nombre)}</td>
         <td style="font-weight:700;">$${Number(l.monto).toLocaleString('es-AR')}</td>
-        <td>${l.metodo}</td>
-        <td><span class="badge ${badgeColor}">${l.estado}</span></td>
+        <td>${esc(l.metodo)}</td>
+        <td><span class="badge ${badgeColor}">${esc(l.estado)}</span></td>
         <td style="font-size:12px;">${fecha}</td>
         <td>${acciones}</td>
       </tr>`;
@@ -453,7 +471,7 @@ async function loadEmbajadores() {
 
     el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Email</th><th>Comercios</th><th>Disponible</th><th>Acumulado</th><th>Retirado</th></tr></thead><tbody>${data.map(e => {
       const b = billMap[e.usuario_id] || {};
-      return `<tr><td style="font-weight:600;">${e.nombre||'—'}</td><td>${e.email||'—'}</td><td>${patCount[e.usuario_id]||0}</td><td style="color:#16a34a;font-weight:700;">$${Number(b.saldo_disponible||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_acumulado||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_retirado||0).toLocaleString('es-AR')}</td></tr>`;
+      return `<tr><td style="font-weight:600;">${esc(e.nombre)||'—'}</td><td>${esc(e.email)||'—'}</td><td>${patCount[e.usuario_id]||0}</td><td style="color:#16a34a;font-weight:700;">$${Number(b.saldo_disponible||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_acumulado||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_retirado||0).toLocaleString('es-AR')}</td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando embajadores.</div>'; console.error(e); }
 }
@@ -481,7 +499,7 @@ async function loadRetiros() {
       const acciones = r.estado === 'pendiente'
         ? `<button class="action-btn" onclick="pagarRetiro('${r.id}',this)" style="margin-right:6px;">Pagar</button><button class="btn btn-outline" onclick="rechazarRetiro('${r.id}',this)" style="font-size:12px;padding:6px 10px;">Rechazar</button>`
         : '—';
-      return `<tr><td style="font-weight:600;">${emb.nombre||emb.email||'—'}</td><td style="font-weight:700;color:#16a34a;">$${Number(r.monto).toLocaleString('es-AR')}</td><td style="font-size:11px;">${r.cbu_alias||'—'}</td><td>${new Date(r.created_at).toLocaleDateString('es-AR')}</td><td><span class="badge ${badgeClass}">${r.estado}</span></td><td>${acciones}</td></tr>`;
+      return `<tr><td style="font-weight:600;">${esc(emb.nombre||emb.email)||'—'}</td><td style="font-weight:700;color:#16a34a;">$${Number(r.monto).toLocaleString('es-AR')}</td><td style="font-size:11px;">${esc(r.cbu_alias)||'—'}</td><td>${new Date(r.created_at).toLocaleDateString('es-AR')}</td><td><span class="badge ${badgeClass}">${esc(r.estado)}</span></td><td>${acciones}</td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando retiros.</div>'; console.error(e); }
 }
@@ -572,7 +590,7 @@ window.loadRubros = async function() {
       const count = countMap[r.id] || 0;
       return `<div style="background:#fff;border:1.5px solid ${r.activo?'#16a34a':'#e5e7eb'};border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-weight:700;font-size:14px;">${r.label}</div>
+          <div style="font-weight:700;font-size:14px;">${esc(r.label)}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:4px;">${count} comercio${count!==1?'s':''} registrado${count!==1?'s':''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -585,7 +603,11 @@ window.loadRubros = async function() {
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando rubros.</div>'; console.error(e); }
 };
 
-window.editarGPS = async function(id, nombre, latActual, lngActual) {
+window.editarGPS = async function(id) {
+  const comercio = _comerciosCache.find(c => c.id === id);
+  const nombre = comercio?.nombre ?? '(comercio)';
+  const latActual = comercio?.lat ?? null;
+  const lngActual = comercio?.lng ?? null;
   const lat = prompt(`GPS para "${nombre}"\nLatitud actual: ${latActual ?? 'no configurada'}\nIngresar latitud (ej: -27.7951):`, latActual ?? '');
   if (lat === null) return;
   const lng = prompt(`Longitud actual: ${lngActual ?? 'no configurada'}\nIngresar longitud (ej: -64.2615):`, lngActual ?? '');
@@ -637,27 +659,27 @@ function renderSlot(row, slot) {
           Activo <input type="checkbox" id="cs-activo-${slot}" ${activo?'checked':''}/>
         </label>
       </div>
-      <input type="hidden" id="cs-id-${slot}" value="${id}"/>
+      <input type="hidden" id="cs-id-${slot}" value="${esc(id)}"/>
       <div style="display:flex;gap:16px;flex-wrap:wrap;">
         <div style="flex:1;min-width:250px;display:flex;flex-direction:column;gap:8px;">
           <label style="font-size:12px;color:var(--muted);">Sub titulo
-            <input id="cs-sub-${slot}" value="${sub}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+            <input id="cs-sub-${slot}" value="${esc(sub)}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
           </label>
           <label style="font-size:12px;color:var(--muted);">Titulo
-            <input id="cs-titulo-${slot}" value="${titulo}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+            <input id="cs-titulo-${slot}" value="${esc(titulo)}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
           </label>
           <label style="font-size:12px;color:var(--muted);">Link de oferta (URL)
-            <input id="cs-link-${slot}" value="${link}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+            <input id="cs-link-${slot}" value="${esc(link)}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
           </label>
           <label style="font-size:12px;color:var(--muted);">URL de imagen
-            <input id="cs-img-${slot}" value="${img}" placeholder="https://..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
+            <input id="cs-img-${slot}" value="${esc(img)}" placeholder="https://..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;box-sizing:border-box;"/>
           </label>
           <label style="font-size:12px;color:var(--muted);">Orden
-            <input id="cs-orden-${slot}" type="number" value="${orden}" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"/>
+            <input id="cs-orden-${slot}" type="number" value="${esc(orden)}" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:4px;"/>
           </label>
         </div>
         <div style="flex:0 0 200px;">
-          ${img ? `<img src="${img}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px;" onerror="this.style.display='none'"/>` : '<div style="width:100%;height:120px;background:#f3f4f6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">Sin imagen</div>'}
+          ${img ? `<img src="${esc(img)}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px;" onerror="this.style.display='none'"/>` : '<div style="width:100%;height:120px;background:#f3f4f6;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;">Sin imagen</div>'}
         </div>
       </div>
       <button class="btn btn-primary" style="margin-top:12px;" onclick="guardarSlot(${slot})">Guardar Slot ${slot}</button>

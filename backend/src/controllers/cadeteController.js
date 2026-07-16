@@ -213,12 +213,15 @@ export async function confirmarLiquidacion(req, res) {
   if (fetchErr || !liq) return res.status(404).json({ error: 'Liquidación no encontrada' });
   if (liq.estado !== 'pendiente') return res.status(400).json({ error: 'Ya fue procesada' });
 
-  const { error: updErr } = await supabaseAdmin
+  const { data: updRows, error: updErr } = await supabaseAdmin
     .from('liquidaciones')
     .update({ estado: 'confirmada', confirmado_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('estado', 'pendiente')
+    .select('id');
 
   if (updErr) return res.status(500).json({ error: 'Error actualizando liquidación' });
+  if (!updRows?.length) return res.status(409).json({ error: 'Ya fue procesada' });
 
   const { data: cadete } = await supabaseAdmin
     .from('cadetes').select('deuda_efectivo').eq('auth_uid', liq.cadete_id).single();

@@ -741,7 +741,8 @@ let cadeteClima    = false;  // tarifa clima +20%, se guarda en cadetes.tarifa_c
 
 function calcularGananciaLocal(distanciaKm) {
   const base = cadeteVehiculo === 'moto' ? 1800 : 1200;
-  return Math.round((base + distanciaKm * 250) / 50) * 50;
+  const gananciaBase = Math.round((base + distanciaKm * 750) / 50) * 50;
+  return cadeteClima ? Math.round((gananciaBase * 1.20) / 50) * 50 : gananciaBase;
 }
 
 function actualizarToggleClima() {
@@ -1858,6 +1859,7 @@ async function verificarAlertasCadete() {
 // ═══════════════════════════════════════════════════════════════════════════════
 Object.assign(window, {
   togDisp,
+  togClima,
   stab,
   abrirMenuLateral,
   cerrarMenuLateral,

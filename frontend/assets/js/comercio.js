@@ -1076,13 +1076,15 @@ async function eliminarPromo(id) {
 }
 
 // ─── VIEW: RESEÑAS ────────────────────────────────────────────────────────────
-// Tabla 'ratings' — columnas reales: puntaje_comercio, puntaje_cadete, comentario
+// Tabla 'ratings' — columna real: rating (no puntaje_comercio). Las reseñas de
+// cadete viven en una tabla separada ('resenas', columna rating_cadete) — no
+// se pueden mostrar acá sin un join aparte.
 async function loadResenas() {
   const list = g('resenas-list');
   if (list) list.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
 
   const { data, error } = await sb.from('ratings')
-    .select('id,pedido_id,comercio_id,puntaje_comercio,puntaje_cadete,comentario,created_at')
+    .select('id,pedido_id,comercio_id,rating,comentario,created_at')
     .eq('comercio_id', S.cid).order('created_at', { ascending: false });
   if (error) { showToast('Error al cargar reseñas', 'error'); return; }
   S.ratings = data||[];
@@ -1094,12 +1096,12 @@ function renderResumenResenas(ratings) {
     setText('resenas-avg','—'); setText('resenas-count','Sin reseñas aún');
     for (let i=1;i<=5;i++) { const b=g('bar-'+i); if(b) b.style.width='0%'; } return;
   }
-  const validos = ratings.filter(r => r.puntaje_comercio != null);
-  const avg = validos.reduce((a,r) => a+r.puntaje_comercio, 0) / (validos.length||1);
+  const validos = ratings.filter(r => r.rating != null);
+  const avg = validos.reduce((a,r) => a+r.rating, 0) / (validos.length||1);
   setText('resenas-avg',   avg.toFixed(1));
   setText('resenas-count', ratings.length + ' reseña' + (ratings.length !== 1 ? 's' : ''));
   for (let i=1;i<=5;i++) {
-    const count = validos.filter(r => r.puntaje_comercio === i).length;
+    const count = validos.filter(r => r.rating === i).length;
     const pct   = validos.length ? Math.round(count/validos.length*100) : 0;
     const bar = g('bar-'+i); const cnt = g('bar-count-'+i);
     if (bar) bar.style.width = pct+'%'; if (cnt) cnt.textContent = count;
@@ -1110,11 +1112,11 @@ function renderListaResenas(ratings) {
   const list = g('resenas-list'); if (!list) return;
   if (!ratings.length) { list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><p>Aún no tenés reseñas.</p></div>'; return; }
   const starFilter = parseInt(g('resenas-stars-filter')?.value||'0', 10);
-  const filtered   = starFilter ? ratings.filter(r => r.puntaje_comercio === starFilter) : ratings;
+  const filtered   = starFilter ? ratings.filter(r => r.rating === starFilter) : ratings;
   if (!filtered.length) { list.innerHTML = '<div class="empty-state"><p>Sin reseñas para este filtro.</p></div>'; return; }
   list.innerHTML = filtered.map(r => {
     const fecha = new Date(r.created_at);
-    const pts   = r.puntaje_comercio || 0;
+    const pts   = r.rating || 0;
     const estrs = '★'.repeat(pts) + '☆'.repeat(5-pts);
     const ordenId = r.pedido_id?.slice(0,8).toUpperCase() ?? '—';
     return `<div class="resena-card">
@@ -1125,7 +1127,6 @@ function renderListaResenas(ratings) {
         </div>
         <div class="resena-stars">${estrs}</div>
       </div>
-      ${r.puntaje_cadete != null ? `<div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px">Cadete: ${'★'.repeat(r.puntaje_cadete)}${'☆'.repeat(5-r.puntaje_cadete)}</div>` : ''}
       ${r.comentario ? `<p class="resena-comentario">${esc(r.comentario)}</p>` : ''}
       <button class="btn btn-outline btn-sm" data-action="ver-orden" data-id="${r.pedido_id}">Ver orden</button>
     </div>`;
