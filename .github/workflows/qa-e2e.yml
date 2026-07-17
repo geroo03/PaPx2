@@ -1,0 +1,35 @@
+name: QA E2E (producción)
+
+# Corre el flujo completo de un pedido (cliente → comercio → cadete →
+# entrega → rating) contra el backend y Supabase REALES de producción,
+# usando cuentas de prueba nuevas (prefijo qa-e2e-) cada vez — es el mismo
+# script que se corrió a mano durante todo el desarrollo y ya atrapó varios
+# bugs reales antes de que llegaran a un cliente real.
+#
+# No depende de secrets: los valores que usa (SUPABASE_URL, ANON_KEY,
+# BACKEND_URL) ya están committeados en frontend/env.js porque son públicos
+# (anon key, no service_role).
+#
+# A propósito NO corre en cada push — Railway tarda unos segundos en
+# terminar el deploy y correr esto en el mismo instante del push probaría
+# código viejo. Corre diario (para agarrar regresiones aunque nadie haga
+# push ese día) y a demanda con el botón "Run workflow" — usalo unos
+# minutos después de pushear algo que toque el flujo de pedidos.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # ~06:00 Argentina (UTC-3), una vez por día
+  workflow_dispatch: {}
+
+jobs:
+  qa-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Correr qa-e2e.mjs contra producción
+        run: node backend/scripts/qa-e2e.mjs

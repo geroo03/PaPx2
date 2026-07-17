@@ -1,0 +1,36 @@
+name: Tests
+
+# Corre rápido y sin tocar producción — ideal para cada push/PR.
+# El QA end-to-end contra producción real vive aparte en qa-e2e.yml
+# (necesita tiempo para que Railway termine de deployar, así que no
+# tiene sentido correrlo en el mismo evento que dispara el deploy).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci
+
+      - name: Tests unitarios (tarifaUtils, codigoUtils, comisionUtils)
+        working-directory: backend
+        run: npm test
+
+      - name: Verificar sintaxis del backend
+        run: find backend/src backend/scripts -name "*.js" -print0 | xargs -0 -n1 node --check
+
+      - name: Verificar sintaxis del frontend
+        run: find frontend/assets/js -name "*.js" -print0 | xargs -0 -n1 node --check
