@@ -256,7 +256,7 @@ window.submitRecovery = async function() {
   const pass2 = document.getElementById('rec-pass2')?.value || '';
   const btn   = document.getElementById('btn-rec');
 
-  if (pass.length < 6) { showError('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass.length < 8) { showError('La contraseña debe tener al menos 8 caracteres.'); return; }
   if (pass !== pass2)  { showError('Las contraseñas no coinciden.'); return; }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }

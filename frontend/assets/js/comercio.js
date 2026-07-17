@@ -334,7 +334,7 @@ function renderPedidosTable(pedidos, advMap = {}, cadetesMap = {}) {
           ${cadetePerfil ? `<div style="font-size:11px;color:#666;margin-top:2px;">${esc([cadetePerfil.nombre,cadetePerfil.apellido].filter(Boolean).join(' ')||'Cadete asignado')}</div>` : ''}
         </td>
         <td>${advsCount > 0
-          ? `<span class="badge badge-cancelado" title="${(advMap[p.id]||[]).map(a=>a.motivo).join(', ')}">${advsCount} aviso${advsCount>1?'s':''}</span>`
+          ? `<span class="badge badge-cancelado" title="${esc((advMap[p.id]||[]).map(a=>a.motivo).join(', '))}">${advsCount} aviso${advsCount>1?'s':''}</span>`
           : '<span class="text-tertiary">—</span>'}</td>
         <td class="text-right fw-medium">${formatARS(base)}</td>
         <td class="text-right fw-semibold text-success" title="total ÷ 1.15 = ingreso neto del comercio">

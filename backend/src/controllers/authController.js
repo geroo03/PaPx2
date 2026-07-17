@@ -29,8 +29,8 @@ export async function register(req, res) {
     return res.status(400).json({ error: 'email y password son requeridos.' });
   }
 
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
   }
 
   const rolFinal = (role && ROLES_AUTOREGISTRO.has(role)) ? role : 'cliente';
@@ -95,8 +95,8 @@ export async function crearUsuarioAdmin(req, res) {
   if (!email || !password) {
     return res.status(400).json({ error: 'email y password son requeridos.' });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
   }
 
   const ROLES_VALIDOS = new Set(['cliente', 'comercio', 'cadete', 'embajador']);

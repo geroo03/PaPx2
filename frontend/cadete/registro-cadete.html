@@ -137,7 +137,7 @@ window.registrarConEmail = async function() {
   const pass2 = document.getElementById('inp-pass2').value;
 
   if (!email) { mostrarErr('Ingresá tu email.'); return; }
-  if (pass.length < 6) { mostrarErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass.length < 8) { mostrarErr('La contraseña debe tener al menos 8 caracteres.'); return; }
   if (pass !== pass2) { mostrarErr('Las contraseñas no coinciden.'); return; }
 
   localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());

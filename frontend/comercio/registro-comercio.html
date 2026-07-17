@@ -575,7 +575,7 @@ async function registrar() {
   if (!catSel)         { showErr('Seleccioná una categoría.'); return; }
   if (!dir)            { showErr('La dirección del local es obligatoria.'); return; }
   if (!email)          { showErr('El email es obligatorio.'); return; }
-  if (pass.length < 6) { showErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
   if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }
 
   hideErr();

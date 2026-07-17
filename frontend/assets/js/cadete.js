@@ -15,6 +15,21 @@ let cadeteUserId  = null;     // auth UID del cadete autenticado
 
 window._cadete_activeTripState = () => ({ activeTripState, activeTrip });
 
+// Escapa texto que viene de la DB (nombre/dirección/teléfono de comercio o
+// cliente, mensajes de chat) antes de interpolarlo en innerHTML — este
+// archivo no tenía ningún helper de escape (a diferencia de comercio.js/
+// cliente.js), lo que dejaba varios XSS almacenados explotables contra el
+// cadete (chat del pedido, datos del comercio/cliente en ofertas y viajes).
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // HAVERSINE — espejo del backend para cálculo live en el cliente
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -312,8 +327,8 @@ function renderViajes() {
         <div style="padding:14px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
             <div>
-              <div style="font-size:14px;font-weight:800;">${o.comercio_nombre ?? o.comercios?.nombre ?? 'Comercio'}</div>
-              <div style="font-size:12px;color:#9CA3AF;margin-top:3px;">${o.comercio_direccion ?? o.comercios?.direccion ?? ''}</div>
+              <div style="font-size:14px;font-weight:800;">${esc(o.comercio_nombre ?? o.comercios?.nombre ?? 'Comercio')}</div>
+              <div style="font-size:12px;color:#9CA3AF;margin-top:3px;">${esc(o.comercio_direccion ?? o.comercios?.direccion ?? '')}</div>
             </div>
             <div style="text-align:right;">
               <div style="font-size:13px;color:#FF6B35;font-weight:700;">$${Number(gan).toLocaleString('es-AR')}</div>
@@ -321,7 +336,7 @@ function renderViajes() {
             </div>
           </div>
           <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px;">
-            ${ICONS.pin} Entregás en: ${o.cliente_direccion ?? o.direccion_entrega ?? '—'}
+            ${ICONS.pin} Entregás en: ${esc(o.cliente_direccion ?? o.direccion_entrega ?? '—')}
           </div>
           <div style="display:flex;gap:10px;">
             <button
@@ -385,9 +400,9 @@ function renderTripActivo(container) {
         <!-- Header con nombre del comercio y ganancia -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div>
-            <div style="font-size:13px;font-weight:800;">${comercioNombre}</div>
-            <div style="font-size:12px;color:#cfcfcf;margin-top:3px;">${comercioDirec}</div>
-            ${comercioTel ? `<div style="font-size:12px;color:#9CA3AF;margin-top:2px;">Tel: ${comercioTel}</div>` : ''}
+            <div style="font-size:13px;font-weight:800;">${esc(comercioNombre)}</div>
+            <div style="font-size:12px;color:#cfcfcf;margin-top:3px;">${esc(comercioDirec)}</div>
+            ${comercioTel ? `<div style="font-size:12px;color:#9CA3AF;margin-top:2px;">Tel: ${esc(comercioTel)}</div>` : ''}
           </div>
           <div style="text-align:right;">
             <div style="font-size:14px;font-weight:800;color:#4ADE80;">$${Number(gan).toLocaleString('es-AR')}</div>
@@ -469,8 +484,8 @@ function renderTripActivo(container) {
 
         <!-- Header con datos del cliente -->
         <div style="margin-bottom:10px;">
-          <div style="font-size:13px;font-weight:800;">Entregás a: ${clienteDirec}</div>
-          ${clienteTel ? `<div style="font-size:12px;color:#9CA3AF;margin-top:3px;">Tel: ${clienteTel}</div>` : ''}
+          <div style="font-size:13px;font-weight:800;">Entregás a: ${esc(clienteDirec)}</div>
+          ${clienteTel ? `<div style="font-size:12px;color:#9CA3AF;margin-top:3px;">Tel: ${esc(clienteTel)}</div>` : ''}
           <div style="font-size:12px;color:#9CA3AF;margin-top:3px;">
             Pago: ${metPago}${metPago === 'Efectivo' ? ` · $${Number(total).toLocaleString('es-AR')}` : ''}
           </div>
@@ -1213,7 +1228,7 @@ async function aceptarAcuerdoCadete() {
               });
               const refData = await refRes.json();
               if (refRes.ok && refData.referente_nombre) {
-                toast(`Referido por ${refData.referente_nombre} — bonificacion de $${refData.bonificacion}`, 4000);
+                toast(`Referido por ${esc(refData.referente_nombre)} — bonificacion de $${refData.bonificacion}`, 4000);
               }
             } catch {}
           }
@@ -1274,8 +1289,8 @@ async function cargarHistorial() {
         <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid #f0f0f0;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
             <div>
-              <div style="font-size:14px;font-weight:700;color:#111;">${p.comercios?.nombre ?? 'Comercio'}</div>
-              <div style="font-size:12px;color:#888;margin-top:3px;">${p.direccion_entrega ?? ''}</div>
+              <div style="font-size:14px;font-weight:700;color:#111;">${esc(p.comercios?.nombre ?? 'Comercio')}</div>
+              <div style="font-size:12px;color:#888;margin-top:3px;">${esc(p.direccion_entrega ?? '')}</div>
             </div>
             <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${badge.bg};color:${badge.color};">${badge.txt}</span>
           </div>
@@ -1761,8 +1776,8 @@ function appendMsgCadete(msg) {
   const div = document.createElement('div');
   div.style.cssText = `display:flex;justify-content:${esMio ? 'flex-end' : 'flex-start'};`;
   div.innerHTML = `<div style="max-width:80%;padding:7px 10px;border-radius:${esMio ? '10px 10px 4px 10px' : '4px 10px 10px 10px'};background:${esMio ? '#FF6B35' : 'rgba(255,255,255,0.1)'};color:#fff;font-size:12px;line-height:1.4;">
-    ${!esMio ? `<div style="font-size:9px;font-weight:700;margin-bottom:1px;opacity:.7;">${rolLabel}</div>` : ''}
-    ${msg.mensaje}
+    ${!esMio ? `<div style="font-size:9px;font-weight:700;margin-bottom:1px;opacity:.7;">${esc(rolLabel)}</div>` : ''}
+    ${esc(msg.mensaje)}
     <div style="font-size:8px;opacity:.5;text-align:right;margin-top:1px;">${hora}</div>
   </div>`;
   container.appendChild(div);

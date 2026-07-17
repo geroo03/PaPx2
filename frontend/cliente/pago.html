@@ -80,6 +80,16 @@ if(window.SUPABASE_URL&&window.SUPABASE_ANON_KEY&&window.supabase?.createClient)
 // Clave pública de MercadoPago (segura para el frontend)
 const MP_PUBLIC_KEY = 'APP_USR-8a54e7e0-e790-45f1-8815-2612c000e0cf';
 
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // URL del backend: usa BACKEND_URL de env.js si está disponible, sino localhost
 const BACKEND_URL = window.BACKEND_URL || 'http://localhost:3000';
 
@@ -122,7 +132,7 @@ async function iniciarPago() {
     document.getElementById('items-lista').innerHTML =
       items.map(i =>
         `<div class="resumen-row">
-           <span>${i.qty || i.quantity || 1}x ${i.nombre || i.title || 'Producto'}</span>
+           <span>${i.qty || i.quantity || 1}x ${esc(i.nombre || i.title || 'Producto')}</span>
            <span>$${Number((i.precio || i.unit_price || 0) * (i.qty || i.quantity || 1)).toLocaleString('es-AR')}</span>
          </div>`
       ).join('') +
