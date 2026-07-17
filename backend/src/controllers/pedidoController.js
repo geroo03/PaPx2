@@ -418,7 +418,10 @@ export async function editarProductosPedido(req, res) {
       }
     }
 
-    if (!['nuevo', 'preparando', 'listo'].includes(pedido.estado)) {
+    // 'en_preparacion' = cadete ya aceptó el viaje pero todavía no retiró
+    // (código de retiro pendiente) — en ese punto el pedido sigue siendo
+    // editable, el cadete ni tocó el paquete todavía.
+    if (!['nuevo', 'preparando', 'en_preparacion', 'listo'].includes(pedido.estado)) {
       return res.status(400).json({ error: 'Este pedido ya no se puede editar (el cadete ya retiró, o ya fue entregado/cancelado).' });
     }
 

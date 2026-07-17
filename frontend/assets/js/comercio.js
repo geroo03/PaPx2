@@ -386,7 +386,7 @@ function detallePedido(p, advs, cadetesMap = {}) {
   // cambio con el cliente (antes de que el cadete retire), y no para pedidos
   // ya pagados por MercadoPago — ahí ya se cobró el total viejo y la app no
   // tiene forma de cobrar la diferencia o reembolsar automáticamente.
-  const puedeEditar = ['nuevo', 'preparando', 'listo'].includes(p.estado) && p.metodo_pago !== 'mercadopago';
+  const puedeEditar = ['nuevo', 'preparando', 'en_preparacion', 'listo'].includes(p.estado) && p.metodo_pago !== 'mercadopago';
   const editarBtnHTML = puedeEditar
     ? `<button onclick="window.abrirEditarProductos('${p.id}')" style="margin-top:8px;width:100%;padding:9px;background:#fff;border:1.5px solid #FF6B35;color:#FF6B35;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;">Editar productos del pedido</button>`
     : '';
