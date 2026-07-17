@@ -376,11 +376,20 @@ function detallePedido(p, advs, cadetesMap = {}) {
   const filas = items.length
     ? items.map(it => {
         const nombre   = esc(it.nombre || '—');
-        const cantidad = it.cantidad || 1;
-        const precio   = it.precio_cliente_snapshot || it.precio || 0;
+        const cantidad = it.qty || it.cantidad || 1;
+        const precio   = it.precio ?? it.precio_cliente_snapshot ?? 0;
         return `<div class="detail-item"><span>${cantidad}× ${nombre}</span><span>${formatARS(precio * cantidad)}</span></div>`;
       }).join('')
     : '<div class="detail-item text-tertiary">Sin detalle de ítems</div>';
+
+  // Editar productos: solo mientras el comercio todavía puede coordinar un
+  // cambio con el cliente (antes de que el cadete retire), y no para pedidos
+  // ya pagados por MercadoPago — ahí ya se cobró el total viejo y la app no
+  // tiene forma de cobrar la diferencia o reembolsar automáticamente.
+  const puedeEditar = ['nuevo', 'preparando', 'listo'].includes(p.estado) && p.metodo_pago !== 'mercadopago';
+  const editarBtnHTML = puedeEditar
+    ? `<button onclick="window.abrirEditarProductos('${p.id}')" style="margin-top:8px;width:100%;padding:9px;background:#fff;border:1.5px solid #FF6B35;color:#FF6B35;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;">Editar productos del pedido</button>`
+    : '';
   const advsHTML = advs.length
     ? `<div style="margin-top:8px;padding:8px;background:var(--color-warning-bg);border-radius:6px;font-size:13px"><strong>Avisos:</strong> ${advs.map(a=>esc(a.motivo)).join(' · ')}</div>`
     : '';
@@ -432,7 +441,7 @@ function detallePedido(p, advs, cadetesMap = {}) {
       ${p.costo_envio   ? `<span>Envio: ${formatARS(p.costo_envio)}</span>` : ''}
       ${propinaHTML}
       <span><strong>Total: ${formatARS(p.total ?? p.subtotal ?? 0)}</strong></span>
-    </div>${cadeteHTML}
+    </div>${editarBtnHTML}${cadeteHTML}
     <div style="margin-top:10px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;">
       <div onclick="window.toggleChatComercio('${p.id}')" style="padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;background:#f9f9f9;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -449,6 +458,113 @@ function detallePedido(p, advs, cadetesMap = {}) {
     </div>
     ${notasHTML}${advsHTML}</div>`;
 }
+
+// ─── EDITAR PRODUCTOS DE UN PEDIDO ───────────────────────────────────────────
+// Para cuando falta un producto y el comercio ya habló con el cliente (por
+// teléfono o por el chat del pedido) sobre qué sacar/cambiar. El cadete ve la
+// versión actualizada automáticamente (Realtime sobre la fila de pedidos).
+let _epPedidoId = null, _epDraft = null;
+
+window.abrirEditarProductos = function(pedidoId) {
+  const p = S.pedidos.find(x => x.id === pedidoId);
+  if (!p) return;
+  const items = Array.isArray(p.items) ? p.items : Array.isArray(p.productos) ? p.productos : [];
+  if (!items.length) { showToast('Este pedido no tiene productos para editar', 'error'); return; }
+
+  _epPedidoId = pedidoId;
+  _epDraft = items.map(it => ({
+    nombre: it.nombre || '—',
+    precio: Number(it.precio ?? it.precio_cliente_snapshot ?? 0),
+    qty:    Number(it.qty ?? it.cantidad ?? 1),
+  }));
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-overlay" id="modal-overlay-editar-productos">
+      <div class="modal-sheet" style="max-width:440px">
+        <div class="modal-header">
+          <h2 class="modal-title">Editar productos del pedido</h2>
+          <button class="modal-close" onclick="window.cerrarEditarProductos()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:12px;color:#888;margin-bottom:12px;">
+            Ajustá cantidades o sacá lo que no tengas disponible. Asegurate de haberlo hablado antes con el cliente (llamado o chat del pedido).
+          </p>
+          <div id="ep-lista"></div>
+          <div style="display:flex;justify-content:space-between;font-weight:800;padding-top:10px;margin-top:6px;border-top:1px solid #eee;">
+            <span>Nuevo total</span><span id="ep-total"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="window.cerrarEditarProductos()">Cancelar</button>
+          <button class="btn btn-primary" id="ep-btn-guardar" onclick="window.guardarEdicionProductos()">Guardar cambios</button>
+        </div>
+      </div>
+    </div>`);
+
+  _renderEditarProductos();
+};
+
+function _renderEditarProductos() {
+  const cont = g('ep-lista');
+  if (!cont || !_epDraft) return;
+  cont.innerHTML = _epDraft.map((it, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f2f2f2;">
+      <div style="flex:1;font-size:13px;">${esc(it.nombre)}<div style="font-size:11px;color:#999;">${formatARS(it.precio)} c/u</div></div>
+      <button onclick="window._epQty(${i},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;">−</button>
+      <span style="min-width:20px;text-align:center;font-weight:700;">${it.qty}</span>
+      <button onclick="window._epQty(${i},1)" style="width:26px;height:26px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;">+</button>
+      <button onclick="window._epQuitar(${i})" title="Quitar del pedido" style="margin-left:4px;width:26px;height:26px;border-radius:50%;border:none;background:#FEE2E2;color:#DC2626;cursor:pointer;">×</button>
+    </div>`).join('');
+  const total = _epDraft.reduce((s, it) => s + it.precio * it.qty, 0);
+  const totalEl = g('ep-total'); if (totalEl) totalEl.textContent = formatARS(total);
+}
+
+window._epQty = function(i, delta) {
+  if (!_epDraft?.[i]) return;
+  _epDraft[i].qty = Math.max(0, _epDraft[i].qty + delta);
+  _renderEditarProductos();
+};
+
+window._epQuitar = function(i) {
+  if (!_epDraft?.[i]) return;
+  _epDraft.splice(i, 1);
+  _renderEditarProductos();
+};
+
+window.cerrarEditarProductos = function() {
+  g('modal-overlay-editar-productos')?.remove();
+  _epPedidoId = null; _epDraft = null;
+};
+
+window.guardarEdicionProductos = async function() {
+  if (!_epPedidoId || !_epDraft) return;
+  const itemsFinales = _epDraft.filter(it => it.qty > 0);
+  if (!itemsFinales.length) { showToast('El pedido tiene que quedar con al menos un producto', 'error'); return; }
+
+  const btn = g('ep-btn-guardar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) { showToast('Sesión expirada', 'error'); return; }
+    const base = window.BACKEND_URL || '';
+    const resp = await fetch(`${base}/api/pedidos/${_epPedidoId}/productos`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body:    JSON.stringify({ productos: itemsFinales }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) { showToast(data.error || 'Error al guardar los cambios', 'error'); return; }
+
+    showToast('Pedido actualizado ✓');
+    window.cerrarEditarProductos();
+    await loadPedidos();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar cambios'; }
+  }
+};
 
 // Guardar nota del pedido — expuesta como global para onclick inline
 window.guardarNotaPedido = async function(pedidoId) {

@@ -13,6 +13,12 @@ let activeTripState = 0;
 let kmChannel     = null;     // canal Realtime para live KM
 let cadeteUserId  = null;     // auth UID del cadete autenticado
 
+// Productos del viaje activo — ofertas_cadetes no trae el detalle del pedido,
+// así que se busca aparte en 'pedidos' y se re-suscribe por si el comercio
+// edita el pedido (producto agotado, etc.) mientras el cadete ya lo tiene.
+let tripProductos      = null;
+let tripProductosChannel = null;
+
 window._cadete_activeTripState = () => ({ activeTripState, activeTrip });
 
 // Escapa texto que viene de la DB (nombre/dirección/teléfono de comercio o
@@ -382,6 +388,27 @@ function renderTripActivo(container) {
   const metPago        = v.metodo_pago ?? 'Efectivo';
   const total          = v.total ?? 0;
 
+  // El comercio puede editar los productos (ej: algo se agotó) después de
+  // hablarlo con el cliente — esto se recarga solo vía Realtime, ver
+  // cargarProductosViajeActivo().
+  const productosHTML = (() => {
+    const items = Array.isArray(tripProductos?.productos) ? tripProductos.productos : [];
+    if (!items.length) return '';
+    const filas = items.map(it => {
+      const nombre = esc(it.nombre || '—');
+      const qty    = Number(it.qty ?? it.cantidad ?? 1);
+      const precio = Number(it.precio ?? 0);
+      return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;"><span>${qty}× ${nombre}</span><span>$${(precio * qty).toLocaleString('es-AR')}</span></div>`;
+    }).join('');
+    const totalProductos = tripProductos?.total ?? total;
+    return `
+      <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+        <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">Productos del pedido</div>
+        ${filas}
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;padding-top:6px;margin-top:4px;border-top:1px solid rgba(255,255,255,0.08);"><span>Total</span><span>$${Number(totalProductos).toLocaleString('es-AR')}</span></div>
+      </div>`;
+  })();
+
   const alertBtnHtml = `
     <button id="viaje-alert-btn"
       style="position:fixed;right:18px;bottom:140px;z-index:1400;width:54px;height:54px;
@@ -421,6 +448,8 @@ function renderTripActivo(container) {
             </div>
           </div>
         </div>
+
+        ${productosHTML}
 
         <!-- Código de retiro: el comercio te lo da cuando llegás -->
         <div style="background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.25);
@@ -487,9 +516,11 @@ function renderTripActivo(container) {
           <div style="font-size:13px;font-weight:800;">Entregás a: ${esc(clienteDirec)}</div>
           ${clienteTel ? `<div style="font-size:12px;color:#9CA3AF;margin-top:3px;">Tel: ${esc(clienteTel)}</div>` : ''}
           <div style="font-size:12px;color:#9CA3AF;margin-top:3px;">
-            Pago: ${metPago}${metPago === 'Efectivo' ? ` · $${Number(total).toLocaleString('es-AR')}` : ''}
+            Pago: ${metPago}${metPago === 'Efectivo' ? ` · $${Number(tripProductos?.total ?? total).toLocaleString('es-AR')}` : ''}
           </div>
         </div>
+
+        ${productosHTML}
 
         <!-- Badge de distancia en vivo al cliente -->
         <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);
@@ -590,11 +621,50 @@ function renderTripActivo(container) {
       activeTrip = null;
       activeTripState = 0;
       if (kmChannel) { sb.removeChannel(kmChannel); kmChannel = null; }
+      detenerProductosViajeActivo();
       actualizarStats();
       renderViajes();
       toast(`${ICONS.confetti} ¡Viaje completado! Ganaste $${Number(ganFinal).toLocaleString('es-AR')}`, 3500);
     }, 1200);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCTOS DEL VIAJE ACTIVO — el comercio puede editarlos (producto agotado,
+// cambio de cantidad) después de hablarlo con el cliente. Se re-suscribe a
+// 'pedidos' para reflejar el cambio en vivo si ya estás con el viaje aceptado.
+// ═══════════════════════════════════════════════════════════════════════════════
+async function cargarProductosViajeActivo(pedidoId) {
+  if (tripProductosChannel) { sb.removeChannel(tripProductosChannel); tripProductosChannel = null; }
+  tripProductos = null;
+  if (!pedidoId) return;
+
+  try {
+    const { data } = await sb.from('pedidos').select('productos,total,subtotal').eq('id', pedidoId).single();
+    tripProductos = data ?? null;
+  } catch { tripProductos = null; }
+
+  renderViajes();
+
+  tripProductosChannel = sb
+    .channel(`trip-productos-${pedidoId}`)
+    .on('postgres_changes', {
+      event:  'UPDATE',
+      schema: 'public',
+      table:  'pedidos',
+      filter: `id=eq.${pedidoId}`,
+    }, payload => {
+      const { productos, total, subtotal } = payload.new ?? {};
+      tripProductos = { productos, total, subtotal };
+      renderViajes();
+      toast(`${ICONS.warn || ''} El comercio actualizó los productos de tu viaje`, 3500);
+    })
+    .subscribe();
+}
+
+function detenerProductosViajeActivo() {
+  if (tripProductosChannel) { sb.removeChannel(tripProductosChannel); tripProductosChannel = null; }
+  tripProductos = null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -636,6 +706,7 @@ async function aceptarViaje(pedidoId) {
 
     // Iniciar live KM hacia el comercio
     suscribirKmCadete(pedidoId, oferta.comercio_lat, oferta.comercio_lng, 'km-al-local');
+    cargarProductosViajeActivo(pedidoId);
 
     renderViajes();
     toast(`${ICONS.check} ¡Viaje aceptado! Andá a retirar al local`, 3000);
@@ -1545,6 +1616,7 @@ async function cancelarPorNoShow() {
   }
   activeTrip = null;
   activeTripState = 3;
+  detenerProductosViajeActivo();
   if (_noShowTimer) { clearInterval(_noShowTimer); _noShowTimer = null; }
   removeAlertBtn();
   renderViajes();

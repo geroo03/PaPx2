@@ -13,6 +13,7 @@ import {
   aceptarPedido,
   cambiarEstadoPedido,
   getPedidoConCadete,
+  editarProductosPedido,
   difundirPedido,
   valorarPedido,
   notificarNuevoPedido,
@@ -38,6 +39,10 @@ router.post('/notificar-comercio', requireAuth, notificarNuevoPedido);
 
 // POST /api/pedidos/no-show — cadete reporta que el cliente no estaba al entregar
 router.post('/no-show', requireAuth, reportarNoShow);
+
+// PATCH /api/pedidos/:id/productos — comercio edita los productos de su pedido
+// (antes de que el cadete retire). Bloqueado para pedidos pagados con MercadoPago.
+router.patch('/:id/productos', requireAuth, editarProductosPedido);
 
 // GET  /api/pedidos/:id              — cliente/cadete lee pedido + perfil cadete
 // Debe ir al final para que las rutas con nombre no sean interpretadas como :id

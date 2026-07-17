@@ -353,6 +353,103 @@ export async function getPedidoConCadete(req, res) {
   }
 }
 
+// ─── editarProductosPedido ─────────────────────────────────────────────────────
+
+/**
+ * PATCH /api/pedidos/:id/productos
+ *
+ * El comercio edita la lista de productos de un pedido (ej: un producto se
+ * agotó y hay que sacarlo o cambiar la cantidad). Recalcula subtotal/total —
+ * el trigger pedidos_compute_totals() de la DB se encarga de monto_comision_app
+ * y total_final a partir de esos dos campos.
+ *
+ * Reglas:
+ *   - Solo el comercio dueño del pedido (o un admin) puede editar.
+ *   - Solo mientras el pedido está en 'nuevo', 'preparando' o 'listo' — una vez
+ *     que el cadete retiró (en_camino) ya no tiene sentido sin un viaje de vuelta.
+ *   - Bloqueado para pedidos pagados con MercadoPago: ya se cobró el total viejo
+ *     y no hay forma de cobrar la diferencia o reembolsar automáticamente todavía
+ *     — el comercio lo resuelve directo con el cliente por fuera de la app.
+ *
+ * Body: { productos: [{ nombre, precio, qty }, ...] }
+ */
+export async function editarProductosPedido(req, res) {
+  const { id: pedidoId } = req.params;
+  const { productos } = req.body ?? {};
+
+  if (!Array.isArray(productos) || productos.length === 0) {
+    return res.status(400).json({ error: 'productos debe ser un array con al menos un ítem.' });
+  }
+
+  const itemsLimpios = [];
+  for (const it of productos) {
+    const nombre = String(it?.nombre ?? '').trim().slice(0, 200);
+    const precio = Number(it?.precio);
+    const qty    = Number(it?.qty ?? it?.cantidad ?? 1);
+    if (!nombre || !Number.isFinite(precio) || precio < 0 || !Number.isInteger(qty) || qty < 1) {
+      return res.status(400).json({ error: `Ítem inválido: "${it?.nombre ?? '(sin nombre)'}" — revisá nombre, precio y cantidad.` });
+    }
+    itemsLimpios.push({ nombre, precio, qty });
+  }
+
+  if (!supabaseAdmin) {
+    console.error('[editarProductosPedido] supabaseAdmin no inicializado.');
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    const { data: pedido, error: fetchErr } = await supabaseAdmin
+      .from('pedidos')
+      .select('id, comercio_id, estado, metodo_pago, subtotal, total')
+      .eq('id', pedidoId)
+      .single();
+
+    if (fetchErr || !pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+
+    const { data: comercio } = await supabaseAdmin
+      .from('comercios').select('usuario_id').eq('id', pedido.comercio_id).maybeSingle();
+
+    if (comercio?.usuario_id !== req.user.id) {
+      const { data: perfil } = await supabaseAdmin.from('perfiles').select('rol').eq('usuario_id', req.user.id).maybeSingle();
+      if (perfil?.rol !== 'admin') {
+        return res.status(403).json({ error: 'Solo el comercio dueño de este pedido puede editarlo.' });
+      }
+    }
+
+    if (!['nuevo', 'preparando', 'listo'].includes(pedido.estado)) {
+      return res.status(400).json({ error: 'Este pedido ya no se puede editar (el cadete ya retiró, o ya fue entregado/cancelado).' });
+    }
+
+    if (pedido.metodo_pago === 'mercadopago') {
+      return res.status(400).json({ error: 'Los pedidos pagados con MercadoPago no se pueden editar desde acá — coordiná la diferencia directo con el cliente.' });
+    }
+
+    const nuevoSubtotal = itemsLimpios.reduce((s, it) => s + it.precio * it.qty, 0);
+    // Mantiene constante lo que ya se sumó por envío/propina — solo cambia la
+    // parte del total que depende de los productos.
+    const deltaEnvioPropina = Number(pedido.total ?? 0) - Number(pedido.subtotal ?? 0);
+    const nuevoTotal = Math.max(0, nuevoSubtotal + deltaEnvioPropina);
+
+    const { data: actualizado, error: updErr } = await supabaseAdmin
+      .from('pedidos')
+      .update({ productos: itemsLimpios, subtotal: nuevoSubtotal, total: nuevoTotal })
+      .eq('id', pedidoId)
+      .eq('comercio_id', pedido.comercio_id)
+      .select('id, productos, subtotal, total, monto_comision_app, total_final')
+      .single();
+
+    if (updErr) throw updErr;
+
+    return res.status(200).json({ ok: true, pedido: actualizado });
+
+  } catch (err) {
+    console.error('[editarProductosPedido] Excepción:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
 // ─── difundirPedido ────────────────────────────────────────────────────────────
 
 /**

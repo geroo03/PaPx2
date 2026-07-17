@@ -164,6 +164,16 @@ async function apiGet(pathname, jwt) {
   return { status: res.status, json };
 }
 
+async function apiPatch(pathname, body, jwt) {
+  const res = await fetch(`${BACKEND_URL}${pathname}`, {
+    method:  'PATCH',
+    headers: sbHeaders(jwt),
+    body:    JSON.stringify(body),
+  });
+  const json = await res.json();
+  return { status: res.status, json };
+}
+
 function assert(cond, msg) {
   if (!cond) throw new Error(`Assertion falló: ${msg}`);
 }
@@ -302,6 +312,39 @@ async function main() {
   await step('Anti-colisión: cadete 2 intenta aceptar el mismo pedido → debe fallar 409', async () => {
     const r = await apiPost('/api/pedidos/aceptar', { pedidoId: pedido1.id, cadeteId: cadete2.id, ofertaId: ofertasCadete2.id }, jwtCadete2);
     assert(r.status === 409, `esperaba 409 PEDIDO_YA_TOMADO, obtuve HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+  });
+
+  // ── Editar productos del pedido (producto agotado, comercio habló con el cliente) ──
+  await step('Comercio: edita productos del pedido (baja cantidad, un producto se agotó)', async () => {
+    const r = await apiPatch(`/api/pedidos/${pedido1.id}/productos`, {
+      productos: [{ nombre: 'Producto QA', precio: 1000, qty: 1 }],
+    }, jwtComercio);
+    assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+    assert(Number(r.json.pedido.subtotal) === 1000, `subtotal=${r.json.pedido.subtotal}, esperaba 1000 (bajó de 2 a 1 unidad)`);
+    assert(Number(r.json.pedido.total) === 2200, `total=${r.json.pedido.total}, esperaba 2200 (subtotal 1000 + delta envío/propina 1200 que ya tenía el pedido)`);
+    assert(Number(r.json.pedido.monto_comision_app) === 150, `monto_comision_app=${r.json.pedido.monto_comision_app}, esperaba 150 (15% de 1000, recalculado por el trigger)`);
+  });
+
+  await step('Cadete: lee el pedido editado (RLS) — ve el nuevo producto/total, no el viejo', async () => {
+    const rows = await sbSelect('pedidos', `id=eq.${pedido1.id}&select=productos,subtotal,total`, jwtCadete);
+    assert(rows.length === 1, `esperaba poder leer el pedido, RLS lo bloqueó o no existe`);
+    const p = rows[0];
+    assert(Array.isArray(p.productos) && p.productos.length === 1 && Number(p.productos[0].qty) === 1, `productos del cadete no reflejan la edición: ${JSON.stringify(p.productos)}`);
+    assert(Number(p.total) === 2200, `total visto por el cadete=${p.total}, esperaba 2200`);
+  });
+
+  await step('Editar productos: bloqueado para pedidos pagados con MercadoPago', async () => {
+    const pedidoMP = await sbInsert('pedidos', {
+      comercio_id: comercioRow.id, cliente_id: cliente.id,
+      productos: [{ nombre: 'Producto QA', precio: 1000, qty: 1 }],
+      subtotal: 1000, total: 1000, estado: 'nuevo',
+      direccion_entrega: 'Dirección de prueba', lat_entrega: cliLat, lng_entrega: cliLng,
+      metodo_pago: 'mercadopago',
+    }, jwtCliente);
+    const r = await apiPatch(`/api/pedidos/${pedidoMP.id}/productos`, {
+      productos: [{ nombre: 'Producto QA', precio: 1000, qty: 2 }],
+    }, jwtComercio);
+    assert(r.status === 400, `esperaba 400 (bloqueado por metodo_pago=mercadopago), obtuve HTTP ${r.status}: ${JSON.stringify(r.json)}`);
   });
 
   // Cadete 2 ya cumplió su propósito (probar anti-colisión). Lo apagamos ya
