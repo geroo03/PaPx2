@@ -321,7 +321,7 @@
       <div class="fg">
         <label class="fl" for="r-provincia">Provincia</label>
         <select class="fi" id="r-provincia" style="padding:10px 14px;">
-          <option value="Santiago del Estero" selected>Santiago del Estero</option>
+          <option value="" disabled selected>Seleccioná tu provincia</option>
           <option value="Buenos Aires">Buenos Aires</option>
           <option value="CABA">CABA</option>
           <option value="Catamarca">Catamarca</option>
@@ -343,13 +343,14 @@
           <option value="San Luis">San Luis</option>
           <option value="Santa Cruz">Santa Cruz</option>
           <option value="Santa Fe">Santa Fe</option>
+          <option value="Santiago del Estero">Santiago del Estero</option>
           <option value="Tierra del Fuego">Tierra del Fuego</option>
           <option value="Tucuman">Tucuman</option>
         </select>
       </div>
       <div class="fg">
         <label class="fl" for="r-ciudad">Ciudad</label>
-        <input class="fi" id="r-ciudad" type="text" placeholder="Ej: Sgo. del Estero" value="Santiago del Estero">
+        <input class="fi" id="r-ciudad" type="text" placeholder="Ej: Sgo. del Estero, La Plata, Córdoba...">
       </div>
     </div>
 
@@ -359,7 +360,7 @@
       <div id="reg-mapa" style="height:220px;border-radius:12px;overflow:hidden;border:1.5px solid #e5e5e5;background:#e8e8e8;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
         <div style="font-size:11px;color:#999;">
-          Lat: <strong id="reg-lat-display">-27.7951</strong> &nbsp; Lng: <strong id="reg-lng-display">-64.2615</strong>
+          Lat: <strong id="reg-lat-display">—</strong> &nbsp; Lng: <strong id="reg-lng-display">—</strong>
         </div>
         <button type="button" id="btn-mi-ubi" style="background:#fff;border:1.5px solid #e5e5e5;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;color:#555;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -385,7 +386,7 @@
       <div class="fg">
         <label class="fl" for="r-pass">Contraseña <span>*</span></label>
         <div class="pass-wrap">
-          <input class="fi" id="r-pass" type="password" placeholder="Mín. 6 caracteres" autocomplete="new-password" style="padding-right:40px">
+          <input class="fi" id="r-pass" type="password" placeholder="Mín. 8 caracteres" autocomplete="new-password" style="padding-right:40px">
           <button class="toggle-pass-btn" id="toggle-r-pass" type="button" aria-label="Mostrar contraseña">
             <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
@@ -479,41 +480,86 @@ function setBtnLoading(loading) {
 }
 
 // ── Mapa de ubicación ─────────────────────────────────────
+// Sin default hardcodeado a Santiago del Estero — antes, si el usuario no
+// tocaba el mapa, el comercio se guardaba con esas coordenadas fijas sin
+// importar en qué ciudad estuviera parado (rompe la búsqueda de cadetes,
+// que busca en un radio de 10km alrededor del comercio). Ahora el mapa
+// arranca centrado en Argentina entera (sin pin) y no deja avanzar el
+// registro hasta que el usuario confirme una ubicación real, ya sea por
+// GPS, arrastrando el pin o haciendo click en el mapa.
+const ARGENTINA_CENTER = [-38.4161, -63.6167];
 let _regMap = null, _regMarker = null;
-let regLat = -27.7951, regLng = -64.2615;
+let regLat = null, regLng = null;
+let regPinConfirmado = false;
+
+function _normalizar(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+// Intenta autocompletar provincia/ciudad a partir de las coordenadas
+// confirmadas (mismo servicio Nominatim que ya usa cliente.js). Best-effort:
+// si falla o no matchea ninguna provincia conocida, se deja para completar
+// a mano — nunca bloquea el flujo.
+async function autocompletarProvinciaCiudad(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es&addressdetails=1`);
+    const data = await res.json();
+    const a = data?.address || {};
+    const ciudad = a.city || a.town || a.village || a.municipality || '';
+    const provinciaRaw = a.state || '';
+    if (ciudad && !el('r-ciudad').value.trim()) el('r-ciudad').value = ciudad;
+    const sel = el('r-provincia');
+    if (sel && provinciaRaw) {
+      const target = _normalizar(provinciaRaw);
+      const match = Array.from(sel.options).find(o => o.value && _normalizar(o.value) === target);
+      if (match) sel.value = match.value;
+    }
+  } catch { /* best-effort — el usuario completa a mano si esto falla */ }
+}
+
+function confirmarPin(lat, lng, { centrar = false, zoom = 16 } = {}) {
+  regLat = lat; regLng = lng; regPinConfirmado = true;
+  if (!_regMarker) {
+    _regMarker = L.marker([lat, lng], { draggable: true }).addTo(_regMap);
+    _regMarker.on('dragend', () => {
+      const p = _regMarker.getLatLng();
+      confirmarPin(p.lat, p.lng);
+    });
+  } else {
+    _regMarker.setLatLng([lat, lng]);
+  }
+  if (centrar) _regMap.setView([lat, lng], zoom);
+  el('reg-lat-display').textContent = lat.toFixed(6);
+  el('reg-lng-display').textContent = lng.toFixed(6);
+  autocompletarProvinciaCiudad(lat, lng);
+}
 
 function initRegMapa() {
   const mapEl = document.getElementById('reg-mapa');
   if (!mapEl || !window.L) return;
-  _regMap = L.map(mapEl, { center: [regLat, regLng], zoom: 14, zoomControl: true, attributionControl: false });
+  _regMap = L.map(mapEl, { center: ARGENTINA_CENTER, zoom: 4, zoomControl: true, attributionControl: false });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_regMap);
-  _regMarker = L.marker([regLat, regLng], { draggable: true }).addTo(_regMap);
-  _regMarker.on('dragend', () => {
-    const p = _regMarker.getLatLng();
-    regLat = p.lat; regLng = p.lng;
-    el('reg-lat-display').textContent = regLat.toFixed(6);
-    el('reg-lng-display').textContent = regLng.toFixed(6);
-  });
-  _regMap.on('click', (e) => {
-    regLat = e.latlng.lat; regLng = e.latlng.lng;
-    _regMarker.setLatLng(e.latlng);
-    el('reg-lat-display').textContent = regLat.toFixed(6);
-    el('reg-lng-display').textContent = regLng.toFixed(6);
-  });
+
+  _regMap.on('click', (e) => confirmarPin(e.latlng.lat, e.latlng.lng, { centrar: true, zoom: Math.max(_regMap.getZoom(), 15) }));
+
+  // Intento automático de GPS al entrar — si el usuario ya dio permiso de
+  // ubicación antes, esto centra el mapa en su posición real sin que tenga
+  // que tocar nada. Si falla/deniega, el mapa se queda en la vista general
+  // de Argentina esperando que toque el mapa o use el botón.
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => confirmarPin(pos.coords.latitude, pos.coords.longitude, { centrar: true }),
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
 }
 
 el('btn-mi-ubi')?.addEventListener('click', () => {
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      regLat = pos.coords.latitude;
-      regLng = pos.coords.longitude;
-      if (_regMarker) _regMarker.setLatLng([regLat, regLng]);
-      if (_regMap) _regMap.setView([regLat, regLng], 16);
-      el('reg-lat-display').textContent = regLat.toFixed(6);
-      el('reg-lng-display').textContent = regLng.toFixed(6);
-    },
-    () => {},
+    (pos) => confirmarPin(pos.coords.latitude, pos.coords.longitude, { centrar: true }),
+    () => { showErr('No se pudo obtener tu ubicación. Marcá el local a mano en el mapa.'); },
     { enableHighAccuracy: true, timeout: 10000 }
   );
 });
@@ -563,8 +609,8 @@ document.addEventListener('keydown', e => {
 async function registrar() {
   const nombre    = (el('r-nombre')?.value     || '').trim();
   const dir       = (el('r-dir')?.value        || '').trim();
-  const provincia = (el('r-provincia')?.value  || 'Santiago del Estero');
-  const ciudad    = (el('r-ciudad')?.value     || '').trim() || 'Santiago del Estero';
+  const provincia = (el('r-provincia')?.value  || '').trim();
+  const ciudad    = (el('r-ciudad')?.value     || '').trim();
   const tel       = (el('r-tel')?.value        || '').trim();
   const email     = (el('r-email')?.value      || '').trim();
   const pass      = (el('r-pass')?.value       || '');
@@ -574,6 +620,12 @@ async function registrar() {
   if (!nombre)         { showErr('El nombre del comercio es obligatorio.'); return; }
   if (!catSel)         { showErr('Seleccioná una categoría.'); return; }
   if (!dir)            { showErr('La dirección del local es obligatoria.'); return; }
+  if (!provincia)      { showErr('Seleccioná tu provincia.'); return; }
+  if (!ciudad)         { showErr('La ciudad es obligatoria.'); return; }
+  if (!regPinConfirmado || regLat == null || regLng == null) {
+    showErr('Marcá la ubicación de tu local en el mapa (arrastrá el pin, tocá el mapa, o usá "Usar mi ubicación").');
+    return;
+  }
   if (!email)          { showErr('El email es obligatorio.'); return; }
   if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
   if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }

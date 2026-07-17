@@ -239,7 +239,7 @@ function showRecoveryForm() {
     </div>
     <div class="form-group">
       <label class="form-label">Nueva contraseña <span style="color:#FF6B35">*</span></label>
-      <input class="form-input" id="rec-pass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      <input class="form-input" id="rec-pass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
     </div>
     <div class="form-group">
       <label class="form-label">Repetir contraseña <span style="color:#FF6B35">*</span></label>

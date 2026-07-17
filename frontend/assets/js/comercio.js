@@ -831,7 +831,7 @@ function loadContratoData() {
           </label>
           <div style="display:flex;gap:10px;">
             <label style="font-size:12px;color:#666;flex:1;">Ciudad
-              <input id="ct-ciudad" value="${esc(com.ciudad||'Santiago del Estero')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
+              <input id="ct-ciudad" value="${esc(com.ciudad||'')}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
             </label>
             <label style="font-size:12px;color:#666;flex:1;">Codigo postal
               <input id="ct-cp" value="${esc(com.codigo_postal||'')}" placeholder="Ej: G4200" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;margin-top:4px;font-size:13px;box-sizing:border-box;"/>
@@ -1151,8 +1151,14 @@ function abrirModalUbicacion() {
   if (com?.ciudad)    { const el = g('ub-ciudad'); if (el) el.value = com.ciudad; }
   if (com?.provincia) { const el = g('ub-provincia'); if (el) el.value = com.provincia; }
 
-  const lat = Number(com?.lat) || -27.7951;
-  const lng = Number(com?.lng) || -64.2615;
+  // Sin coordenadas guardadas todavía (comercio viejo sin lat/lng), no
+  // asumir Santiago del Estero — eso pone el pin a cientos de km del local
+  // real si el comercio está en otra ciudad. Se centra en Argentina entera
+  // y se deja el zoom bajo para que sea obvio que hay que ubicarse a mano.
+  const tieneCoords = com?.lat != null && com?.lng != null;
+  const lat  = tieneCoords ? Number(com.lat) : -38.4161;
+  const lng  = tieneCoords ? Number(com.lng) : -63.6167;
+  const zoom = tieneCoords ? 15 : 4;
 
   setTimeout(() => {
     const mapEl = g('mapa-ubicacion');
@@ -1160,7 +1166,7 @@ function abrirModalUbicacion() {
 
     if (_ubMap) { try { _ubMap.remove(); } catch {} _ubMap = null; _ubMarker = null; }
 
-    _ubMap = L.map(mapEl, { center: [lat, lng], zoom: 15, zoomControl: true, attributionControl: false });
+    _ubMap = L.map(mapEl, { center: [lat, lng], zoom, zoomControl: true, attributionControl: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_ubMap);
 
     _ubMarker = L.marker([lat, lng], { draggable: true }).addTo(_ubMap);
