@@ -525,6 +525,20 @@ function iniciarTracking(){
     }catch{}
   })();
 
+  // El comercio puede editar los productos de un pedido (algo se agotó, etc.)
+  // antes de que el cadete retire — avisamos acá con un toast para que el
+  // cliente no se entere solo por teléfono/chat. totalPrevio se compara
+  // contra cada update que llegue por Realtime.
+  let _totalPrevio=Number(currentPedido?.total??0);
+  const avisarSiProductosEditados=nuevo=>{
+    if(!nuevo||nuevo.total==null)return;
+    const nuevoTotal=Number(nuevo.total);
+    if(nuevoTotal===_totalPrevio)return;
+    _totalPrevio=nuevoTotal;
+    if(currentPedido){currentPedido.productos=nuevo.productos;currentPedido.subtotal=nuevo.subtotal;currentPedido.total=nuevo.total;}
+    showToast(`El comercio actualizó tu pedido — nuevo total: $${nuevoTotal.toLocaleString('es-AR')}`,4500);
+  };
+
   // ── Suscripción 1: cambios de estado del pedido (postgres_changes) ────────
   window._trackPedidoCh=sb
     .channel(`track-pedido-${pedidoId}`)
@@ -532,6 +546,7 @@ function iniciarTracking(){
       payload=>{
         console.log('[Tracking] Estado pedido:',payload.new?.estado);
         actualizarEstado(payload.new?.estado);
+        avisarSiProductosEditados(payload.new);
       })
     .subscribe();
 
