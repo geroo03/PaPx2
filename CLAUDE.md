@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-14.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-17.
 
 ---
 
@@ -223,7 +223,7 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 ```
 TARIFA_BASE = { moto: 1800, bici: 1200 }   // ARS
 TARIFA_POR_KM = 750                          // ARS por km
-RECARGO_PLATAFORMA = 15%                     // Se suma al precio del comercio → lo paga el cliente
+RECARGO_PLATAFORMA = 20%                     // Se suma al precio del comercio → lo paga el cliente
 
 gananciaBase = round((tarifa_base + distancia_entrega_km × 750) / 50) × 50
 ganancia = tarifa_clima ? round((gananciaBase × 1.20) / 50) × 50 : gananciaBase
@@ -257,10 +257,11 @@ WHERE id=? AND cadete_id IS NULL
 - `difundirPedido` lee el flag y multiplica la `ganancia` por 1.20
 - El cliente NO ve el recargo; el aumento va íntegro al cadete
 
-### Recargo plataforma (15%)
-- Se aplica en el frontend del cliente al mostrar precios: `precio_mostrado = precio_comercio × 1.15`
+### Recargo plataforma (20%)
+- Se aplica en el frontend del cliente al mostrar precios: `precio_mostrado = precio_comercio × 1.20`
 - El comercio recibe el 100% de su precio definido
-- La diferencia (15%) es la comisión de la plataforma
+- La diferencia (20%) es la comisión de la plataforma
+- Subido del 15% al 20% el 2026-07-17 (`migration-recargo-plataforma-20.sql`) — decisión de negocio del usuario, no retroactivo
 
 ---
 
@@ -332,7 +333,7 @@ con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
    - Trigger: acredita comisión al embajador (si aplica)
    - Trigger: acredita comisión al cadete referente (si aplica)
    - Trigger: si metodo_pago='efectivo' → marca cobrado_efectivo=true y acumula
-     el 15% (monto_comision_app) como deuda en **comercios.deuda**. Confirmado
+     el 20% (monto_comision_app) como deuda en **comercios.deuda**. Confirmado
      con el usuario (2026-07-14) que este es el comportamiento correcto — el
      comercio le debe a la plataforma su comisión cuando el cobro fue en
      efectivo y no pasó por MercadoPago. `cadetes.deuda_efectivo` es un campo

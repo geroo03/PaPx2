@@ -276,7 +276,7 @@ Orden de compra central del sistema.
 | `subtotal` | `numeric(12,2)` | NOT NULL | |
 | `costo_envio` | `numeric(12,2)` | NOT NULL | DEFAULT 800 |
 | `propina_cadete` | `int4` | NOT NULL | DEFAULT 0 |
-| `monto_comision_app` | `numeric(12,2)` | NOT NULL | 15% del subtotal. Calculado por trigger |
+| `monto_comision_app` | `numeric(12,2)` | NOT NULL | 20% del subtotal. Calculado por trigger |
 | `total` | `numeric(12,2)` | NOT NULL | |
 | `total_final` | `numeric(12,2)` | NOT NULL | subtotal + costo_envio. Calculado por trigger |
 | `estado` | `text` | NOT NULL | Ver estados arriba |

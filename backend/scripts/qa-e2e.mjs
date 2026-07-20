@@ -43,7 +43,11 @@ function leerEnvJs() {
   };
 }
 
-const { SUPABASE_URL, SUPABASE_ANON_KEY, BACKEND_URL } = leerEnvJs();
+const { SUPABASE_URL, SUPABASE_ANON_KEY, BACKEND_URL: BACKEND_URL_PROD } = leerEnvJs();
+// Override opcional para correr contra un backend local (ej: Railway caído,
+// o probar un cambio antes de deployar) sin tocar frontend/env.js:
+//   QA_BACKEND_URL=http://localhost:3000 node backend/scripts/qa-e2e.mjs
+const BACKEND_URL = process.env.QA_BACKEND_URL || BACKEND_URL_PROD;
 
 const RUN_ID = Date.now();
 const results = [];
@@ -278,7 +282,7 @@ async function main() {
   await step('Trigger: monto_comision_app y total_final se calcularon desde subtotal (no quedaron en 0)', async () => {
     const rows = await sbSelect('pedidos', `id=eq.${pedido1.id}&select=monto_comision_app,total_final,subtotal`, jwtComercio);
     const p = rows[0];
-    assert(Number(p.monto_comision_app) === 300, `monto_comision_app=${p.monto_comision_app}, esperaba 300 (15% de 2000)`);
+    assert(Number(p.monto_comision_app) === 400, `monto_comision_app=${p.monto_comision_app}, esperaba 400 (20% de 2000)`);
     assert(Number(p.total_final) === 2800, `total_final=${p.total_final}, esperaba 2800 (subtotal 2000 + costo_envio 800 default)`);
   });
 
@@ -322,7 +326,7 @@ async function main() {
     assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
     assert(Number(r.json.pedido.subtotal) === 1000, `subtotal=${r.json.pedido.subtotal}, esperaba 1000 (bajó de 2 a 1 unidad)`);
     assert(Number(r.json.pedido.total) === 2200, `total=${r.json.pedido.total}, esperaba 2200 (subtotal 1000 + delta envío/propina 1200 que ya tenía el pedido)`);
-    assert(Number(r.json.pedido.monto_comision_app) === 150, `monto_comision_app=${r.json.pedido.monto_comision_app}, esperaba 150 (15% de 1000, recalculado por el trigger)`);
+    assert(Number(r.json.pedido.monto_comision_app) === 200, `monto_comision_app=${r.json.pedido.monto_comision_app}, esperaba 200 (20% de 1000, recalculado por el trigger)`);
   });
 
   await step('Cadete: lee el pedido editado (RLS) — ve el nuevo producto/total, no el viejo', async () => {
@@ -413,7 +417,7 @@ async function main() {
   });
 
   // OJO: el trigger real (pedidos_acumular_deuda_efectivo, schema-definitivo-v2.sql)
-  // acumula la deuda del 15% en el COMERCIO cuando metodo_pago='efectivo', no en el
+  // acumula la deuda del 20% en el COMERCIO cuando metodo_pago='efectivo', no en el
   // cadete. Esto contradice lo que documentan CLAUDE.md y CHANGELOG.md ("acumula
   // deuda_efectivo en cadetes") — ver aviso en el resumen final del script.
   await step('Trigger efectivo: la deuda del COMERCIO aumentó tras la entrega (no la del cadete)', async () => {
@@ -476,7 +480,7 @@ async function main() {
   creados.forEach(e => log(`  - ${e}`));
   log(`\nComercio de prueba: "${comercioRow.nombre}" (id ${comercioRow.id})`);
   log(`\nNo cubierto por este script (requiere navegador real): pago MercadoPago real, push notifications, chat/mapa visual.`);
-  log(`\nNota: el pago en efectivo acumula la deuda del 15% en 'comercios.deuda' (no en`);
+  log(`\nNota: el pago en efectivo acumula la deuda del 20% en 'comercios.deuda' (no en`);
   log(`cadetes.deuda_efectivo) — confirmado con el usuario que es el comportamiento correcto.`);
 
   await limpiarCadetesPrueba();

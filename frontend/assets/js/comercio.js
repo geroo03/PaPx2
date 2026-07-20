@@ -6,10 +6,10 @@
 import { supabase as sb } from './config.js';
 
 // ─── CONSTANTES FINANCIERAS ───────────────────────────────────────────────────
-// El 15% se SUMA al precio que pone el comercio para el cliente.
-// El comercio recibe el 100% de su precio. PaP cobra 15% extra al cliente.
-const RECARGO     = 0.15;
-const RECARGO_DIV = 1 + RECARGO; // 1.15
+// El 20% se SUMA al precio que pone el comercio para el cliente.
+// El comercio recibe el 100% de su precio. PaP cobra 20% extra al cliente.
+const RECARGO     = 0.20;
+const RECARGO_DIV = 1 + RECARGO; // 1.20
 
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ function bindAllEvents() {
     const base = parseFloat(e.target.value) || 0;
     const hint = g('mp-precio-cliente');
     if (hint) hint.textContent = base > 0
-      ? `El cliente verá: ARS $${formatNum(Math.round(base * RECARGO_DIV))} (+15% PaP X)`
+      ? `El cliente verá: ARS $${formatNum(Math.round(base * RECARGO_DIV))} (+20% PaP X)`
       : '';
   });
   const zone      = g('upload-zone');
@@ -337,7 +337,7 @@ function renderPedidosTable(pedidos, advMap = {}, cadetesMap = {}) {
           ? `<span class="badge badge-cancelado" title="${esc((advMap[p.id]||[]).map(a=>a.motivo).join(', '))}">${advsCount} aviso${advsCount>1?'s':''}</span>`
           : '<span class="text-tertiary">—</span>'}</td>
         <td class="text-right fw-medium">${formatARS(base)}</td>
-        <td class="text-right fw-semibold text-success" title="total ÷ 1.15 = ingreso neto del comercio">
+        <td class="text-right fw-semibold text-success" title="total ÷ 1.20 = ingreso neto del comercio">
           ${formatARS(ingresos)}
         </td>
         <td>${accionesPedido(p)}</td>
@@ -436,7 +436,7 @@ function detallePedido(p, advs, cadetesMap = {}) {
     <div class="detail-meta">
       ${p.tipo_delivery ? `<span>Entrega: ${p.tipo_delivery === 'app' ? 'Cadete PaP X' : 'Cadete propio'}</span>` : ''}
       ${p.metodo_pago   ? `<span>Pago: ${esc(p.metodo_pago)}</span>` : ''}
-      ${p.metodo_pago === 'efectivo' ? `<span style="color:#D97706;font-weight:700;">Efectivo — el cadete te entrega $${Number(p.total||0).toLocaleString('es-AR')}. Comision PaP X (15%): $${Number(p.monto_comision_app||0).toLocaleString('es-AR')}</span>` : ''}
+      ${p.metodo_pago === 'efectivo' ? `<span style="color:#D97706;font-weight:700;">Efectivo — el cadete te entrega $${Number(p.total||0).toLocaleString('es-AR')}. Comision PaP X (20%): $${Number(p.monto_comision_app||0).toLocaleString('es-AR')}</span>` : ''}
       ${p.direccion_entrega ? `<span>Dir: ${esc(p.direccion_entrega)}</span>` : ''}
       ${p.costo_envio   ? `<span>Envio: ${formatARS(p.costo_envio)}</span>` : ''}
       ${propinaHTML}
@@ -854,7 +854,7 @@ async function saveCategoria() {
 }
 
 // ─── VIEW: FINANZAS ───────────────────────────────────────────────────────────
-// FÓRMULA EXACTA: Ventas Netas = subtotal / 1.15 | Ganancia PaP = subtotal - subtotal/1.15
+// FÓRMULA EXACTA: Ventas Netas = subtotal / 1.20 | Ganancia PaP = subtotal - subtotal/1.20
 
 let finDias = 30;
 
@@ -1141,7 +1141,7 @@ function saveCierre() {
 
 // ─── VIEW: PROMOCIONES ────────────────────────────────────────────────────────
 // EJEMPLO FINANCIERO:
-//   Base $1.000 → descuento 20% → base_promo $800 → cliente paga $920 (+15% PaP) → PaP gana $120
+//   Base $1.000 → descuento 20% → base_promo $800 → cliente paga $960 (+20% PaP) → PaP gana $160
 
 async function loadPromociones() {
   switchPromoTab('mis-promociones');
