@@ -326,12 +326,28 @@ async function main() {
     throw new Error(`El scheduler no despachó dentro de 30s (matchingScheduler.js) — cadete1 recibió oferta: ${!!ofertasCadete1}, cadete2: ${!!ofertasCadete2}`);
   });
 
+  // Cadete 2 rechaza su oferta EXPLÍCITAMENTE acá, mientras todavía está
+  // genuinamente 'pendiente' — antes de que cadete1 acepte (lo que dispararía
+  // la cascada automática y la dejaría 'rechazada' de todos modos, sin haber
+  // probado nada real del endpoint). Esto ejercita el botón "Rechazar" /
+  // timeout de 20s de cadete.js, que antes de este feature era 100% local y
+  // no tocaba la DB.
+  await step('Cadete 2: rechaza explícitamente su oferta (antes esto era 100% local, no tocaba la DB)', async () => {
+    const r = await apiPost('/api/pedidos/rechazar-oferta', { pedidoId: pedido1.id, ofertaId: ofertasCadete2.id }, jwtCadete2);
+    assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+  });
+
+  await step('Confirmar: la oferta rechazada explícitamente quedó "rechazada" en la DB', async () => {
+    const rows = await sbSelect('ofertas_cadetes', `id=eq.${ofertasCadete2.id}&select=estado`, jwtCadete2);
+    assert(rows[0]?.estado === 'rechazada', `estado=${rows[0]?.estado}, esperaba 'rechazada'`);
+  });
+
   await step('Cadete: aceptar viaje (POST /api/pedidos/aceptar)', async () => {
     const r = await apiPost('/api/pedidos/aceptar', { pedidoId: pedido1.id, cadeteId: cadete.id, ofertaId: ofertasCadete1.id }, jwtCadete);
     assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
   });
 
-  await step('Anti-colisión: cadete 2 intenta aceptar el mismo pedido → debe fallar 409', async () => {
+  await step('Anti-colisión: cadete 2 intenta aceptar el mismo pedido (con una oferta ya rechazada) → debe fallar 409', async () => {
     const r = await apiPost('/api/pedidos/aceptar', { pedidoId: pedido1.id, cadeteId: cadete2.id, ofertaId: ofertasCadete2.id }, jwtCadete2);
     assert(r.status === 409, `esperaba 409 PEDIDO_YA_TOMADO, obtuve HTTP ${r.status}: ${JSON.stringify(r.json)}`);
   });
@@ -344,11 +360,6 @@ async function main() {
   await step('Confirmar: cadetes.ultima_asignacion_at se actualizó (fairness/rotación)', async () => {
     const rows = await sbSelect('cadetes', `auth_uid=eq.${cadete.id}&select=ultima_asignacion_at`, jwtCadete);
     assert(!!rows[0]?.ultima_asignacion_at, 'ultima_asignacion_at no se seteó al aceptar el viaje');
-  });
-
-  await step('Confirmar: la oferta perdedora del cadete 2 quedó "rechazada" en cascada (antes quedaba "pendiente" para siempre)', async () => {
-    const rows = await sbSelect('ofertas_cadetes', `id=eq.${ofertasCadete2.id}&select=estado`, jwtCadete2);
-    assert(rows[0]?.estado === 'rechazada', `estado=${rows[0]?.estado}, esperaba 'rechazada' (cascada de aceptarPedido)`);
   });
 
   // ── Editar productos del pedido (producto agotado, comercio habló con el cliente) ──
@@ -520,27 +531,6 @@ async function main() {
     const gananciaConClima = Number(rows[0]?.ganancia_estimada);
     const esperada = Math.round((gananciaSinClima * 1.20) / 50) * 50;
     assert(gananciaConClima === esperada, `sin clima=${gananciaSinClima}, con clima=${gananciaConClima}, esperaba=${esperada}`);
-  });
-
-  // El pedido #2 nunca es aceptado por ningún cadete en este script, así que
-  // la oferta de cadete2 sigue genuinamente 'pendiente' acá — a diferencia
-  // de la del pedido #1, que ya quedó 'rechazada' por la cascada automática
-  // de aceptarPedido. Este es el caso real que ejercita el botón "Rechazar"
-  // del cadete (o el timeout de 20s) en cadete.js.
-  const ofertaCadete2Pedido2 = await step('Cadete 2: leer su oferta pendiente del pedido #2', async () => {
-    const rows = await sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete2.id}&pedido_id=eq.${pedido2.id}&estado=eq.pendiente`, jwtCadete2);
-    assert(rows.length === 1, `esperaba 1 oferta pendiente para cadete2 en pedido #2, encontré ${rows.length}`);
-    return rows[0];
-  });
-
-  await step('Cadete 2: rechaza explícitamente su oferta del pedido #2 (antes esto era 100% local, no tocaba la DB)', async () => {
-    const r = await apiPost('/api/pedidos/rechazar-oferta', { pedidoId: pedido2.id, ofertaId: ofertaCadete2Pedido2.id }, jwtCadete2);
-    assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
-  });
-
-  await step('Confirmar: la oferta rechazada explícitamente quedó "rechazada" en la DB', async () => {
-    const rows = await sbSelect('ofertas_cadetes', `id=eq.${ofertaCadete2Pedido2.id}&select=estado`, jwtCadete2);
-    assert(rows[0]?.estado === 'rechazada', `estado=${rows[0]?.estado}, esperaba 'rechazada'`);
   });
 
   log(`\n=== Resumen: ${results.filter(r => r.ok).length}/${results.length} pasos OK ===`);
