@@ -726,6 +726,18 @@ async function aceptarViaje(pedidoId) {
 
 function rechazarOferta(pedidoId) {
   if (_ofertaTimers.has(pedidoId)) { clearTimeout(_ofertaTimers.get(pedidoId)); _ofertaTimers.delete(pedidoId); }
+
+  // Antes esto era 100% local (solo se ocultaba la card) — ahora se persiste
+  // en el backend para que matchingScheduler.js sepa que este cadete ya
+  // rechazó y no le vuelva a ofrecer el mismo pedido en la re-difusión
+  // automática. Se dispara la escritura ANTES de sacarlo del array local,
+  // fire-and-forget: la UI no debe esperar a la red para sentirse responsiva.
+  const oferta = ofertasPendientes.find(o => o.pedido_id === pedidoId || o.id === pedidoId);
+  if (oferta?.ofertaId) {
+    apiPost('/api/pedidos/rechazar-oferta', { pedidoId, ofertaId: oferta.ofertaId })
+      .catch(e => console.warn('[rechazarOferta] No se pudo persistir el rechazo:', e.message));
+  }
+
   ofertasPendientes = ofertasPendientes.filter(o => o.pedido_id !== pedidoId && o.id !== pedidoId);
   renderViajes();
   toast(`${ICONS.warn} Viaje rechazado`);

@@ -155,7 +155,7 @@ function dispatchAction(t, originalEvent) {
     case 'toggle-estado':        toggleEstado(); break;
     case 'logout':               logout(); break;
     case 'date-filter':          setDateFilter(t.dataset.period); break;
-    case 'aceptar-pedido':       aceptarPedido(id); break;
+    case 'aceptar-pedido':       abrirModalTiempoPreparacion(id); break;
     case 'rechazar-pedido':      rechazarPedido(id); break;
     case 'marcar-listo':         marcarListo(id); break;
     case 'buscar-cadete':        buscarCadete(id, t); break;
@@ -595,32 +595,107 @@ function setDateFilter(period) {
   loadPedidos();
 }
 
-async function aceptarPedido(id) {
-  const { error } = await sb.from('pedidos').update({ estado: 'preparando' }).eq('id', id).eq('comercio_id', S.cid);
-  if (error) { showToast('Error al aceptar: ' + error.message, 'error'); return; }
+// ─── ACEPTAR PEDIDO — obliga a declarar tiempo de preparación ────────────────
+// Reemplaza el aceptar directo de antes: ahora el comercio tiene que decir
+// cuánto tarda, para que el scheduler del backend sepa cuándo avisarle a los
+// cadetes (ni muy pronto, esperando parado, ni tan tarde que llegue frío).
+// Ya no dispara difundirPedido acá — eso pasa a ser tarea del scheduler.
+let _tpPedidoId = null, _tpMinutosSel = null;
 
-  // Difundir oferta a cadetes cercanos (fire & forget — no bloquea la UI)
+window.abrirModalTiempoPreparacion = function(pedidoId) {
+  _tpPedidoId = pedidoId;
+  _tpMinutosSel = null;
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="modal-overlay" id="modal-overlay-tiempo-prep">
+      <div class="modal-sheet" style="max-width:380px">
+        <div class="modal-header">
+          <h2 class="modal-title">¿Cuánto tarda en prepararse?</h2>
+          <button class="modal-close" onclick="window.cerrarModalTiempoPreparacion()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:12px;color:#888;margin-bottom:12px;">
+            Los cadetes se avisan automáticamente cerca de este horario — no hace falta que busques uno a mano.
+          </p>
+          <div id="tp-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            ${[10, 15, 20, 30].map(m => `<button onclick="window._tpElegirChip(${m})" id="tp-chip-${m}" style="padding:10px 16px;border-radius:20px;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-weight:700;font-size:13px;">${m} min</button>`).join('')}
+          </div>
+          <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">O ingresá otro tiempo (3–90 min)</label>
+          <input id="tp-custom" type="number" min="3" max="90" placeholder="Ej: 25" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;" oninput="window._tpElegirCustom(this.value)"/>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="window.cerrarModalTiempoPreparacion()">Cancelar</button>
+          <button class="btn btn-primary" id="tp-btn-confirmar" onclick="window.confirmarAceptarPedido()" disabled style="opacity:.5;cursor:not-allowed;">Aceptar pedido</button>
+        </div>
+      </div>
+    </div>`);
+};
+
+function _tpActualizarBoton() {
+  const btn = g('tp-btn-confirmar');
+  if (!btn) return;
+  const habilitado = Number.isInteger(_tpMinutosSel) && _tpMinutosSel >= 3 && _tpMinutosSel <= 90;
+  btn.disabled = !habilitado;
+  btn.style.opacity = habilitado ? '1' : '.5';
+  btn.style.cursor = habilitado ? 'pointer' : 'not-allowed';
+}
+
+window._tpElegirChip = function(minutos) {
+  _tpMinutosSel = minutos;
+  [10, 15, 20, 30].forEach(m => {
+    const chip = g('tp-chip-' + m);
+    if (!chip) return;
+    const sel = m === minutos;
+    chip.style.borderColor = sel ? '#FF6B35' : '#ddd';
+    chip.style.background  = sel ? '#FFF3EE' : '#fff';
+    chip.style.color       = sel ? '#FF6B35' : '#111';
+  });
+  const custom = g('tp-custom'); if (custom) custom.value = '';
+  _tpActualizarBoton();
+};
+
+window._tpElegirCustom = function(valor) {
+  const n = parseInt(valor, 10);
+  _tpMinutosSel = Number.isFinite(n) ? n : null;
+  [10, 15, 20, 30].forEach(m => {
+    const chip = g('tp-chip-' + m);
+    if (chip) { chip.style.borderColor = '#ddd'; chip.style.background = '#fff'; chip.style.color = '#111'; }
+  });
+  _tpActualizarBoton();
+};
+
+window.cerrarModalTiempoPreparacion = function() {
+  g('modal-overlay-tiempo-prep')?.remove();
+  _tpPedidoId = null; _tpMinutosSel = null;
+};
+
+window.confirmarAceptarPedido = async function() {
+  if (!_tpPedidoId || !Number.isInteger(_tpMinutosSel)) return;
+  const pedidoId = _tpPedidoId, minutos = _tpMinutosSel;
+  const btn = g('tp-btn-confirmar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Aceptando...'; }
+
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (session?.access_token) {
-      const base = (typeof window !== 'undefined' && window.BACKEND_URL) ? window.BACKEND_URL : '';
-      fetch(`${base}/api/pedidos/difundir`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body:    JSON.stringify({ pedidoId: id, comercioId: S.cid }),
-      })
-        .then(r => r.json())
-        .then(json => {
-          if (json.difundido > 0) showToast(`Buscando cadetes — ${json.difundido} notificado(s)`, 'info');
-        })
-        .catch(e => console.warn('[PaP] No se pudo difundir a cadetes:', e.message));
-    }
-  } catch (e) {
-    console.warn('[PaP] Error al obtener sesión para difundir:', e.message);
-  }
+    if (!session?.access_token) { showToast('Sesión expirada', 'error'); return; }
+    const base = window.BACKEND_URL || '';
+    const resp = await fetch(`${base}/api/pedidos/aceptar-comercio`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body:    JSON.stringify({ pedidoId, comercioId: S.cid, tiempoPreparacionMin: minutos }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) { showToast(data.error || 'Error al aceptar el pedido', 'error'); return; }
 
-  showToast('Pedido enviado a cocina ✓'); loadPedidos();
-}
+    showToast(`Pedido aceptado — listo en ~${minutos} min ✓`);
+    window.cerrarModalTiempoPreparacion();
+    loadPedidos();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Aceptar pedido'; }
+  }
+};
 
 async function rechazarPedido(id) {
   const { error } = await sb.from('pedidos').update({ estado:'cancelado' }).eq('id', id).eq('comercio_id', S.cid);

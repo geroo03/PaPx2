@@ -62,3 +62,15 @@ export async function notificarComercioNuevoPedido(comercioUserId, numeroPedido)
     tag: 'nuevo-pedido',
   });
 }
+
+// Se dispara desde matchingScheduler.js cuando se agotan los reintentos
+// automáticos de re-difusión (incluido el intento con radio ampliado) sin
+// que ningún cadete acepte — el comercio tiene que intervenir a mano.
+export async function notificarComercioSinCadetes(comercioUserId) {
+  await enviarPushAUsuario(comercioUserId, {
+    title: 'Sin cadetes disponibles',
+    body: 'No encontramos un repartidor para tu pedido — tocá "Buscar cadete" para reintentar.',
+    rol: 'comercio',
+    tag: 'sin-cadetes',
+  });
+}

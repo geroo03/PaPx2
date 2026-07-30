@@ -19,9 +19,43 @@
 
 import { supabaseAdmin }            from '../lib/supabaseClient.js';
 import { registrarComisionSiAplica } from './embajadorController.js';
-import { notificarCadeteNuevoViaje, notificarClienteEstado, notificarComercioNuevoPedido } from './pushController.js';
+import { notificarCadeteNuevoViaje, notificarClienteEstado, notificarComercioNuevoPedido, notificarComercioSinCadetes } from './pushController.js';
 import { generarCodigo4Digitos, codigosIguales } from '../lib/codigoUtils.js';
 import { calcularTarifa } from '../lib/tarifaUtils.js';
+import { haversineKm, rankearCandidatos } from '../lib/matchingUtils.js';
+import { esClimaAdversoParaUbicacion } from '../lib/climaService.js';
+
+// Config de matching por defecto — usada solo si configuracion_zonas está
+// vacía (no debería pasar tras correr la migración correspondiente, pero
+// evita que ejecutarDifusion rompa si alguien borra la tabla sin querer).
+const CONFIG_ZONA_FALLBACK = {
+  radio_km: 10, radio_ampliado_km: 15, max_ofertas: 5, gps_max_antiguedad_min: 30,
+  oferta_timeout_seg: 20, redifusion_intervalo_seg: 45, redifusion_max_intentos: 5,
+  anticipacion_difusion_min: 8, tiempo_preparacion_default_min: 15,
+  peso_distancia: 1, peso_rating: 1, peso_rotacion: 1,
+};
+
+function normalizarCiudad(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+/**
+ * Busca la config de matching por ciudad (normalizada, sin tildes/mayúsculas)
+ * con fallback a la fila global (ciudad IS NULL) y, en última instancia, a
+ * una config hardcodeada que replica el comportamiento histórico.
+ */
+export async function obtenerConfigZona(ciudad) {
+  const { data: filas } = await supabaseAdmin.from('configuracion_zonas').select('*');
+  if (!filas?.length) return CONFIG_ZONA_FALLBACK;
+
+  const ciudadNorm = normalizarCiudad(ciudad);
+  if (ciudadNorm) {
+    const match = filas.find(f => f.ciudad && normalizarCiudad(f.ciudad) === ciudadNorm);
+    if (match) return match;
+  }
+  const global = filas.find(f => f.ciudad === null);
+  return global || CONFIG_ZONA_FALLBACK;
+}
 
 // ─── Controller ───────────────────────────────────────────────────────────────
 
@@ -141,6 +175,27 @@ export async function aceptarPedido(req, res) {
       });
     }
 
+    // ── PASO 4: Transicionar ofertas_cadetes (antes quedaba 'pendiente' para
+    // siempre — ver hallazgo de auditoría) y registrar la asignación para el
+    // ranking de fairness/rotación (matchingUtils.js) ────────────────────────
+    // Best-effort: si algo de esto falla, el pedido ya quedó aceptado
+    // correctamente arriba, no vale la pena devolver un error al cadete.
+    try {
+      await supabaseAdmin.from('ofertas_cadetes').update({ estado: 'aceptada' }).eq('id', ofertaId);
+      await supabaseAdmin
+        .from('ofertas_cadetes')
+        .update({ estado: 'rechazada' })
+        .eq('pedido_id', pedidoId)
+        .neq('id', ofertaId)
+        .eq('estado', 'pendiente');
+      await supabaseAdmin
+        .from('cadetes')
+        .update({ ultima_asignacion_at: new Date().toISOString() })
+        .eq('auth_uid', cadeteId);
+    } catch (e) {
+      console.warn('[aceptarPedido] No se pudo actualizar ofertas_cadetes/ultima_asignacion_at:', e?.message ?? e);
+    }
+
     // ── Respuesta exitosa ─────────────────────────────────────────────────────
     return res.status(200).json({
       ok:      true,
@@ -151,6 +206,53 @@ export async function aceptarPedido(req, res) {
   } catch (err) {
     // Captura errores de red, timeouts, etc.
     console.error('[aceptarPedido] Excepción no controlada:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+// ─── rechazarOferta ─────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/pedidos/rechazar-oferta
+ *
+ * El cadete rechaza una oferta explícitamente (botón "Rechazar" o timeout de
+ * los 20s en cadete.js). Antes esto era 100% client-side (solo se ocultaba
+ * la card en el navegador, sin tocar la DB) — ahora se persiste para que
+ * matchingScheduler.js pueda excluir a este cadete de la re-difusión de este
+ * mismo pedido y saber que ya no hay que esperarlo.
+ *
+ * Body: { pedidoId, ofertaId }
+ */
+export async function rechazarOferta(req, res) {
+  const { pedidoId, ofertaId } = req.body ?? {};
+
+  if (!pedidoId || !ofertaId) {
+    return res.status(400).json({ error: 'Faltan campos: pedidoId, ofertaId.' });
+  }
+
+  if (!supabaseAdmin) {
+    console.error('[rechazarOferta] supabaseAdmin no inicializado.');
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('ofertas_cadetes')
+      .update({ estado: 'rechazada' })
+      .eq('id', ofertaId)
+      .eq('pedido_id', pedidoId)
+      .eq('cadete_id', req.user.id)
+      .eq('estado', 'pendiente')
+      .select('id');
+
+    if (error) throw error;
+
+    // Idempotente a propósito: si ya estaba rechazada/aceptada (0 filas
+    // afectadas), no es un error — el cadete igual quiere descartarla.
+    return res.status(200).json({ ok: true, actualizada: (data?.length ?? 0) > 0 });
+
+  } catch (err) {
+    console.error('[rechazarOferta] Excepción:', err?.message ?? err);
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 }
@@ -453,20 +555,267 @@ export async function editarProductosPedido(req, res) {
   }
 }
 
-// ─── difundirPedido ────────────────────────────────────────────────────────────
+// ─── aceptarComercioPedido ──────────────────────────────────────────────────────
+
+/**
+ * POST /api/pedidos/aceptar-comercio
+ *
+ * El comercio acepta un pedido nuevo y declara cuánto va a tardar en
+ * prepararlo. Reemplaza el `UPDATE` directo que hacía antes el frontend
+ * (comercio.js) — se centraliza acá para poder usar el reloj del SERVIDOR
+ * (no el del celular del comercio) al calcular `listo_estimado_at`, que es
+ * lo que después usa matchingScheduler.js para decidir cuándo avisarle a
+ * los cadetes.
+ *
+ * Body: { pedidoId, comercioId, tiempoPreparacionMin }
+ * tiempoPreparacionMin: entero, 3–90 minutos (mismo rango que el CHECK de
+ * la migración migration-tiempo-preparacion-pedidos.sql).
+ */
+export async function aceptarComercioPedido(req, res) {
+  const { pedidoId, comercioId, tiempoPreparacionMin } = req.body ?? {};
+
+  if (!pedidoId || !comercioId) {
+    return res.status(400).json({ error: 'Faltan campos: pedidoId, comercioId.' });
+  }
+
+  const minutos = Number(tiempoPreparacionMin);
+  if (!Number.isInteger(minutos) || minutos < 3 || minutos > 90) {
+    return res.status(400).json({ error: 'tiempoPreparacionMin debe ser un entero entre 3 y 90 minutos.' });
+  }
+
+  if (!supabaseAdmin) {
+    console.error('[aceptarComercioPedido] supabaseAdmin no inicializado.');
+    return res.status(500).json({ error: 'Error de configuración del servidor.' });
+  }
+
+  try {
+    const { data: comercio, error: comErr } = await supabaseAdmin
+      .from('comercios').select('id, usuario_id').eq('id', comercioId).single();
+
+    if (comErr || !comercio) {
+      return res.status(404).json({ error: 'Comercio no encontrado.' });
+    }
+    if (comercio.usuario_id !== req.user.id) {
+      return res.status(403).json({ error: 'Solo el comercio propietario puede aceptar este pedido.' });
+    }
+
+    const { data: pedido, error: pedErr } = await supabaseAdmin
+      .from('pedidos').select('id, comercio_id, estado').eq('id', pedidoId).single();
+
+    if (pedErr || !pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+    if (pedido.comercio_id !== comercioId) {
+      return res.status(403).json({ error: 'Este pedido no pertenece a ese comercio.' });
+    }
+    if (pedido.estado !== 'nuevo') {
+      return res.status(400).json({ error: `Este pedido ya no está en estado 'nuevo' (está en '${pedido.estado}').` });
+    }
+
+    const ahora           = new Date();
+    const listoEstimadoAt = new Date(ahora.getTime() + minutos * 60_000);
+
+    const { data: actualizado, error: updErr } = await supabaseAdmin
+      .from('pedidos')
+      .update({
+        estado:                 'preparando',
+        tiempo_preparacion_min: minutos,
+        preparando_at:          ahora.toISOString(),
+        listo_estimado_at:      listoEstimadoAt.toISOString(),
+      })
+      .eq('id', pedidoId)
+      .eq('comercio_id', comercioId)
+      .eq('estado', 'nuevo')
+      .select('id, estado, tiempo_preparacion_min, preparando_at, listo_estimado_at')
+      .single();
+
+    if (updErr || !actualizado) {
+      return res.status(409).json({ error: 'No se pudo aceptar el pedido — puede que ya haya cambiado de estado.' });
+    }
+
+    return res.status(200).json({ ok: true, pedido: actualizado });
+
+  } catch (err) {
+    console.error('[aceptarComercioPedido] Excepción:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+}
+
+// ─── ejecutarDifusion / difundirPedido ─────────────────────────────────────────
+
+/**
+ * Lógica real de la difusión — extraída a una función reutilizable para que
+ * tanto el endpoint HTTP manual (difundirPedido) como matchingScheduler.js
+ * (despacho diferido, re-difusión automática) puedan llamarla sin pasar por
+ * una request HTTP.
+ *
+ * origen:
+ *   'manual'                  → botón "Buscar cadete" del comercio
+ *   'auto-inicial'             → primer despacho, disparado por el scheduler
+ *                                según tiempo_preparacion/listo_estimado_at
+ *   'auto-redifusion'          → reintento automático, radio normal
+ *   'auto-redifusion-ampliada' → último reintento automático antes de
+ *                                rendirse, con radio_ampliado_km
+ *
+ * @returns {{ok:boolean, difundido:number, mensaje?:string}}
+ */
+export async function ejecutarDifusion({ pedidoId, comercioId, origen = 'manual' }) {
+  const { data: comercio, error: comErr } = await supabaseAdmin
+    .from('comercios')
+    .select('id, nombre, direccion, lat, lng, ciudad, usuario_id')
+    .eq('id', comercioId)
+    .single();
+
+  if (comErr || !comercio) {
+    return { ok: false, difundido: 0, mensaje: 'Comercio no encontrado.' };
+  }
+
+  const comLat = Number(comercio.lat ?? 0);
+  const comLng = Number(comercio.lng ?? 0);
+
+  if (!comLat || !comLng) {
+    return { ok: true, difundido: 0, mensaje: 'El comercio no tiene coordenadas GPS. Configurarlas en el perfil del comercio.' };
+  }
+
+  const { data: pedido, error: pedErr } = await supabaseAdmin
+    .from('pedidos')
+    .select('id, direccion_entrega, lat_entrega, lng_entrega, difusion_intentos')
+    .eq('id', pedidoId)
+    .single();
+
+  if (pedErr || !pedido) {
+    return { ok: false, difundido: 0, mensaje: 'Pedido no encontrado.' };
+  }
+
+  const config = await obtenerConfigZona(comercio.ciudad);
+  const radioKm = origen === 'auto-redifusion-ampliada'
+    ? (config.radio_ampliado_km ?? CONFIG_ZONA_FALLBACK.radio_ampliado_km)
+    : (config.radio_km ?? CONFIG_ZONA_FALLBACK.radio_km);
+  const gpsMaxAntiguedadMin = config.gps_max_antiguedad_min ?? CONFIG_ZONA_FALLBACK.gps_max_antiguedad_min;
+  const maxOfertas = config.max_ofertas ?? CONFIG_ZONA_FALLBACK.max_ofertas;
+
+  const cutoff = new Date(Date.now() - gpsMaxAntiguedadMin * 60 * 1000).toISOString();
+  const { data: posiciones } = await supabaseAdmin
+    .from('ubicacion_cadetes')
+    .select('cadete_id, latitud, longitud')
+    .gte('ultima_actualizacion', cutoff);
+
+  // Todos los cadetes con disponible=true (activo es opcional para mayor cobertura)
+  const { data: todosDisp } = await supabaseAdmin
+    .from('cadetes')
+    .select('auth_uid, nombre, vehiculo, tarifa_clima, rating, ultima_asignacion_at')
+    .eq('disponible', true);
+
+  if (!todosDisp?.length) {
+    return { ok: true, difundido: 0, mensaje: 'Sin cadetes disponibles. Pedile a un cadete que active el switch en su app.' };
+  }
+
+  // Idempotencia: excluir cualquier cadete que YA tenga una fila para este
+  // pedido, en CUALQUIER estado (antes solo excluía 'pendiente', lo que
+  // permitía volver a ofrecerle el mismo pedido a alguien que ya lo rechazó
+  // explícitamente).
+  const { data: ofertasExistentes } = await supabaseAdmin
+    .from('ofertas_cadetes')
+    .select('cadete_id')
+    .eq('pedido_id', pedidoId);
+  const yaOfertados = new Set((ofertasExistentes || []).map(o => o.cadete_id));
+
+  const posMap = Object.fromEntries((posiciones || []).map(p => [p.cadete_id, p]));
+
+  // Armar candidatos: con GPS → distancia real; sin GPS → distancia 0 (fallback)
+  let candidatos = todosDisp.filter(c => !yaOfertados.has(c.auth_uid)).map(c => {
+    const pos = posMap[c.auth_uid];
+    const distancia_km = pos
+      ? haversineKm(Number(pos.latitud), Number(pos.longitud), comLat, comLng)
+      : 0;
+    return { ...c, distancia_km, tiene_gps: !!pos, tarifa_clima: !!c.tarifa_clima };
+  });
+
+  // Si hay cadetes con GPS dentro del radio, usar solo esos; si ninguno tiene
+  // GPS reciente, fallback: notificar a todos los disponibles igual.
+  const conGps = candidatos.filter(c => c.tiene_gps && c.distancia_km <= radioKm);
+  if (conGps.length === 0) {
+    // sin cambios — candidatos ya tiene a todos los disponibles sin filtrar
+  } else {
+    candidatos = conGps;
+  }
+
+  const rankeados = rankearCandidatos(candidatos, { ...config, radio_km: radioKm, max_ofertas: maxOfertas });
+
+  if (!rankeados.length) {
+    return { ok: true, difundido: 0, mensaje: 'Los cadetes cercanos ya tienen esta oferta.' };
+  }
+
+  // Distancia real del viaje: comercio → cliente (para calcular el pago)
+  const cliLat = Number(pedido.lat_entrega ?? 0);
+  const cliLng = Number(pedido.lng_entrega ?? 0);
+  const distEntregaKm = (cliLat && cliLng)
+    ? Math.round(haversineKm(comLat, comLng, cliLat, cliLng) * 10) / 10
+    : null;
+
+  // Clima adverso: se calcula UNA VEZ por tanda (no por cadete individual) —
+  // el toggle manual del cadete (tarifa_clima) sigue funcionando como
+  // override que se suma con OR, no lo reemplaza.
+  const climaAdverso = await esClimaAdversoParaUbicacion(comLat, comLng).catch(() => false);
+
+  const ofertas = rankeados.map(c => {
+    const distProximidad = Math.round(c.distancia_km * 10) / 10;
+    const climaAplicado  = climaAdverso || c.tarifa_clima;
+    const ganancia       = calcularTarifa(c.vehiculo, distEntregaKm, climaAplicado);
+    return {
+      pedido_id:          pedidoId,
+      cadete_id:          c.auth_uid,
+      comercio_nombre:    comercio.nombre,
+      comercio_direccion: comercio.direccion || '',
+      comercio_lat:       comLat,
+      comercio_lng:       comLng,
+      cliente_direccion:  pedido.direccion_entrega || '',
+      distancia_km:       distProximidad,
+      ganancia_estimada:  ganancia,
+      distancia_estimada: distEntregaKm ?? distProximidad,
+      pago_cadete:        ganancia,
+      estado:             'pendiente',
+      oferta_timeout_seg: config.oferta_timeout_seg ?? CONFIG_ZONA_FALLBACK.oferta_timeout_seg,
+      clima_aplicado:     climaAplicado,
+      score_ranking:      c.score,
+    };
+  });
+
+  const { error: insertErr } = await supabaseAdmin.from('ofertas_cadetes').insert(ofertas);
+
+  if (insertErr) {
+    console.error('[ejecutarDifusion] Error al insertar ofertas:', insertErr.message);
+    return { ok: false, difundido: 0, mensaje: 'Error al crear ofertas para cadetes.' };
+  }
+
+  for (const o of ofertas) {
+    notificarCadeteNuevoViaje(o.cadete_id, comercio.nombre).catch(() => {});
+  }
+
+  // Actualizar contadores de difusión. El botón manual además "reactiva" un
+  // pedido que hubiera quedado marcado difusion_agotada=true, para que el
+  // scheduler retome la re-difusión automática desde ahí si vuelve a fallar.
+  try {
+    await supabaseAdmin.from('pedidos').update({
+      ultima_difusion_at: new Date().toISOString(),
+      difusion_intentos:  (pedido.difusion_intentos ?? 0) + 1,
+      ...(origen === 'manual' ? { difusion_agotada: false } : {}),
+    }).eq('id', pedidoId);
+  } catch (e) {
+    console.warn('[ejecutarDifusion] No se pudo actualizar contadores de difusión:', e?.message ?? e);
+  }
+
+  return { ok: true, difundido: ofertas.length };
+}
 
 /**
  * POST /api/pedidos/difundir
  *
- * Cuando el comercio acepta un pedido (estado → 'preparando'), este endpoint:
- *   1. Lee las coordenadas del comercio (comercios.lat / comercios.lng)
- *   2. Busca cadetes con disponible=true y GPS activo en los últimos 15 minutos
- *   3. Calcula distancia Haversine y filtra dentro del radio de 10 km
- *   4. Inserta filas en ofertas_cadetes para los N más cercanos
- *   5. El Realtime del cadete detecta el INSERT y muestra la oferta
+ * Wrapper HTTP fino de ejecutarDifusion — usado por el botón manual
+ * "Buscar cadete" del comercio. Valida que quien llama sea el dueño del
+ * comercio (o un admin) antes de delegar en ejecutarDifusion.
  *
  * Body: { pedidoId: string, comercioId: string }
- * El comercio debe estar lat/lng configurados; sin coordenadas no hay difusión.
  */
 export async function difundirPedido(req, res) {
   const { pedidoId, comercioId } = req.body ?? {};
@@ -481,12 +830,8 @@ export async function difundirPedido(req, res) {
   }
 
   try {
-    // ── PASO 1: Coordenadas del comercio ──────────────────────────────────────
     const { data: comercio, error: comErr } = await supabaseAdmin
-      .from('comercios')
-      .select('id, nombre, direccion, lat, lng, usuario_id')
-      .eq('id', comercioId)
-      .single();
+      .from('comercios').select('usuario_id').eq('id', comercioId).single();
 
     if (comErr || !comercio) {
       return res.status(404).json({ error: 'Comercio no encontrado.' });
@@ -499,135 +844,8 @@ export async function difundirPedido(req, res) {
       }
     }
 
-    const comLat = Number(comercio.lat ?? 0);
-    const comLng = Number(comercio.lng ?? 0);
-
-    if (!comLat || !comLng) {
-      return res.status(200).json({
-        ok: true, difundido: 0,
-        mensaje: 'El comercio no tiene coordenadas GPS. Configurarlas en el perfil del comercio.',
-      });
-    }
-
-    // ── PASO 2: Dirección de entrega del pedido ───────────────────────────────
-    const { data: pedido, error: pedErr } = await supabaseAdmin
-      .from('pedidos')
-      .select('id, direccion_entrega, lat_entrega, lng_entrega')
-      .eq('id', pedidoId)
-      .single();
-
-    if (pedErr || !pedido) {
-      return res.status(404).json({ error: 'Pedido no encontrado.' });
-    }
-
-    // ── PASO 3: Posiciones GPS recientes (últimos 15 min) ─────────────────────
-    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    const { data: posiciones } = await supabaseAdmin
-      .from('ubicacion_cadetes')
-      .select('cadete_id, latitud, longitud')
-      .gte('ultima_actualizacion', cutoff);
-
-    // ── PASO 4: Filtrar por cadetes disponibles ───────────────────────────────
-    function haversineKm(lat1, lng1, lat2, lng2) {
-      const R    = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a    =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLng / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    const RADIO_MAX_KM  = 10;
-    const MAX_OFERTAS   = 5;
-
-    // Todos los cadetes con disponible=true (activo es opcional para mayor cobertura)
-    const { data: todosDisp } = await supabaseAdmin
-      .from('cadetes')
-      .select('auth_uid, nombre, vehiculo, tarifa_clima')
-      .eq('disponible', true);
-
-    if (!todosDisp?.length) {
-      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Sin cadetes disponibles. Pedile a un cadete que active el switch en su app.' });
-    }
-
-    // Idempotencia: si este pedido ya tiene ofertas pendientes (doble-click en
-    // "Buscar cadete", reintento del front, etc.) no duplicar — un cadete no
-    // debe ver la misma oferta dos veces.
-    const { data: ofertasExistentes } = await supabaseAdmin
-      .from('ofertas_cadetes')
-      .select('cadete_id')
-      .eq('pedido_id', pedidoId)
-      .eq('estado', 'pendiente');
-    const yaOfertados = new Set((ofertasExistentes || []).map(o => o.cadete_id));
-
-    const posMap = Object.fromEntries((posiciones || []).map(p => [p.cadete_id, p]));
-
-    // Armar candidatos: con GPS → ordenar por cercanía; sin GPS → distancia 0 (fallback)
-    let candidatos = todosDisp.filter(c => !yaOfertados.has(c.auth_uid)).map(c => {
-      const pos = posMap[c.auth_uid];
-      const distancia_km = pos
-        ? haversineKm(Number(pos.latitud), Number(pos.longitud), comLat, comLng)
-        : 0; // sin GPS → incluir igual con distancia desconocida
-      return { ...c, distancia_km, tiene_gps: !!pos, tarifa_clima: !!c.tarifa_clima };
-    });
-
-    // Si hay cadetes con GPS, filtrar por radio; si no hay ninguno con GPS, notificar a todos
-    const conGps = candidatos.filter(c => c.tiene_gps && c.distancia_km <= RADIO_MAX_KM);
-    if (conGps.length > 0) {
-      candidatos = conGps.sort((a, b) => a.distancia_km - b.distancia_km).slice(0, MAX_OFERTAS);
-    } else {
-      // Fallback: notificar a todos los disponibles (sin importar GPS ni distancia)
-      candidatos = candidatos.slice(0, MAX_OFERTAS);
-    }
-
-    // Distancia real del viaje: comercio → cliente (para calcular el pago)
-    // Si el cliente no envió coords, se usa solo la tarifa base.
-    const cliLat = Number(pedido.lat_entrega ?? 0);
-    const cliLng = Number(pedido.lng_entrega ?? 0);
-    const distEntregaKm = (cliLat && cliLng)
-      ? Math.round(haversineKm(comLat, comLng, cliLat, cliLng) * 10) / 10
-      : null;
-
-    const ofertas = candidatos.map(c => {
-      const distProximidad = Math.round(c.distancia_km * 10) / 10; // cadete→comercio (solo para info)
-      const ganancia = calcularTarifa(c.vehiculo, distEntregaKm, c.tarifa_clima);
-      return {
-        pedido_id:          pedidoId,
-        cadete_id:          c.auth_uid,
-        comercio_nombre:    comercio.nombre,
-        comercio_direccion: comercio.direccion || '',
-        comercio_lat:       comLat,
-        comercio_lng:       comLng,
-        cliente_direccion:  pedido.direccion_entrega || '',
-        distancia_km:       distProximidad,
-        ganancia_estimada:  ganancia,
-        distancia_estimada: distEntregaKm ?? distProximidad,
-        pago_cadete:        ganancia,
-        estado:             'pendiente',
-      };
-    });
-
-    if (!ofertas.length) {
-      return res.status(200).json({ ok: true, difundido: 0, mensaje: 'Los cadetes cercanos ya tienen esta oferta pendiente.' });
-    }
-
-    const { error: insertErr } = await supabaseAdmin
-      .from('ofertas_cadetes')
-      .insert(ofertas);
-
-    if (insertErr) {
-      console.error('[difundirPedido] Error al insertar ofertas:', insertErr.message);
-      return res.status(500).json({ error: 'Error al crear ofertas para cadetes.' });
-    }
-
-    // Push notification a cada cadete candidato
-    for (const o of ofertas) {
-      notificarCadeteNuevoViaje(o.cadete_id, comercio.nombre).catch(() => {});
-    }
-
-    return res.status(200).json({ ok: true, difundido: ofertas.length });
+    const resultado = await ejecutarDifusion({ pedidoId, comercioId, origen: 'manual' });
+    return res.status(resultado.ok ? 200 : 500).json(resultado);
 
   } catch (err) {
     console.error('[difundirPedido] Excepción:', err?.message ?? err);

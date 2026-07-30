@@ -20,6 +20,7 @@ import authRoutes     from './routes/authRoutes.js';
 import mpRoutes       from './routes/mpRoutes.js';
 import cadeteRoutes   from './routes/cadeteRoutes.js';
 import embajadorRoutes from './routes/embajadorRoutes.js';
+import { iniciarSchedulerMatching } from './jobs/matchingScheduler.js';
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
@@ -125,5 +126,10 @@ app.listen(PORT, () => {
   console.log(`[PaP] Backend corriendo en http://localhost:${PORT}`);
   console.log(`[PaP] Orígenes CORS permitidos: ${allowedOrigins.join(', ')}`);
 });
+
+// Matching automático de cadetes + refresco de clima — ver
+// backend/src/jobs/matchingScheduler.js. Corre dentro de este mismo proceso
+// persistente, no requiere infraestructura de colas/cron aparte.
+iniciarSchedulerMatching();
 
 export default app;

@@ -11,6 +11,8 @@ import { Router } from 'express';
 import { requireAuth }          from '../middlewares/authMiddleware.js';
 import {
   aceptarPedido,
+  aceptarComercioPedido,
+  rechazarOferta,
   cambiarEstadoPedido,
   getPedidoConCadete,
   editarProductosPedido,
@@ -24,6 +26,14 @@ const router = Router();
 
 // POST /api/pedidos/aceptar          — cadete acepta un viaje (anti-colisión)
 router.post('/aceptar',        requireAuth, aceptarPedido);
+
+// POST /api/pedidos/aceptar-comercio — comercio acepta el pedido y declara
+// cuánto tarda en prepararlo (alimenta el despacho diferido de cadetes)
+router.post('/aceptar-comercio', requireAuth, aceptarComercioPedido);
+
+// POST /api/pedidos/rechazar-oferta — cadete rechaza una oferta explícita o
+// por timeout (antes era 100% client-side, ver cadete.js)
+router.post('/rechazar-oferta', requireAuth, rechazarOferta);
 
 // POST /api/pedidos/cambiar-estado   — cadete confirma retiro o entrega (valida código)
 router.post('/cambiar-estado', requireAuth, cambiarEstadoPedido);

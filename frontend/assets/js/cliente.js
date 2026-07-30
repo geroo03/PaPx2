@@ -448,11 +448,14 @@ function iniciarTracking(){
 
   // ── Actualizar UI según el estado real del pedido ─────────────────────────
   let _entregadoYaVisto=false;
-  const actualizarEstado=estado=>{
+  const actualizarEstado=(estado,listoEstimadoAt)=>{
     if(!estado)return;
     if(['en_preparacion','preparando'].includes(estado)){
       activarDot(2);
-      document.getElementById('track-sub').textContent='El comercio está preparando tu pedido';
+      const eta=listoEstimadoAt?new Date(listoEstimadoAt):null;
+      document.getElementById('track-sub').textContent=(eta&&!isNaN(eta))
+        ?`El comercio está preparando tu pedido — listo aprox. ${fmt(eta)}`
+        :'El comercio está preparando tu pedido';
     }
     if(estado==='cadete_asignado'){
       activarDot(2);
@@ -509,7 +512,7 @@ function iniciarTracking(){
   };
 
   // Aplicar estado actual inmediatamente si ya lo tenemos
-  if(currentPedido?.estado)actualizarEstado(currentPedido.estado);
+  if(currentPedido?.estado)actualizarEstado(currentPedido.estado,currentPedido.listo_estimado_at);
 
   // Sin pedido real: nada que suscribir
   if(!pedidoId||!sb?.channel){
@@ -520,8 +523,8 @@ function iniciarTracking(){
   // Fetch del estado real desde Supabase al abrir (por si ya avanzó mientras esperábamos)
   (async()=>{
     try{
-      const{data}=await sb.from('pedidos').select('estado,cadete_id,codigo_entrega').eq('id',pedidoId).single();
-      if(data?.estado){actualizarEstado(data.estado);}
+      const{data}=await sb.from('pedidos').select('estado,cadete_id,codigo_entrega,listo_estimado_at').eq('id',pedidoId).single();
+      if(data?.estado){actualizarEstado(data.estado,data.listo_estimado_at);}
     }catch{}
   })();
 
@@ -545,7 +548,7 @@ function iniciarTracking(){
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'pedidos',filter:`id=eq.${pedidoId}`},
       payload=>{
         console.log('[Tracking] Estado pedido:',payload.new?.estado);
-        actualizarEstado(payload.new?.estado);
+        actualizarEstado(payload.new?.estado,payload.new?.listo_estimado_at);
         avisarSiProductosEditados(payload.new);
       })
     .subscribe();
@@ -554,10 +557,10 @@ function iniciarTracking(){
   let _lastEstado=currentPedido?.estado||'nuevo';
   const _trackPoll=setInterval(async()=>{
     try{
-      const{data}=await sb.from('pedidos').select('estado').eq('id',pedidoId).single();
+      const{data}=await sb.from('pedidos').select('estado,listo_estimado_at').eq('id',pedidoId).single();
       if(data?.estado&&data.estado!==_lastEstado){
         _lastEstado=data.estado;
-        actualizarEstado(data.estado);
+        actualizarEstado(data.estado,data.listo_estimado_at);
         if(data.estado==='entregado')clearInterval(_trackPoll);
       }
     }catch{}

@@ -286,26 +286,44 @@ async function main() {
     assert(Number(p.total_final) === 2800, `total_final=${p.total_final}, esperaba 2800 (subtotal 2000 + costo_envio 800 default)`);
   });
 
-  await step('Comercio: aceptar pedido → preparando', () => sbUpdate(
-    'pedidos', `id=eq.${pedido1.id}`, { estado: 'preparando' }, jwtComercio,
-  ));
-
-  const difundirResp = await step('Comercio: POST /api/pedidos/difundir', async () => {
-    const r = await apiPost('/api/pedidos/difundir', { pedidoId: pedido1.id, comercioId: comercioRow.id }, jwtComercio);
-    assert(r.status === 200, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
-    assert((r.json.difundido ?? 0) >= 1, `difundido=${r.json.difundido}, esperaba ≥1 (¿los cadetes de prueba no quedaron dentro del radio de 10km?)`);
-    return r.json;
+  await step('Comercio: aceptar pedido → preparando (declara tiempo de preparación)', async () => {
+    // 3 min es el mínimo permitido — con el default de anticipacion_difusion_min
+    // (8 min) esto hace que el pedido quede elegible para despacho inicial
+    // DESDE YA (listo_estimado_at - anticipacion queda en el pasado), así el
+    // scheduler lo levanta en su próximo tick sin tener que esperar minutos.
+    const r = await apiPost('/api/pedidos/aceptar-comercio', {
+      pedidoId: pedido1.id, comercioId: comercioRow.id, tiempoPreparacionMin: 3,
+    }, jwtComercio);
+    assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+    assert(r.json.pedido.tiempo_preparacion_min === 3, `tiempo_preparacion_min=${r.json.pedido.tiempo_preparacion_min}, esperaba 3`);
+    assert(!!r.json.pedido.listo_estimado_at, 'listo_estimado_at no se seteó');
   });
 
-  const ofertasCadete1 = await step('Cadete: leer su oferta pendiente', async () => {
-    const rows = await sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete.id}&pedido_id=eq.${pedido1.id}&estado=eq.pendiente`, jwtCadete);
-    assert(rows.length === 1, `esperaba 1 oferta pendiente, encontré ${rows.length}`);
-    return rows[0];
+  await step('Aceptar sin tiempo de preparación es rechazado (400) — antes no se validaba nada', async () => {
+    // Pedido ya está en 'preparando' a esta altura, así que esto también
+    // prueba el guard de estado — pero el objetivo principal es la validación
+    // de rango del campo obligatorio.
+    const r = await apiPost('/api/pedidos/aceptar-comercio', { pedidoId: pedido1.id, comercioId: comercioRow.id }, jwtComercio);
+    assert(r.status === 400, `esperaba 400 (sin tiempoPreparacionMin), obtuve HTTP ${r.status}`);
   });
-  const ofertasCadete2 = await step('Cadete 2: leer su oferta pendiente (para el test de anti-colisión)', async () => {
-    const rows = await sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete2.id}&pedido_id=eq.${pedido1.id}&estado=eq.pendiente`, jwtCadete2);
-    assert(rows.length === 1, `esperaba 1 oferta pendiente para cadete2, encontré ${rows.length}`);
-    return rows[0];
+
+  await step('Confirmar: sin ofertas inmediatas (el despacho ahora es diferido, no instantáneo)', async () => {
+    const rows = await sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete.id}&pedido_id=eq.${pedido1.id}`, jwtCadete);
+    assert(rows.length === 0, `esperaba 0 ofertas todavía (recién aceptado), encontré ${rows.length} — ¿quedó un difundirPedido disparándose inline?`);
+  });
+
+  let ofertasCadete1, ofertasCadete2;
+  await step('Scheduler: despacha automáticamente a los cadetes cerca de la hora de "listo" (sin apretar "Buscar cadete")', async () => {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      const [rows1, rows2] = await Promise.all([
+        sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete.id}&pedido_id=eq.${pedido1.id}&estado=eq.pendiente`, jwtCadete),
+        sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete2.id}&pedido_id=eq.${pedido1.id}&estado=eq.pendiente`, jwtCadete2),
+      ]);
+      if (rows1.length && rows2.length) { ofertasCadete1 = rows1[0]; ofertasCadete2 = rows2[0]; return; }
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    throw new Error(`El scheduler no despachó dentro de 30s (matchingScheduler.js) — cadete1 recibió oferta: ${!!ofertasCadete1}, cadete2: ${!!ofertasCadete2}`);
   });
 
   await step('Cadete: aceptar viaje (POST /api/pedidos/aceptar)', async () => {
@@ -316,6 +334,21 @@ async function main() {
   await step('Anti-colisión: cadete 2 intenta aceptar el mismo pedido → debe fallar 409', async () => {
     const r = await apiPost('/api/pedidos/aceptar', { pedidoId: pedido1.id, cadeteId: cadete2.id, ofertaId: ofertasCadete2.id }, jwtCadete2);
     assert(r.status === 409, `esperaba 409 PEDIDO_YA_TOMADO, obtuve HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+  });
+
+  await step('Confirmar: la oferta del cadete que aceptó quedó "aceptada" (antes quedaba "pendiente" para siempre)', async () => {
+    const rows = await sbSelect('ofertas_cadetes', `id=eq.${ofertasCadete1.id}&select=estado`, jwtCadete);
+    assert(rows[0]?.estado === 'aceptada', `estado=${rows[0]?.estado}, esperaba 'aceptada'`);
+  });
+
+  await step('Confirmar: cadetes.ultima_asignacion_at se actualizó (fairness/rotación)', async () => {
+    const rows = await sbSelect('cadetes', `auth_uid=eq.${cadete.id}&select=ultima_asignacion_at`, jwtCadete);
+    assert(!!rows[0]?.ultima_asignacion_at, 'ultima_asignacion_at no se seteó al aceptar el viaje');
+  });
+
+  await step('Confirmar: la oferta perdedora del cadete 2 quedó "rechazada" en cascada (antes quedaba "pendiente" para siempre)', async () => {
+    const rows = await sbSelect('ofertas_cadetes', `id=eq.${ofertasCadete2.id}&select=estado`, jwtCadete2);
+    assert(rows[0]?.estado === 'rechazada', `estado=${rows[0]?.estado}, esperaba 'rechazada' (cascada de aceptarPedido)`);
   });
 
   // ── Editar productos del pedido (producto agotado, comercio habló con el cliente) ──
@@ -440,12 +473,21 @@ async function main() {
     assert(Number(rows[0]?.rating) === 5, `rating del cadete = ${rows[0]?.rating}, esperaba 5`);
   });
 
-  // ── Pedido #2: mismo comercio/cliente, tarifa clima ON — comparar ganancia ────
+  // ── Pedido #2: mismo comercio/cliente, override manual de clima ON — comparar ganancia ──
+  // Nota: la detección AUTOMÁTICA de clima adverso vive en `clima_cache`, una
+  // tabla admin-only (RLS solo permite rol_actual()='admin', ver
+  // migration-clima-cache.sql). Este script deliberadamente NO usa
+  // service_role (ver comentario del header — pega con las mismas reglas de
+  // RLS que un usuario real), así que no puede sembrar esa caché desde acá.
+  // Lo que sí se puede probar con las cuentas de prueba es el override
+  // manual (`cadetes.tarifa_clima`, RLS permite al cadete tocar su propia
+  // fila), que sigue funcionando igual que antes vía
+  // `climaAplicado = climaAdverso || cadete.tarifa_clima`.
   const gananciaSinClima = await step('Ganancia SIN clima (leída de ofertas_cadetes del pedido #1)', async () => {
     return Number(ofertasCadete1.ganancia_estimada);
   });
 
-  await step('Cadete: activar tarifa_clima', () => sbUpdate(
+  await step('Cadete: activar override manual de tarifa_clima', () => sbUpdate(
     'cadetes', `auth_uid=eq.${cadete.id}`, { tarifa_clima: true }, jwtCadete,
   ));
 
@@ -462,17 +504,43 @@ async function main() {
     metodo_pago: 'efectivo',
   }, jwtCliente));
 
-  await step('Comercio: aceptar pedido #2', () => sbUpdate('pedidos', `id=eq.${pedido2.id}`, { estado: 'preparando' }, jwtComercio));
-  await step('Comercio: difundir pedido #2', async () => {
+  await step('Comercio: aceptar pedido #2 (tiempo de preparación mínimo)', async () => {
+    const r = await apiPost('/api/pedidos/aceptar-comercio', {
+      pedidoId: pedido2.id, comercioId: comercioRow.id, tiempoPreparacionMin: 3,
+    }, jwtComercio);
+    assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+  });
+  await step('Comercio: difundir pedido #2 a mano (botón "Buscar cadete", vía POST /api/pedidos/difundir)', async () => {
     const r = await apiPost('/api/pedidos/difundir', { pedidoId: pedido2.id, comercioId: comercioRow.id }, jwtComercio);
     assert(r.status === 200 && (r.json.difundido ?? 0) >= 1, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
   });
 
-  await step('Tarifa clima: ganancia_estimada del pedido #2 es ×1.20 (redondeado a $50) vs pedido #1', async () => {
+  await step('Tarifa clima (override manual): ganancia_estimada del pedido #2 es ×1.20 (redondeado a $50) vs pedido #1', async () => {
     const rows = await sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete.id}&pedido_id=eq.${pedido2.id}&select=ganancia_estimada`, jwtCadete);
     const gananciaConClima = Number(rows[0]?.ganancia_estimada);
     const esperada = Math.round((gananciaSinClima * 1.20) / 50) * 50;
     assert(gananciaConClima === esperada, `sin clima=${gananciaSinClima}, con clima=${gananciaConClima}, esperaba=${esperada}`);
+  });
+
+  // El pedido #2 nunca es aceptado por ningún cadete en este script, así que
+  // la oferta de cadete2 sigue genuinamente 'pendiente' acá — a diferencia
+  // de la del pedido #1, que ya quedó 'rechazada' por la cascada automática
+  // de aceptarPedido. Este es el caso real que ejercita el botón "Rechazar"
+  // del cadete (o el timeout de 20s) en cadete.js.
+  const ofertaCadete2Pedido2 = await step('Cadete 2: leer su oferta pendiente del pedido #2', async () => {
+    const rows = await sbSelect('ofertas_cadetes', `cadete_id=eq.${cadete2.id}&pedido_id=eq.${pedido2.id}&estado=eq.pendiente`, jwtCadete2);
+    assert(rows.length === 1, `esperaba 1 oferta pendiente para cadete2 en pedido #2, encontré ${rows.length}`);
+    return rows[0];
+  });
+
+  await step('Cadete 2: rechaza explícitamente su oferta del pedido #2 (antes esto era 100% local, no tocaba la DB)', async () => {
+    const r = await apiPost('/api/pedidos/rechazar-oferta', { pedidoId: pedido2.id, ofertaId: ofertaCadete2Pedido2.id }, jwtCadete2);
+    assert(r.status === 200 && r.json.ok, `HTTP ${r.status}: ${JSON.stringify(r.json)}`);
+  });
+
+  await step('Confirmar: la oferta rechazada explícitamente quedó "rechazada" en la DB', async () => {
+    const rows = await sbSelect('ofertas_cadetes', `id=eq.${ofertaCadete2Pedido2.id}&select=estado`, jwtCadete2);
+    assert(rows[0]?.estado === 'rechazada', `estado=${rows[0]?.estado}, esperaba 'rechazada'`);
   });
 
   log(`\n=== Resumen: ${results.filter(r => r.ok).length}/${results.length} pasos OK ===`);
