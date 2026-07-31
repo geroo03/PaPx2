@@ -1,0 +1,93 @@
+/* animations.css — animaciones livianas compartidas (cliente, cadete, comercio, embajador, admin)
+   Autocontenido: no depende de portal-vars.css ni de los :root de cada pantalla.
+   Namespacing: keyframes con prefijo pap-, utilidades con prefijo .anim- */
+
+:root {
+  --anim-fast: 120ms;
+  --anim-base: 200ms;
+  --anim-slow: 300ms;
+  --anim-ease: ease;
+}
+
+@keyframes pap-toast-in {
+  from { transform: translateX(-50%) translateY(16px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+@keyframes pap-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pap-pop {
+  0%   { transform: scale(.85); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pap-pulse-ring {
+  0%   { transform: scale(.6); opacity: .6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes pap-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pap-shimmer {
+  0%   { background-position: -280px 0; }
+  100% { background-position: 280px 0; }
+}
+
+.anim-tap {
+  transition: transform var(--anim-fast) var(--anim-ease);
+}
+.anim-tap:active {
+  transform: scale(.96);
+}
+
+.anim-fade-up {
+  animation: pap-fade-up var(--anim-base) var(--anim-ease) both;
+}
+
+.anim-pop {
+  animation: pap-pop var(--anim-slow) var(--anim-ease);
+}
+
+.anim-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(0, 0, 0, .1);
+  border-top-color: #FF6B35;
+  border-radius: 50%;
+  animation: pap-spin .8s linear infinite;
+  display: inline-block;
+}
+
+.anim-sk-line,
+.anim-sk-img {
+  background: linear-gradient(90deg, #F2F2F2 25%, #E5E5E5 50%, #F2F2F2 75%);
+  background-size: 280px 100%;
+  animation: pap-shimmer 1.3s infinite linear;
+  border-radius: 4px;
+}
+.anim-sk-line {
+  height: 10px;
+  margin: 8px 0;
+}
+.anim-sk-img {
+  height: 60px;
+  border-radius: 12px;
+}
+
+/* Respeta la preferencia de movimiento reducido del sistema — neutraliza
+   tanto estas animaciones nuevas como las ya existentes en cada hoja
+   (pop, fadeUp, skShimmer, spin, toastIn, etc.), sin tocar archivo por archivo. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

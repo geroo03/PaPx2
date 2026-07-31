@@ -6,8 +6,10 @@ body{background:#f5f5f5;min-height:100vh;display:flex;align-items:center;justify
 .app-name{font-size:17px;font-weight:900;color:#111;}
 .card{background:#fff;border-radius:20px;padding:24px;border:0.5px solid #eee;margin-bottom:12px;}
 .card-title{font-size:15px;font-weight:700;color:#111;margin-bottom:14px;}
-.resumen-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#555;}
+.resumen-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#555;}
 .resumen-row:last-child{border-bottom:none;}
+.resumen-row span:first-child{min-width:0;overflow-wrap:break-word;}
+.resumen-row span:last-child{flex-shrink:0;white-space:nowrap;}
 .resumen-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:#111;padding:12px 0 0;border-top:2px solid #111;margin-top:6px;}
 .loading{text-align:center;padding:30px;}
 .loading-spinner{width:36px;height:36px;border:3px solid #f0f0f0;border-top:3px solid #FF6B35;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;}

@@ -8,9 +8,9 @@ const toast = (msg, dur = 3500) => {
   const el = $('toast');
   if (!el) return;
   el.textContent = msg;
-  el.style.display = 'block';
+  el.classList.remove('hidden');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.style.display = 'none', dur);
+  toast._t = setTimeout(() => el.classList.add('hidden'), dur);
 };
 const fmt = n => '$' + Number(n ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 });
 

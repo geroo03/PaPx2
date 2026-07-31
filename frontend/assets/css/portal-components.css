@@ -133,7 +133,9 @@
   background: var(--surface-card);
   border: 1px solid var(--border-default);
   border-radius: var(--r-md);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 .pap-table {
   width: 100%;

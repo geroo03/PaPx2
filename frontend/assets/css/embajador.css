@@ -29,7 +29,8 @@ button#btn-alta{background:var(--brand);color:#fff;padding:10px 12px;border:0;bo
 .status.activo{background:#E8F9F0;color:#007A4D}
 .status.suspendido{background:#FFF0F3;color:#B00020}
 .empty{padding:14px;color:var(--muted);text-align:center}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#111;color:#fff;padding:10px 14px;border-radius:999px;display:none}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#111;color:#fff;padding:10px 14px;border-radius:999px;animation:pap-toast-in var(--anim-base) var(--anim-ease)}
+.toast.hidden{display:none}
 
 /* Responsive: grid for large screens */
 @media(min-width:900px){

@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/animations.css">
   <link rel="stylesheet" href="../assets/css/embajador.css">
   <style>
     /* ── tabs ── */
@@ -91,19 +92,19 @@
       <!-- Solicitudes de retiro -->
       <section class="panel" style="margin-top:32px">
         <h2>Mis Retiros</h2>
-        <div id="lista-retiros"><div class="empty">Cargando...</div></div>
+        <div id="lista-retiros"><div class="empty"><span class="anim-spinner"></span> Cargando...</div></div>
       </section>
 
       <!-- Historial de comisiones -->
       <section class="panel" style="margin-top:32px">
         <h2>Historial de Comisiones</h2>
-        <div id="lista-comisiones"><div class="empty">Cargando...</div></div>
+        <div id="lista-comisiones"><div class="empty"><span class="anim-spinner"></span> Cargando...</div></div>
       </section>
 
       <!-- Mis comercios -->
       <section class="panel" style="margin-top:32px">
         <h2>Mis Comercios Registrados</h2>
-        <div id="lista-comercios"><div class="empty">Cargando...</div></div>
+        <div id="lista-comercios"><div class="empty"><span class="anim-spinner"></span> Cargando...</div></div>
       </section>
 
       <!-- Link de referidos -->
@@ -149,7 +150,7 @@
       </div>
     </div>
 
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   </div>
 
   <!-- Modal retiro -->

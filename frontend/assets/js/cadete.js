@@ -136,8 +136,8 @@ function toast(m, d = 2500) {
   const t = document.getElementById('toast');
   if (!t) return;
   t.innerHTML = m;
-  t.style.display = 'block';
-  setTimeout(() => (t.style.display = 'none'), d);
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), d);
 }
 
 function abrirMenuLateral() {
@@ -264,6 +264,7 @@ async function cargarOfertas() {
         comercio_lat: o.comercio_lat,
         comercio_lng: o.comercio_lng,
         _shownAt:     prev?._shownAt ?? Date.now(),
+        _isNew:       !prev,
       };
     });
   } catch {
@@ -325,7 +326,7 @@ function renderViajes() {
     const remaining = Math.max(0, OFERTA_TIMEOUT_MS - elapsed);
     const remainingSec = (remaining / 1000).toFixed(1);
     return `
-      <div class="viaje-card oferta" style="background:#0F1720;padding:0;border-radius:12px;color:#fff;margin-bottom:12px;overflow:hidden;position:relative;">
+      <div class="viaje-card oferta${o._isNew ? ' anim-fade-up' : ''}" style="background:#0F1720;padding:0;border-radius:12px;color:#fff;margin-bottom:12px;overflow:hidden;position:relative;">
         <div id="bar-${o.pedido_id}" style="
           height:3px;width:100%;background:linear-gradient(90deg,#FF6B35,#E55A27);
           animation:ofertaCountdown ${remainingSec}s linear forwards;
@@ -1337,7 +1338,7 @@ async function aceptarAcuerdoCadete() {
 async function cargarHistorial() {
   const container = document.getElementById('historial-container');
   if (!container || !cadeteUserId) return;
-  container.innerHTML = '<div class="empty"><p>Cargando...</p></div>';
+  container.innerHTML = '<div class="empty"><span class="anim-spinner"></span><p>Cargando...</p></div>';
   try {
     const { data, error } = await sb
       .from('pedidos')
