@@ -6,12 +6,6 @@
     "androidScheme": "https",
     "cleartext": false
   },
-  "android": {
-    "buildOptions": {
-      "keystorePath": "puertaapuertax.keystore",
-      "keystoreAlias": "puertaapuertax"
-    }
-  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 1500,

@@ -503,13 +503,14 @@ npx cap open android         # abre Android Studio
 
 | # | Tarea | Impacto |
 |---|-------|---------|
-| 1 | **Promociones no descuentan el precio real** — el comercio puede crear/pausar descuentos y el cliente los ve como badge, pero el carrito nunca aplica el descuento (`cliente.js` usa el precio crudo) ni chequea "envío gratis" (el envío queda fijo). Barato de cerrar: la UI y el dato ya existen, falta conectar el cálculo. Encontrado en investigación de completitud 2026-07-31. | Conversión / confianza del cliente |
-| 2 | Configurar `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_EMAIL` en Railway — push web ya está codeado (`pushController.js`) pero no funciona en producción sin esto | Push notifications |
-| 3 | Build del APK/AAB Android (requiere Android Studio — no instalado en la máquina de desarrollo actual) | App nativa |
-| 4 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
-| 5 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
-| 6 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
-| 7 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+| 1 | Crear cuenta de desarrollador de Google Play Console ($25) — **todavía no existe**. Google exige a cuentas nuevas un track de Closed Testing (~20 testers, 14 días corridos) antes de habilitar Production — es el ítem de mayor lead time de todo el lanzamiento, arrancarlo antes que nada. | Distribución / fecha real de lanzamiento |
+| 2 | Cargar `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_EMAIL` en Railway (par nuevo generado 2026-07-31, `frontend/env.js` ya tiene la pública) — push web no funciona en producción sin esto | Push notifications |
+| 3 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). | App nativa |
+| 4 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
+| 5 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
+| 6 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+
+**Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
 
 ~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
 
