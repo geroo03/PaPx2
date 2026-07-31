@@ -224,10 +224,16 @@ async function main() {
     ciudad: 'Santiago del Estero',
     email: comercioEmail,
     usuario_id: comercio.id,
-    estado_registro: 'pendiente',
+    // estado_registro='activo' (no 'pendiente') y abierto_ahora=true a propósito:
+    // desde que existe la RLS restrictiva pedidos_bloquear_comercio_cerrado, un
+    // pedido solo se puede insertar si el cliente puede VER el comercio como
+    // abierto — y comercios_lectura_activos solo deja ver comercios de otros
+    // dueños cuando estado_registro='activo'. Simula un comercio real aprobado
+    // y abierto, que es el caso que este script necesita para poder pedir.
+    estado_registro: 'activo',
     tipo_delivery_defecto: 'app',
-    activo: false,
-    abierto_ahora: false,
+    activo: true,
+    abierto_ahora: true,
     deuda: 0,
     rating: 0,
     total_pedidos: 0,
@@ -531,6 +537,74 @@ async function main() {
     const gananciaConClima = Number(rows[0]?.ganancia_estimada);
     const esperada = Math.round((gananciaSinClima * 1.20) / 50) * 50;
     assert(gananciaConClima === esperada, `sin clima=${gananciaSinClima}, con clima=${gananciaConClima}, esperaba=${esperada}`);
+  });
+
+  // ── Horarios automáticos de comercios ─────────────────────────────────────────
+  // Ventana "abierto todo el día de hoy" (00:00–23:59) a propósito — hace que el
+  // test sea robusto sin importar a qué hora corra, y evita el caso de cruce de
+  // medianoche que horariosScheduler.js deliberadamente no soporta.
+  const ahoraArg  = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+  const DIAS_ES   = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+  const diaHoyEs  = DIAS_ES[ahoraArg.getDay()];
+  const hoyISOArg = `${ahoraArg.getFullYear()}-${String(ahoraArg.getMonth() + 1).padStart(2, '0')}-${String(ahoraArg.getDate()).padStart(2, '0')}`;
+
+  await step('Comercio: configurar horario (abierto todo el día de hoy)', () => sbUpdate(
+    'comercios', `id=eq.${comercioRow.id}`,
+    { horario_apertura: '00:00', horario_cierre: '23:59', dias_abierto: [diaHoyEs] },
+    jwtComercio,
+  ));
+
+  await step('Scheduler: abre el comercio automáticamente según el horario (sin tocar el switch a mano)', async () => {
+    const deadline = Date.now() + 90_000;
+    while (Date.now() < deadline) {
+      const rows = await sbSelect('comercios', `id=eq.${comercioRow.id}&select=abierto_ahora`, jwtComercio);
+      if (rows[0]?.abierto_ahora === true) return;
+      await new Promise(r => setTimeout(r, 5000));
+    }
+    throw new Error('El horariosScheduler no marcó el comercio como abierto dentro de 90s (¿arrancó iniciarSchedulerHorarios() en server.js?)');
+  });
+
+  await step('Comercio: pausar pedidos manualmente (cierre instantáneo, sin esperar al scheduler)', () => sbUpdate(
+    'comercios', `id=eq.${comercioRow.id}`,
+    { pausado_manual: true, pausado_desde: hoyISOArg, abierto_ahora: false },
+    jwtComercio,
+  ));
+
+  await step('RLS: insertar un pedido a un comercio pausado debe ser rechazado (antes solo el botón de la UI lo bloqueaba)', async () => {
+    let fueRechazado = false;
+    try {
+      await sbInsert('pedidos', {
+        comercio_id: comercioRow.id,
+        cliente_id: cliente.id,
+        productos: [{ id: producto.id, nombre: 'Producto QA', precio: 1000, qty: 1 }],
+        total: 1200,
+        estado: 'nuevo',
+        direccion_entrega: 'Dirección de entrega de prueba',
+        lat_entrega: cliLat,
+        lng_entrega: cliLng,
+        propina_cadete: 0,
+        metodo_pago: 'efectivo',
+      }, jwtCliente);
+    } catch (e) {
+      fueRechazado = true;
+    }
+    assert(fueRechazado, 'se esperaba que el insert de pedido fallara (RLS pedidos_bloquear_comercio_cerrado) con el comercio pausado, pero se creó igual');
+  });
+
+  await step('Comercio: reanudar pedidos (limpia la pausa manual)', () => sbUpdate(
+    'comercios', `id=eq.${comercioRow.id}`,
+    { pausado_manual: false, pausado_desde: null },
+    jwtComercio,
+  ));
+
+  await step('Scheduler: reabre el comercio tras reanudar (dentro de ~90s)', async () => {
+    const deadline = Date.now() + 90_000;
+    while (Date.now() < deadline) {
+      const rows = await sbSelect('comercios', `id=eq.${comercioRow.id}&select=abierto_ahora`, jwtComercio);
+      if (rows[0]?.abierto_ahora === true) return;
+      await new Promise(r => setTimeout(r, 5000));
+    }
+    throw new Error('El horariosScheduler no reabrió el comercio dentro de 90s tras reanudar');
   });
 
   log(`\n=== Resumen: ${results.filter(r => r.ok).length}/${results.length} pasos OK ===`);

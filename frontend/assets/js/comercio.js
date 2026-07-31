@@ -61,12 +61,27 @@ function applyComercioToUI(com) {
     const el = g(v + '-crumb'); if (el) el.textContent = com.nombre;
   });
   const open = !!com.abierto_ahora;
+  const tieneHorario = !!(com.horario_apertura && com.horario_cierre && com.dias_abierto?.length);
+  const pausado = !!com.pausado_manual;
   const dot  = g('estado-dot');
   const txt  = g('estado-texto');
   const btn  = g('btn-estado');
-  if (dot) dot.className   = 'estado-dot ' + (open ? 'open' : 'closed');
-  if (txt) txt.textContent = open ? 'Abierto' : 'Cerrado';
+  if (dot) dot.className = 'estado-dot ' + (open ? 'open' : 'closed');
   if (btn) btn.classList.toggle('open', open);
+
+  if (!tieneHorario) {
+    if (txt) txt.textContent = open ? 'Abierto' : 'Cerrado';
+    if (btn) btn.textContent = open ? 'Marcar como cerrado' : 'Marcar como abierto';
+  } else if (pausado) {
+    if (txt) txt.textContent = 'Pausado manualmente';
+    if (btn) btn.textContent = 'Reanudar pedidos';
+  } else if (open) {
+    if (txt) txt.textContent = 'Abierto (horario automático)';
+    if (btn) btn.textContent = 'Pausar pedidos ahora';
+  } else {
+    if (txt) txt.textContent = 'Cerrado (fuera de horario)';
+    if (btn) btn.textContent = 'Pausar pedidos ahora';
+  }
 }
 
 // ─── ROUTER ───────────────────────────────────────────────────────────────────
@@ -190,12 +205,37 @@ function toggleSidebar() {
 }
 
 async function toggleEstado() {
-  const nuevo = !S.comercio.abierto_ahora;
-  const { error } = await sb.from('comercios').update({ abierto_ahora: nuevo }).eq('id', S.cid);
-  if (error) { showToast('Error al cambiar estado', 'error'); return; }
-  S.comercio.abierto_ahora = nuevo;
-  applyComercioToUI(S.comercio);
-  showToast(nuevo ? '✓ Local marcado como Abierto' : 'Local marcado como Cerrado');
+  const c = S.comercio;
+  const tieneHorario = !!(c.horario_apertura && c.horario_cierre && c.dias_abierto?.length);
+
+  if (!tieneHorario) {
+    // Sin horario configurado: comportamiento manual de siempre, sin cambios.
+    const nuevo = !c.abierto_ahora;
+    const { error } = await sb.from('comercios').update({ abierto_ahora: nuevo }).eq('id', S.cid);
+    if (error) { showToast('Error al cambiar estado', 'error'); return; }
+    c.abierto_ahora = nuevo;
+    applyComercioToUI(c);
+    showToast(nuevo ? '✓ Local marcado como Abierto' : 'Local marcado como Cerrado');
+    return;
+  }
+
+  // Con horario configurado, el horario manda — el botón pasa a ser una
+  // pausa temporal en vez de tocar abierto_ahora directo (el scheduler lo
+  // pisaría en el próximo tick).
+  if (c.pausado_manual) {
+    const { error } = await sb.from('comercios').update({ pausado_manual: false, pausado_desde: null }).eq('id', S.cid);
+    if (error) { showToast('Error al reanudar', 'error'); return; }
+    c.pausado_manual = false; c.pausado_desde = null;
+    applyComercioToUI(c);
+    showToast('Reanudando según tu horario — puede tardar hasta 1 min en reflejarse');
+  } else {
+    const hoyISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+    const { error } = await sb.from('comercios').update({ pausado_manual: true, pausado_desde: hoyISO, abierto_ahora: false }).eq('id', S.cid);
+    if (error) { showToast('Error al pausar', 'error'); return; }
+    c.pausado_manual = true; c.pausado_desde = hoyISO; c.abierto_ahora = false;
+    applyComercioToUI(c);
+    showToast('Pedidos pausados — se reanuda solo en la próxima apertura programada');
+  }
 }
 
 async function logout() {

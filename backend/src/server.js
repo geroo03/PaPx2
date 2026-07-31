@@ -21,6 +21,7 @@ import mpRoutes       from './routes/mpRoutes.js';
 import cadeteRoutes   from './routes/cadeteRoutes.js';
 import embajadorRoutes from './routes/embajadorRoutes.js';
 import { iniciarSchedulerMatching } from './jobs/matchingScheduler.js';
+import { iniciarSchedulerHorarios } from './jobs/horariosScheduler.js';
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
@@ -131,5 +132,9 @@ app.listen(PORT, () => {
 // backend/src/jobs/matchingScheduler.js. Corre dentro de este mismo proceso
 // persistente, no requiere infraestructura de colas/cron aparte.
 iniciarSchedulerMatching();
+
+// Apertura/cierre automático de comercios según su horario configurado —
+// ver backend/src/jobs/horariosScheduler.js.
+iniciarSchedulerHorarios();
 
 export default app;
