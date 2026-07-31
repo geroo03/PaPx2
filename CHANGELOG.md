@@ -2,6 +2,250 @@
 
 ---
 
+## [3.9.0] — 30/31 de julio 2026
+
+### Horarios automáticos de comercios + bloqueo real de pedidos a cerrados
+
+Hasta ahora `comercios.abierto_ahora` era un toggle 100% manual, totalmente
+desacoplado del horario que el comercio ya podía configurar
+(`horario_apertura`/`horario_cierre`/`dias_abierto` existían en el schema y
+en la UI del panel de comercio, pero nada los leía). Además, un comercio
+"cerrado" solo bloqueaba el botón en la UI del cliente — nada impedía crear
+un pedido real igual (`confirmarPedido()` nunca chequeaba `abierto_ahora`, y
+no había ninguna policy RLS al respecto).
+
+- Nuevo scheduler `horariosScheduler.js` (mismo patrón que
+  `matchingScheduler.js`, `setInterval` cada 60s) calcula `abierto_ahora`
+  automáticamente a partir del horario configurado. Comercios sin horario
+  configurado quedan sin tocar (100% manual, sin regresión).
+- El switch manual del comercio pasa a ser una pausa temporal
+  (`pausado_manual`/`pausado_desde`, columnas nuevas) cuando hay horario
+  configurado — cierra al instante, y se limpia sola en la próxima apertura
+  programada (no queda cerrado para siempre si se olvidan de reactivarlo).
+- Nueva policy RLS **restrictiva** en `pedidos`: un insert solo pasa si el
+  comercio está abierto (o es admin) — cierra el gap de "cerrado" cosmético.
+- Límite conocido, documentado a propósito: horarios que cruzan medianoche
+  no están soportados en esta v1 (se detecta y se deja ese comercio en
+  manual, en vez de calcular mal).
+
+Verificado con `qa-e2e.mjs` extendido: 56/56 pasos OK contra producción.
+
+---
+
+## [3.8.0] — 30 de julio 2026
+
+### Matching automático de cadetes + tarifa clima automática + tiempo de preparación
+
+Hasta ahora el comercio avisaba a los cadetes inmediatamente al aceptar un
+pedido (sin importar cuánto tardaba en prepararlo), la búsqueda ordenaba
+solo por distancia sin reintentar si nadie aceptaba, la tarifa por clima era
+100% manual (toggle del cadete), y `ofertas_cadetes.estado` nunca
+transicionaba de `'pendiente'` (`rechazarOferta` era 100% client-side).
+
+- El comercio declara un tiempo de preparación al aceptar (nuevo endpoint
+  `POST /api/pedidos/aceptar-comercio`, reloj del servidor) y un scheduler
+  interno (`matchingScheduler.js`, `setInterval` de 15s) despacha cadetes
+  cerca de la hora de "listo", re-difunde automáticamente si nadie acepta
+  (ensanchando el radio una vez antes de avisarle al comercio), y expira
+  ofertas vencidas.
+- El ranking de candidatos combina distancia/rating/rotación (fairness) vía
+  `matchingUtils.js`, con pesos configurables por ciudad en la nueva tabla
+  `configuracion_zonas` (tuning por SQL, sin redeploy).
+- La tarifa por clima ahora también se detecta automáticamente por zona
+  geográfica (wttr.in + caché en `clima_cache`, `climaUtils.js`/
+  `climaService.js`), sumada con OR al toggle manual existente del cadete
+  (no lo reemplaza).
+- Fix: `ofertas_cadetes.estado` ahora sí transiciona a `'aceptada'`/
+  `'rechazada'` (nuevo endpoint `POST /api/pedidos/rechazar-oferta`), y
+  `cadetes.ultima_asignacion_at` se registra para el ranking de rotación.
+
+Incluye 5 migraciones nuevas, 17 tests unitarios nuevos (`matchingUtils`/
+`climaUtils`, 40/40 en el suite completo) y `qa-e2e.mjs` extendido:
+50/50 pasos OK contra producción.
+
+---
+
+## [3.7.0] — 20 de julio 2026
+
+### Recargo de plataforma: 15% → 20%
+
+Decisión de negocio del usuario. No retroactivo — solo afecta pedidos
+nuevos a partir de correr la migración.
+
+- Backend: migración que actualiza `pedidos_compute_totals()` para calcular
+  `monto_comision_app` al 20% del subtotal (antes 15%).
+- `cliente.js`: el precio de cada producto que ve el cliente aplica ×1.20
+  sobre el precio base del comercio (antes ×1.15).
+- `comercio.js`, `legal.html`, `registro-comercio.html`, `CLAUDE.md`,
+  `README-database.md`: constantes y textos actualizados.
+- `qa-e2e.mjs`: assertions hardcodeadas actualizadas, más un override
+  `QA_BACKEND_URL` para correr el script contra un backend local sin tocar
+  `frontend/env.js` (útil con Railway caído o para probar antes de
+  deployar).
+
+Verificado corriendo `qa-e2e.mjs` contra un backend local (46/46) mientras
+Railway estaba caído por un problema de facturación — confirmó que el
+código y la migración estaban bien, independiente del problema de
+infraestructura.
+
+---
+
+## [3.6.0] — 17 de julio 2026
+
+### CI: tests unitarios + QA end-to-end automatizados
+
+Hasta ahora `qa-e2e.mjs` y los tests unitarios solo corrían cuando alguien
+se acordaba de correrlos a mano — y esta sesión sola, corriéndolo
+manualmente, atrapó como 6 bugs reales (incluida una recursión infinita de
+RLS que rompía producción) antes de confirmarlos como arreglados.
+
+- `test.yml`: en cada push/PR a `main` — tests unitarios + verificación de
+  sintaxis de todo el JS del backend y frontend.
+- `qa-e2e.yml`: corre el flujo completo de un pedido contra el backend y
+  Supabase reales de producción. A propósito NO corre en el push mismo
+  (Railway tarda en terminar el deploy) — corre una vez por día vía cron,
+  más un botón "Run workflow" a demanda.
+- `package-lock.json` (root y backend) committeados por primera vez —
+  `npm ci` en CI fallaba sin un lockfile committeado.
+
+---
+
+## [3.5.0] — 17 de julio 2026
+
+### Comercio puede editar los productos de un pedido antes de que el cadete retire
+
+Cuando falta un producto que el cliente pidió, el comercio ahora puede
+editar la lista de productos del pedido (cantidad, o sacarlo) después de
+coordinarlo con el cliente por teléfono o por el chat del pedido.
+
+- Backend: nuevo endpoint `PATCH /api/pedidos/:id/productos`. Solo el
+  comercio dueño (o un admin) puede editar, y solo mientras el pedido está
+  en `nuevo`/`preparando`/`listo`/`en_preparacion` (este último, el estado
+  real tras aceptar el viaje, no se reconocía en el primer intento —
+  corregido). Bloqueado para pedidos pagados con MercadoPago (ya se cobró
+  el total viejo, sin forma automática de ajustar el cobro). Recalcula
+  `subtotal` manteniendo constante envío/propina.
+- `comercio.js`: modal de edición en el detalle de cada pedido. De paso
+  corrige un bug preexistente que siempre mostraba "1×" sin importar la
+  cantidad real pedida.
+- `cadete.js`: el viaje activo no mostraba ningún producto hasta ahora — se
+  agrega carga + suscripción Realtime que avisa con un toast si el comercio
+  edita mientras el cadete ya tiene el viaje asignado.
+- `cliente.js`: la suscripción Realtime de la pantalla de seguimiento
+  también avisa al cliente con un toast (antes solo se enteraba por
+  teléfono o chat).
+- `qa-e2e.mjs`: cubre el flujo feliz y el bloqueo para pedidos de
+  MercadoPago.
+
+---
+
+## [3.4.0] — 17 de julio 2026
+
+### Fix: coordenadas por defecto de Santiago del Estero rompían el registro multi-ciudad
+
+El lanzamiento ahora es en 3 ciudades (La Plata, Santiago del Estero,
+Córdoba), pero el registro de comercio tenía las coordenadas de Santiago
+del Estero hardcodeadas como default silencioso: si el dueño no arrastraba
+el pin del mapa, el comercio quedaba guardado con esas coordenadas sin
+importar la ciudad real, rompiendo por completo la búsqueda de cadetes
+(radio de 10km) para ese comercio.
+
+- `registro-comercio.html`: el mapa arranca centrado en Argentina entera
+  (sin pin); el submit bloquea si no hay un pin confirmado; geocoding
+  inverso (Nominatim) autocompleta provincia/ciudad a partir del pin.
+- `comercio.js`: mismo fix en el modal de edición de ubicación para
+  comercios ya existentes sin lat/lng.
+- `comercio.html`: unifica los valores del `<select>` de provincia (con
+  tilde vs. sin tilde entre registro y edición — un comercio de Córdoba
+  nunca matcheaba su provincia en uno de los dos).
+
+Verificado con Playwright (carga del mapa, bloqueo de submit sin pin,
+geolocalización automática en Córdoba, autocompletado) y `qa-e2e.mjs`
+43/43 sin regresiones.
+
+---
+
+## [3.3.0] — 17 de julio 2026
+
+### Hardening de ciberseguridad — XSS masivo, RLS de Storage, password mínima, recursión RLS
+
+Revisión de ciberseguridad puntual (TLS, mass assignment, HMAC, Storage,
+dependencias, XSS) pedida explícitamente por el usuario tras el fix de
+Tier 1/2 de la auditoría anterior.
+
+- `cliente.js`: fix de una fuga real — el listado público de comercios
+  hacía `select('*')`, exponiendo `mp_access_token`/`cbu_alias`/`cuit`/
+  `razon_social`/`email_facturacion` de cada comercio a cualquier cliente
+  logueado. Restringido a las columnas públicas necesarias.
+- XSS almacenado sin escapar en varios lugares que la auditoría anterior no
+  había cubierto: `cadete.js` no tenía ningún helper de escape (chat del
+  pedido, ofertas, viaje activo, historial); `cliente.js` (menú de
+  productos, home, búsqueda, banners, historial, mensajes de sistema);
+  `pago.html` (checkout).
+- Storage: la policy de INSERT del bucket `productos` solo chequeaba
+  `auth.role()='authenticated'`, sin validar dueño — cualquier usuario
+  logueado podía subir/sobrescribir imágenes de cualquier comercio. Se
+  agrega chequeo de ownership + límites de tamaño/tipo MIME.
+- Password mínima subida de 6 a 8 caracteres (frontend + backend).
+- Confirmado: TLS de punta a punta, cero mass assignment en controllers,
+  HMAC del webhook de MP con timing-safe compare, cero vulnerabilidades en
+  `npm audit`.
+- **Bug crítico P0 encontrado y arreglado** (rompía producción): el fix de
+  `perfiles_cadete_identidad_partes` de la migración de seguridad anterior
+  introdujo un ciclo real de recursión en RLS (`perfiles` ⇄ `comercios` ⇄
+  `pedidos` vía subconsultas crudas de rol), tirando abajo cualquier
+  operación sobre comercios/cadetes/pedidos con "infinite recursion
+  detected in policy". Arreglado con funciones `SECURITY DEFINER`
+  (`LANGUAGE plpgsql`, no `sql`, para que el planner no las inlinee y anule
+  el bypass de RLS) que reemplazan todas las subconsultas crudas de rol —
+  es la función `public.rol_actual()` que se sigue usando en toda migración
+  nueva desde entonces.
+
+Verificado con `qa-e2e.mjs` 43/43 después del fix.
+
+---
+
+## [3.2.0] — 15 de julio 2026
+
+### Fix: hallazgos Tier 1/2 de auditoría exhaustiva (XSS, RLS, carrito, tarifas, race de liquidación, OAuth web)
+
+Auditoría línea por línea de todo el codebase (backend, frontend, SQL) con
+varios agentes en paralelo + revisión manual. Fixes de seguridad y de
+dinero:
+
+- `admin.html`: XSS almacenado en múltiples vistas (pedidos, comercios,
+  cadetes, liquidaciones, embajadores, retiros, rubros, slots) — se
+  escapan todos los campos de la DB antes de interpolarlos en innerHTML, y
+  se corrige `editarGPS` para no pasar strings sin escapar como argumentos
+  de un atributo `onclick`.
+- `cliente.js`: XSS en comentarios de reseñas; el carrito no se limpiaba
+  bien tras confirmar pedido; agregar un producto no persistía el carrito
+  hasta el primer decremento; la pantalla de seguimiento no manejaba los
+  estados `'listo'`/`'cancelado'`/`'rechazado'`.
+- `cadete.js`: el toggle de tarifa clima nunca se exponía a `window`
+  (`ReferenceError` al tocarlo); el cálculo local de ganancia usaba
+  $250/km en vez de $750/km y no aplicaba el ×1.20 de clima.
+- `comercio.js`: la vista de reseñas leía columnas que ya no existen
+  (`puntaje_comercio`/`puntaje_cadete`) en vez de la columna real
+  `rating` que escribe el backend.
+- `cadeteController.js`: `confirmarLiquidacion` no tenía el guard atómico
+  `.eq('estado','pendiente')` en el UPDATE (sí lo tenía
+  `rechazarLiquidacion`), abriendo una ventana de doble descuento de
+  `deuda_efectivo` con confirmaciones concurrentes.
+- `login-usuario.html`: el login con Google en la web nunca redirigía
+  después de volver de Google — faltaba manejar el evento `SIGNED_IN` de
+  `onAuthStateChange`.
+- Nueva migración SQL: RLS faltante en `comercios_historial`/
+  `grupos_opcionales`/`opciones_items`/`advertencias_comercio`, políticas
+  de reportes/chat/perfiles que dejaban ver datos de otros comercios,
+  doble cobro de comisión en pedidos propio+efectivo, y el trigger de
+  comisión de embajador duplicado/huérfano que contradecía al backend.
+
+Verificado: `node --check` en todos los archivos JS tocados, y
+`qa-e2e.mjs` 43/43 contra producción sin regresiones.
+
+---
+
 ## [3.1.0] — 14 de julio 2026
 
 ### QA end-to-end automatizado + 4 bugs críticos de producción corregidos

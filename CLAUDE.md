@@ -1,12 +1,12 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-17.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-31.
 
 ---
 
 ## 1. Qué es el proyecto
 
-App de delivery local para Santiago del Estero, Argentina. Conecta clientes con comercios locales y cadetes (repartidores). Moneda: pesos argentinos (ARS).
+App de delivery local, Argentina. Conecta clientes con comercios locales y cadetes (repartidores). Moneda: pesos argentinos (ARS). Lanzamiento en 3 ciudades: Santiago del Estero (plaza original), La Plata y Córdoba. `comercios.ciudad` es texto libre a propósito (no un enum), para no bloquear la expansión a más ciudades sin migración.
 
 **Roles:**
 | Rol | Descripción |
@@ -95,32 +95,44 @@ puertaapuerta-main/
 │   │   │   └── mpRoutes.js
 │   │   ├── controllers/
 │   │   │   ├── authController.js
-│   │   │   ├── pedidoController.js   # Pricing, difundir, aceptar, cambiar-estado
+│   │   │   ├── pedidoController.js   # Pricing, ejecutarDifusion/difundir, aceptar, aceptar-comercio, rechazar-oferta, cambiar-estado
 │   │   │   ├── cadeteController.js   # GPS, efectivo, liquidaciones
 │   │   │   ├── embajadorController.js # Dashboard, comercios, retiros, comisiones
 │   │   │   ├── mpController.js       # MercadoPago preferencias + webhook
 │   │   │   └── pushController.js     # Web Push VAPID
+│   │   ├── jobs/
+│   │   │   ├── matchingScheduler.js  # setInterval 15s: despacho diferido + re-difusión automática + expira ofertas + refresco de clima (15min)
+│   │   │   └── horariosScheduler.js  # setInterval 60s: abierto_ahora automático según horario configurado
 │   │   ├── middlewares/
 │   │   │   └── authMiddleware.js     # requireAuth (Bearer JWT) + requireAdmin
 │   │   └── lib/
 │   │       ├── supabaseClient.js     # Exporta `supabase` (anon) y `supabaseAdmin` (service_role)
 │   │       ├── roleUtils.js          # resolveRol(userId) → string
-│   │       └── comisionUtils.js      # calcularComision(fechaInicio, monto) → {tasa, monto}
+│   │       ├── comisionUtils.js      # calcularComision(fechaInicio, monto) → {tasa, monto}
+│   │       ├── tarifaUtils.js        # calcularTarifa(vehiculo, distanciaKm, climaAplicado) → ganancia
+│   │       ├── matchingUtils.js      # haversineKm + rankearCandidatos(candidatos, config) — fairness/rotación
+│   │       ├── climaUtils.js         # esClimaAdverso(weatherCode) — clasificación pura, testeable
+│   │       └── climaService.js       # esClimaAdversoParaUbicacion(lat,lng) cache-first + refrescarCacheClima()
+│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils
+│   ├── scripts/qa-e2e.mjs            # Smoke test E2E contra producción real (sin service_role) — correr antes de cada release
 │   └── package.json                  # "type":"module", Express 5, Supabase JS, web-push
 │
 ├── supabase/
-│   ├── README-database.md     # Documentación completa de las 27 tablas (LEER PRIMERO)
+│   ├── README-database.md     # Documentación completa del schema (LEER PRIMERO)
 │   ├── schema-definitivo-v2.sql
 │   ├── fix-criticos-importantes.sql  # Parche de bugs críticos (ya aplicado)
-│   └── migrations/            # Migraciones incrementales (aplicar en orden)
-│       ├── migration-lat-entrega-pedidos.sql
-│       ├── migration-tarifa-clima.sql  # ✅ aplicada 2026-07-14
-│       ├── migration-efectivo-comercio.sql
-│       ├── migration-efectivo-referidos-banking.sql
-│       ├── migration-fcm-tokens.sql
-│       ├── migration-fix-mensajes-rls.sql
-│       ├── migration-referido-comision-admin-efectivo.sql
-│       └── migration-fix-resenas-cadete-fk.sql  # ✅ aplicada 2026-07-14
+│   └── migrations/            # Migraciones incrementales (todas aditivas/idempotentes, todas aplicadas)
+│       ├── migration-tarifa-clima.sql
+│       ├── migration-fix-resenas-cadete-fk.sql
+│       ├── migration-fix-recursion-perfiles-comercios-v2.sql / -v3.sql  # public.rol_actual() — ver §7
+│       ├── migration-recargo-plataforma-20.sql        # 15%→20%, 2026-07-20
+│       ├── migration-tiempo-preparacion-pedidos.sql    # pedidos: tiempo_preparacion_min, listo_estimado_at, etc.
+│       ├── migration-config-zonas-matching.sql         # tabla configuracion_zonas (tuning por ciudad, sin redeploy)
+│       ├── migration-cadetes-fairness-rotacion.sql     # cadetes.ultima_asignacion_at
+│       ├── migration-ofertas-cadetes-campos-matching.sql
+│       ├── migration-clima-cache.sql                   # tabla clima_cache (grid geográfico)
+│       ├── migration-comercios-pausa-manual.sql        # comercios.pausado_manual/pausado_desde
+│       └── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -171,13 +183,18 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 ### Pedidos `/api/pedidos`
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
-| POST | `/aceptar` | JWT | Cadete acepta oferta. Anti-colisión: UPDATE WHERE cadete_id IS NULL. |
+| POST | `/aceptar-comercio` | JWT | Comercio acepta pedido nuevo y declara `tiempoPreparacionMin` (3–90, reloj del servidor). Ya NO difunde inline — eso lo decide `matchingScheduler.js`. |
+| POST | `/aceptar` | JWT | Cadete acepta oferta. Anti-colisión: UPDATE WHERE cadete_id IS NULL. Transiciona `ofertas_cadetes.estado` a aceptada/rechazada y actualiza `cadetes.ultima_asignacion_at`. |
+| POST | `/rechazar-oferta` | JWT | Cadete rechaza una oferta explícitamente (botón o timeout 20s) — persiste en DB, ya no es 100% client-side. |
 | POST | `/cambiar-estado` | JWT | Cadete actualiza estado (preparado→en_camino→entregado). Valida PIN. |
-| POST | `/difundir` | JWT | Comercio busca cadetes. Calcula distancias Haversine. Inserta en ofertas_cadetes. |
+| PATCH | `/:id/productos` | JWT | Comercio edita productos/cantidades de un pedido propio antes de que el cadete retire (`nuevo`/`preparando`/`listo`/`en_preparacion`). Bloqueado si pagó con MercadoPago. |
+| POST | `/difundir` | JWT | Botón manual "Buscar cadete" del comercio — wrapper fino sobre `ejecutarDifusion()` (misma lógica que usa el scheduler automático: ranking por distancia/rating/rotación, clima por zona). |
 | POST | `/valorar` | JWT | Cliente valora comercio y cadete. Actualiza rating promedio. |
 | POST | `/notificar-comercio` | JWT | Push al comercio cuando llega pedido nuevo. |
 | POST | `/no-show` | JWT | Cadete reporta que el cliente no estaba. |
 | GET | `/:id` | JWT | Lee pedido + perfil del cadete asignado. Visibilidad controlada. |
+
+> El despacho de cadetes ya NO depende solo de este endpoint manual: `backend/src/jobs/matchingScheduler.js` corre dentro del mismo proceso Node (setInterval 15s) y llama a la misma función `ejecutarDifusion()` para: despacho inicial diferido según `listo_estimado_at - anticipacion_difusion_min`, re-difusión automática si nadie acepta (ensancha el radio una vez antes de rendirse y avisarle al comercio por push), y expiración de ofertas vencidas. Parámetros de tuning (radio, timeout, pesos de ranking, etc.) viven en la tabla `configuracion_zonas`, ajustables por SQL sin redeploy — ver §6 y §7.
 
 ### Cadete `/api/cadete`
 | Método | Ruta | Auth | Descripción |
@@ -252,22 +269,39 @@ UPDATE pedidos SET cadete_id=?, codigo_retiro=?, codigo_entrega=?
 WHERE id=? AND cadete_id IS NULL
 ```
 
-### Tarifa clima (+20%)
-- El cadete activa un toggle en su app → se guarda `cadetes.tarifa_clima = true`
-- `difundirPedido` lee el flag y multiplica la `ganancia` por 1.20
-- El cliente NO ve el recargo; el aumento va íntegro al cadete
+### Tarifa clima (+20%) — manual + automática
+- Override manual: el cadete activa un toggle en su app → se guarda `cadetes.tarifa_clima = true`.
+- Detección automática (2026-07-30): `climaService.esClimaAdversoParaUbicacion(lat,lng)` consulta wttr.in con caché geográfica en `clima_cache` (grilla de ~11km, TTL 20min) — se calcula UNA VEZ por tanda de difusión (no por cadete), a partir de la ubicación del comercio.
+- `climaAplicado = climaAdversoDetectado || cadete.tarifa_clima` — el toggle manual es un OR, no lo reemplaza.
+- `ejecutarDifusion()`/`calcularTarifa()` multiplican la `ganancia` por 1.20 (redondeado a $50) cuando `climaAplicado`.
+- El cliente NO ve el recargo; el aumento va íntegro al cadete.
 
 ### Recargo plataforma (20%)
 - Se aplica en el frontend del cliente al mostrar precios: `precio_mostrado = precio_comercio × 1.20`
 - El comercio recibe el 100% de su precio definido
 - La diferencia (20%) es la comisión de la plataforma
-- Subido del 15% al 20% el 2026-07-17 (`migration-recargo-plataforma-20.sql`) — decisión de negocio del usuario, no retroactivo
+- Subido del 15% al 20% el 2026-07-20 (`migration-recargo-plataforma-20.sql`) — decisión de negocio del usuario, no retroactivo
+
+### Matching automático de cadetes (2026-07-30)
+- `matchingUtils.rankearCandidatos(candidatos, config)` combina distancia, rating y rotación/fairness (horas desde `cadetes.ultima_asignacion_at`, tope 4hs, cadete nunca asignado recibe el bonus máximo) en un único score ponderado — reemplaza el sort puro por distancia de antes.
+- Pesos y demás parámetros (radio, radio ampliado, timeout de oferta, intentos de re-difusión, anticipación de despacho) viven en `configuracion_zonas`, con fallback global si la `comercios.ciudad` (texto libre, normalizado sin tildes) no matchea ninguna fila específica — ajustable por `UPDATE` en Supabase, sin redeploy.
+- Si nadie acepta tras `redifusion_max_intentos`, se reintenta UNA vez con `radio_ampliado_km` antes de marcar `pedidos.difusion_agotada=true` y avisarle al comercio por push.
+
+### Tiempo de preparación (2026-07-30)
+- El comercio declara `tiempoPreparacionMin` (3–90) al aceptar (`POST /api/pedidos/aceptar-comercio`) → `pedidos.listo_estimado_at = now() + minutos` (reloj del servidor).
+- `matchingScheduler.js` despacha cadetes recién cuando `ahora >= listo_estimado_at - anticipacion_difusion_min` (default 8 min) — antes se avisaba siempre inmediatamente al aceptar, sin relación con cuánto tardaba la comida.
+
+### Horarios automáticos de comercios (2026-07-31)
+- El comercio configura `horario_apertura`/`horario_cierre`/`dias_abierto` (UI ya existía, nada la leía antes). `horariosScheduler.js` (tick 60s) calcula `comercios.abierto_ahora` automáticamente a partir de eso. Comercios sin horario configurado quedan 100% manual, sin regresión.
+- El switch manual pasa a ser una pausa temporal (`pausado_manual`/`pausado_desde`) cuando hay horario configurado: cierra al instante, se limpia sola en la próxima apertura programada.
+- No soportado (a propósito, ver el job): horarios que cruzan medianoche (`horario_cierre <= horario_apertura`).
+- Un comercio "cerrado" bloquea de verdad la creación de pedidos: policy RLS **restrictiva** en `pedidos` (`pedidos_bloquear_comercio_cerrado`) exige `comercios.abierto_ahora=true` (u admin) para el INSERT — antes solo era un bloqueo cosmético del botón en el cliente.
 
 ---
 
 ## 7. Base de datos — convenciones críticas
 
-> **Leer `supabase/README-database.md` para el schema completo de las 27 tablas.**
+> **Leer `supabase/README-database.md` para el schema completo.**
 
 ### Relaciones de auth UID (IMPORTANTE)
 ```
@@ -283,17 +317,32 @@ En políticas RLS que comparan con `auth.uid()` (que retorna `uuid`) se debe cas
 auth.uid()::text = comercio_id
 ```
 
+### RLS — usar siempre `public.rol_actual()`, nunca subqueries inline
+`public.rol_actual()` (`SECURITY DEFINER`, `LANGUAGE plpgsql`, no `sql` — el planner
+puede inlinear funciones SQL y anular el bypass de RLS) reemplaza cualquier
+`(SELECT rol FROM perfiles WHERE usuario_id = auth.uid())` inline dentro de una
+policy. Una versión anterior con subqueries crudas causó una recursión infinita
+real en producción (`infinite recursion detected in policy`, 42P17) — ver
+CHANGELOG v3.3.0. Toda policy nueva desde entonces (incluida
+`pedidos_bloquear_comercio_cerrado`) usa `rol_actual()`.
+
+Para tablas `configuracion_zonas`/`clima_cache` (solo backend/admin, ningún
+acceso directo desde cliente/comercio/cadete): policy `FOR ALL USING
+(rol_actual() = 'admin')`.
+
 ### Tablas con Realtime habilitado en Supabase Dashboard
 - `ofertas_cadetes` — cadete recibe nuevas ofertas en tiempo real
 - `ubicacion_cadetes` — cliente ve el mapa del cadete en tiempo real
 - `mensajes_pedido` — chat en tiempo real entre cliente/comercio/cadete
 
+### Tablas nuevas (2026-07-30/31)
+- `configuracion_zonas` — parámetros de matching/tuning por ciudad (o fila `NULL` = fallback global): radio_km, radio_ampliado_km, max_ofertas, oferta_timeout_seg, redifusion_intervalo_seg, redifusion_max_intentos, anticipacion_difusion_min, pesos de ranking. Se edita por SQL directo, no hay pantalla de admin.
+- `clima_cache` — caché de clima por grilla geográfica (`grid_lat`,`grid_lng` redondeados a 1 decimal), usada por `climaService.js`.
+
 ### Migraciones — estado
-No hay ninguna migración pendiente de aplicar en Supabase al 2026-07-14.
-`migration-tarifa-clima.sql` y `migration-fix-resenas-cadete-fk.sql` ya están
-aplicadas en producción (esta última corrige que `resenas.cadete_id` apuntaba
-con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
-`backend/scripts/qa-e2e.mjs`).
+Todas las migraciones aplicadas hasta el 2026-07-31 (ver lista completa en §3).
+Todas siguen la convención `ADD COLUMN IF NOT EXISTS` / `DROP POLICY IF EXISTS`
++ `CREATE POLICY` — aditivas e idempotentes, seguras de re-correr.
 
 ---
 
@@ -302,6 +351,9 @@ con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
 ```
 1. Cliente agrega productos al carrito → confirmarPedido()
    - Captura lat_entrega/lng_entrega del pin del mapa
+   - Bloqueado a nivel de datos si el comercio está cerrado: RLS restrictiva
+     pedidos_bloquear_comercio_cerrado exige comercios.abierto_ahora=true
+     (u admin) para el INSERT — no es solo un botón deshabilitado en la UI.
    - Inserta en `pedidos` (estado='nuevo', estado_pago='pendiente')
    - Si MercadoPago: POST /api/mp/crear-preferencia → redirige a MP
    - Si efectivo: pedido ya confirmado
@@ -309,16 +361,31 @@ con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
 2. Webhook MP / confirmación efectivo → pedido.estado_pago = 'aprobado'
 
 3. Comercio ve el pedido en su panel (Realtime en pedidos)
-   - Acepta → estado='preparando'
-   - POST /api/pedidos/difundir → busca cadetes en radio 10km
-     * Calcula Haversine para cada cadete con GPS
-     * Inserta en `ofertas_cadetes` (Realtime notifica al cadete)
-     * Envía push notification (si VAPID configurado)
+   - Acepta declarando tiempo de preparación → POST /api/pedidos/aceptar-comercio
+     {tiempoPreparacionMin: 3-90} → estado='preparando',
+     listo_estimado_at = now() + minutos (reloj del servidor)
+   - Ya NO difunde inline. matchingScheduler.js (setInterval 15s) despacha
+     cadetes automáticamente cuando ahora >= listo_estimado_at -
+     anticipacion_difusion_min (default 8 min) — llama a ejecutarDifusion():
+     * rankearCandidatos() combina distancia + rating + rotación/fairness
+       (matchingUtils.js), no solo distancia pura
+     * Detecta clima adverso una vez por tanda (climaService.js, wttr.in +
+       caché) y aplica +20% si corresponde (OR con el toggle manual del cadete)
+     * Inserta en `ofertas_cadetes` (Realtime notifica al cadete) + push
+     * Si nadie acepta: re-difusión automática (hasta 5 intentos), ensancha
+       el radio una vez antes de rendirse y avisarle al comercio por push
+   - El comercio también puede seguir usando "Buscar cadete" a mano
+     (POST /api/pedidos/difundir) — misma lógica de ejecutarDifusion()
 
 4. Cadete ve la oferta → acepta → POST /api/pedidos/aceptar
    - Anti-colisión: UPDATE WHERE cadete_id IS NULL
    - Genera codigo_retiro y codigo_entrega (CSPRNG 4 dígitos)
    - Congela ganancia_estimada en ofertas_cadetes
+   - Transiciona ofertas_cadetes.estado a 'aceptada' (la ganadora) y
+     'rechazada' (las demás pendientes del mismo pedido)
+   - Actualiza cadetes.ultima_asignacion_at (alimenta el ranking de rotación)
+   - El cadete también puede rechazar una oferta explícitamente antes de
+     aceptar (POST /api/pedidos/rechazar-oferta, botón o timeout de 20s)
 
 5. Cadete va al comercio → comercio muestra codigo_retiro
    - Cadete ingresa el código → POST /api/pedidos/cambiar-estado {estado:'en_camino'}
@@ -334,7 +401,7 @@ con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
    - Trigger: acredita comisión al cadete referente (si aplica)
    - Trigger: si metodo_pago='efectivo' → marca cobrado_efectivo=true y acumula
      el 20% (monto_comision_app) como deuda en **comercios.deuda**. Confirmado
-     con el usuario (2026-07-14) que este es el comportamiento correcto — el
+     con el usuario que este es el comportamiento correcto — el
      comercio le debe a la plataforma su comisión cuando el cobro fue en
      efectivo y no pasó por MercadoPago. `cadetes.deuda_efectivo` es un campo
      distinto, no relacionado a este trigger. CHANGELOG.md (v2.5.0) describe
@@ -344,6 +411,12 @@ con su FK a `cadetes.id` en vez de `auth.users.id`, encontrado corriendo
 8. Cliente califica → POST /api/pedidos/valorar
    - Actualiza rating de comercio y cadete
 ```
+
+**Nota:** el comercio puede editar los productos del pedido (cantidad o
+quitar un ítem) en cualquier momento antes de que el cadete retire —
+`PATCH /api/pedidos/:id/productos` — salvo que el pago haya sido con
+MercadoPago (ya se cobró el total viejo). El cliente y el cadete se enteran
+en vivo por Realtime, con un toast.
 
 ---
 
@@ -430,12 +503,21 @@ npx cap open android         # abre Android Studio
 
 | # | Tarea | Impacto |
 |---|-------|---------|
-| 1 | Build del APK Android (requiere Android Studio — no instalado en la máquina de desarrollo actual) | App nativa |
-| 2 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
-| 3 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
-| 4 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
-| 5 | Horarios automáticos de comercios (hoy es toggle manual) | UX |
-| 6 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+| 1 | **Promociones no descuentan el precio real** — el comercio puede crear/pausar descuentos y el cliente los ve como badge, pero el carrito nunca aplica el descuento (`cliente.js` usa el precio crudo) ni chequea "envío gratis" (el envío queda fijo). Barato de cerrar: la UI y el dato ya existen, falta conectar el cálculo. Encontrado en investigación de completitud 2026-07-31. | Conversión / confianza del cliente |
+| 2 | Configurar `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_EMAIL` en Railway — push web ya está codeado (`pushController.js`) pero no funciona en producción sin esto | Push notifications |
+| 3 | Build del APK/AAB Android (requiere Android Studio — no instalado en la máquina de desarrollo actual) | App nativa |
+| 4 | Firebase → `google-services.json` → FCM para nativo | Push en app Android cerrada |
+| 5 | Background GPS para cadetes (plugin Capacitor) | Tracking al minimizar la app |
+| 6 | Publicar en Google Play Store ($25 cuenta desarrollador) | Distribución |
+| 7 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+
+~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
+
+**Contexto de mercado (investigación 2026-07-31, ver memoria de sesión):** Uber Eats
+relanzó en Argentina en enero 2026 eligiendo **Córdoba** (una de las 3 ciudades de
+lanzamiento) como punto de partida — Córdoba y La Plata ya tienen Rappi+PedidosYa;
+Santiago del Estero parece ser la plaza con menos presencia de los grandes players.
+No hay pre-orders ni carrito grupal (confirmado ausentes, no es un bug).
 
 ---
 
