@@ -2,6 +2,48 @@
 
 ---
 
+## [3.10.0] — 31 de julio 2026
+
+### Preparación de pre-lanzamiento (todo excepto Payway/MercadoPago, que maneja Fabri aparte)
+
+Investigación + limpieza para dejar listo el lanzamiento en Play Store, con dos
+hallazgos que cambiaron el alcance de lo que parecía pendiente:
+
+- **`android/` estaba desincronizado un mes entero**: `npx cap sync android` no
+  se había corrido desde fines de junio — nada del trabajo de julio (matching
+  automático, horarios automáticos, edición de productos, recargo 20%) estaba
+  en el proyecto nativo. Corregido con un nuevo `npx cap sync android`.
+- **Promociones: la creación ya está bloqueada a propósito, no es un bug.**
+  `frontend/comercio/comercio.html` tiene la pestaña "Crear Promociones" con
+  `pointer-events:none` y un banner "estarán disponibles próximamente"
+  (intencional, commit `2671bed`). Confirmado que `comercio.js` nunca hace
+  `insert` a la tabla `promociones` — el hallazgo anterior de "el descuento no
+  se aplica al precio real" sigue siendo cierto en el código, pero no lo puede
+  explotar ningún comercio real hoy. Se encontraron 2 filas de prueba viejas y
+  vencidas (`activa=true`, `fecha_fin` de abril) — invisibles para el cliente
+  por el propio filtro de fecha de la app, se dejaron sin tocar (no son un
+  riesgo real, decisión de limpieza queda para el usuario).
+- VAPID: par de claves rotado (el público que vivía en `frontend/env.js` no
+  tenía la privada correspondiente guardada en ningún lado local — huérfano,
+  no se buscó). Actualizado `frontend/env.js` con la pública nueva. Falta
+  cargar el par completo en Railway (paso manual).
+- `capacitor.config.json`: se saca el bloque `android.buildOptions`, que
+  referenciaba un keystore (`puertaapuertax.keystore`/alias `puertaapuertax`)
+  que no coincide con el real (`puertaapuertax-upload.jks`/alias `upload`).
+  Confirmado que `android/app/build.gradle` no tiene ningún `signingConfig`
+  que lea ese campo — la firma real es 100% manual vía Android Studio, el
+  bloque solo confundía sin cumplir ninguna función.
+- `CLAUDE.md` §13 (pendientes): actualizado a la realidad verificada (Android
+  Studio y `android/` sí están instalados/generados — el documento decía lo
+  contrario), y corregida la descripción de promociones.
+- Build de un `.apk` de debug con `./gradlew assembleDebug` (usa el JBR
+  embebido de Android Studio, `Program Files\Android\Android Studio\jbr`,
+  JDK 21 — el `java` del PATH del sistema es 1.8, insuficiente para el AGP
+  moderno de Capacitor 7) — no toca el keystore de release, sirve para
+  probar en un dispositivo real todo el código de julio.
+
+---
+
 ## [3.9.0] — 30/31 de julio 2026
 
 ### Horarios automáticos de comercios + bloqueo real de pedidos a cerrados
