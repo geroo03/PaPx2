@@ -165,7 +165,7 @@ function dispatchAction(t, originalEvent) {
   const action = t.dataset.action;
   const id     = t.dataset.id;
   switch (action) {
-    case 'nav':                  navigate(t.dataset.view); break;
+    case 'nav':                  navigate(t.dataset.view); if (t.dataset.view === 'finanzas' && t.dataset.subtab) switchFinanzasTab(t.dataset.subtab); break;
     case 'toggle-sidebar':       toggleSidebar(); break;
     case 'toggle-estado':        toggleEstado(); break;
     case 'logout':               logout(); break;
@@ -293,7 +293,7 @@ async function loadTablero() {
       icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
       color: '#7C3AED', bg: '#F5F3FF', border: '#DDD6FE',
       text: 'Datos bancarios incompletos. Necesitas CBU/alias para recibir pagos.',
-      action: 'finanzas', label: 'Completar datos bancarios',
+      action: 'finanzas', subtab: 'contrato', label: 'Completar datos bancarios',
     });
   }
 
@@ -306,7 +306,7 @@ async function loadTablero() {
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${a.bg};border:1px solid ${a.border};border-radius:10px;">
           <div style="flex-shrink:0;">${a.icon}</div>
           <div style="flex:1;font-size:12px;color:${a.color};font-weight:500;line-height:1.4;">${a.text}</div>
-          <button data-action="nav" data-view="${a.action}" style="flex-shrink:0;background:${a.color};color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${a.label}</button>
+          <button data-action="nav" data-view="${a.action}" data-subtab="${a.subtab || ''}" style="flex-shrink:0;background:${a.color};color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${a.label}</button>
         </div>
       `).join('');
     }
@@ -1381,6 +1381,7 @@ function abrirModalUbicacion() {
   if (com?.direccion) { const el = g('ub-direccion'); if (el) el.value = com.direccion; }
   if (com?.ciudad)    { const el = g('ub-ciudad'); if (el) el.value = com.ciudad; }
   if (com?.provincia) { const el = g('ub-provincia'); if (el) el.value = com.provincia; }
+  if (com?.telefono)  { const el = g('ub-telefono'); if (el) el.value = com.telefono; }
 
   // Sin coordenadas guardadas todavía (comercio viejo sin lat/lng), no
   // asumir Santiago del Estero — eso pone el pin a cientos de km del local
@@ -1447,6 +1448,7 @@ window.guardarUbicacionComercio = async function() {
   const direccion  = g('ub-direccion')?.value?.trim() || null;
   const provincia  = g('ub-provincia')?.value || null;
   const ciudad     = g('ub-ciudad')?.value?.trim() || null;
+  const telefono   = g('ub-telefono')?.value?.trim() || null;
   const pos        = _ubMarker?.getLatLng();
   const lat        = pos?.lat ?? null;
   const lng        = pos?.lng ?? null;
@@ -1457,7 +1459,7 @@ window.guardarUbicacionComercio = async function() {
   const btn = g('ub-btn-guardar');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
-  const payload = { direccion, provincia, ciudad, lat, lng };
+  const payload = { direccion, provincia, ciudad, telefono, lat, lng };
   const { error } = await sb.from('comercios').update(payload).eq('id', S.cid);
 
   if (error) {

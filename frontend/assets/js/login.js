@@ -91,7 +91,7 @@ async function handleLogin() {
     if (err.message?.toLowerCase().includes('invalid login') ||
         err.message?.toLowerCase().includes('invalid') ||
         err.message?.toLowerCase().includes('credentials')) {
-      showError('Email o contraseña incorrectos.');
+      showError('Email o contraseña incorrectos. Si todavía no tenés cuenta, registrate abajo.');
     } else if (err.message?.toLowerCase().includes('email not confirmed')) {
       showError('Confirmá tu email antes de ingresar. Revisá tu casilla de correo.');
     } else {

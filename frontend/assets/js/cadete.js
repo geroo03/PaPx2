@@ -498,6 +498,7 @@ function renderTripActivo(container) {
         ${renderChatCadete(v.id ?? v.pedido_id)}
       </div>`;
 
+    removeAlertBtn();
     document.body.insertAdjacentHTML('beforeend', alertBtnHtml);
     document.getElementById('viaje-alert-btn')?.addEventListener('click', () => {
       if (confirm('¿Reportar un problema con este viaje al administrador?')) toast('Reporte enviado.');
@@ -602,6 +603,7 @@ function renderTripActivo(container) {
         </div>
       </div>`;
 
+    removeAlertBtn();
     document.body.insertAdjacentHTML('beforeend', alertBtnHtml);
     document.getElementById('viaje-alert-btn')?.addEventListener('click', () => {
       if (confirm('¿Reportar un problema con este viaje al administrador?')) toast('Reporte enviado.');
@@ -1543,44 +1545,6 @@ async function cargarEfectivo() {
   } catch {}
 }
 
-function abrirLiquidacion() {
-  const modal = document.getElementById('liq-modal');
-  if (modal) modal.style.display = 'flex';
-}
-
-function cerrarLiquidacion() {
-  const modal = document.getElementById('liq-modal');
-  if (modal) modal.style.display = 'none';
-  const errEl = document.getElementById('liq-err');
-  if (errEl) errEl.style.display = 'none';
-}
-
-async function enviarLiquidacion() {
-  const monto  = document.getElementById('liq-monto')?.value;
-  const metodo = document.getElementById('liq-metodo')?.value || 'transferencia';
-  const btn    = document.getElementById('liq-btn');
-  const errEl  = document.getElementById('liq-err');
-
-  if (!monto || Number(monto) <= 0) {
-    if (errEl) { errEl.textContent = 'Ingresa un monto valido'; errEl.style.display = 'block'; }
-    return;
-  }
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
-  if (errEl) errEl.style.display = 'none';
-
-  try {
-    await apiPost('/api/cadete/solicitar-liquidacion', { monto: Number(monto), metodo });
-    cerrarLiquidacion();
-    toast('Liquidacion solicitada. Un admin la va a confirmar.');
-    cargarEfectivo();
-  } catch (err) {
-    if (errEl) { errEl.textContent = err.message || 'Error al solicitar'; errEl.style.display = 'block'; }
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // TIMER 10 MIN — cliente no aparece al momento de la entrega
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1984,9 +1948,6 @@ Object.assign(window, {
   cancelarPorNoShow,
   siguienteSlideTutorial,
   cerrarTutorial,
-  abrirLiquidacion,
-  cerrarLiquidacion,
-  enviarLiquidacion,
   cargarEfectivo,
   toggleChatCadete,
   enviarMsgCadete,

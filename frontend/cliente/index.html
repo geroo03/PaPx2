@@ -72,7 +72,7 @@
 
     // If the user is a plain 'usuario', show a premium floating card inviting them to
     // become a cadete. We add a confirmation dialog before performing the role update.
-    if (role === 'usuario') {
+    if (role === 'usuario' && !localStorage.getItem('pap_cadete_promo_dismissed')) {
       setTimeout(()=>{
         const wrapper = document.createElement('div');
         wrapper.id = 'be-cadete-card';
@@ -91,6 +91,7 @@
         wrapper.style.alignItems = 'center';
 
         wrapper.innerHTML = `
+          <button id="be-cadete-close" aria-label="Cerrar" style="position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:#0D0D0D;color:#fff;border:2px solid #fff;font-size:14px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);">×</button>
           <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 18px rgba(0,0,0,.06);"></div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:15px;font-weight:800;color:#0D0D0D;line-height:1;">¿Querés ser Cadete?</div>
@@ -102,6 +103,11 @@
         `;
 
         document.body.appendChild(wrapper);
+
+        document.getElementById('be-cadete-close').addEventListener('click', function(){
+          wrapper.remove();
+          localStorage.setItem('pap_cadete_promo_dismissed', '1');
+        });
 
         const btn = document.getElementById('be-cadete-btn');
         btn.addEventListener('click', async function(){

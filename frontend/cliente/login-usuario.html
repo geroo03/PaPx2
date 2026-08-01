@@ -143,7 +143,6 @@ async function loginGoogle() {
     await window.authService.iniciarLoginGoogleNativo(returnPath);
   } catch(e) {
     console.error('DEBUG SUPABASE: loginGoogle catch', e && e.message ? e.message : e);
-    try { alert('Error de Supabase (OAuth): ' + (e && e.message ? e.message : String(e))); } catch(_){ }
     showError('Error al conectar con Google. Intentá de nuevo.');
   }
 }
@@ -165,7 +164,6 @@ async function submitForm() {
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) {
         console.error('DEBUG SUPABASE: signInWithPassword error', error && error.message ? error.message : error);
-        try { alert('Error de Supabase (login): ' + (error?.message || JSON.stringify(error))); } catch(e){}
         throw error;
       }
       sessionActual = data.session;
@@ -203,7 +201,7 @@ async function submitForm() {
     }
   } catch(e) {
     const msg = (e && e.message) ? e.message : 'Algo salió mal. Intentá de nuevo.';
-    if (msg.includes('Invalid login') || msg.includes('invalid')) showError('Email o contraseña incorrectos.');
+    if (msg.includes('Invalid login') || msg.includes('invalid')) showError('Email o contraseña incorrectos. Si todavía no tenés cuenta, registrate arriba.');
     else if (msg.includes('Email not confirmed')) showError('Confirmá tu email antes de ingresar.');
     else if (msg.includes('already registered')) showError('Este email ya tiene cuenta. Ingresá con tu contraseña.');
     else showError(msg);

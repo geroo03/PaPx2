@@ -132,9 +132,9 @@ export async function signInWithOAuth(provider, opts){
     }
     return await sbClient.auth.signInWithOAuth({ provider, options: safeOpts.options || safeOpts });
   } catch (err) {
-    // Surface debug information to the console and to the user
+    // Surface debug information to the console (no alert nativo — el catch del
+    // caller ya muestra un mensaje amigable via showError()).
     console.error('DEBUG SUPABASE: signInWithOAuth error', err && err.message ? err.message : err);
-    try { alert('Error de Supabase (OAuth): ' + (err && err.message ? err.message : String(err))); } catch(e){}
     throw err;
   }
 }
