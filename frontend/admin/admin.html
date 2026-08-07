@@ -87,6 +87,7 @@
     <div class="tab" data-tab="rubros" onclick="switchTab('rubros');loadRubros()">Rubros</div>
     <div class="tab" data-tab="carrusel" onclick="switchTab('carrusel');loadCarrusel()">Carrusel</div>
     <div class="tab" data-tab="crear" onclick="switchTab('crear')">Crear usuario</div>
+    <div class="tab" data-tab="comprar" onclick="switchTab('comprar')">Comprar</div>
   </div>
 
   <!-- TAB: Pedidos -->
@@ -162,6 +163,20 @@
         <button type="submit" class="btn btn-primary" style="margin-top:8px;">Crear usuario</button>
         <div id="crear-result" style="font-size:13px;color:var(--muted);"></div>
       </form>
+    </div>
+  </div>
+
+  <!-- TAB: Comprar — mismo patrón que "Ir a la Tienda" en embajador/dashboard.html.
+       El guard de cliente/index.html no redirige a admin/embajador (solo saca a
+       comercio/cadete), y las policies de `pedidos` no exigen ningún rol
+       puntual para insertar (solo cliente_id = auth.uid()), así que un admin ya
+       puede comprar ahí mismo sin ningún cambio adicional — esto es solo el
+       acceso visible + la vuelta. -->
+  <div class="tab-panel" id="tab-comprar">
+    <div class="panel" style="max-width:500px;text-align:center;padding:48px 16px;">
+      <h2 style="margin-bottom:8px;">Comprar como cliente</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:24px;">Podés pedir delivery igual que cualquier cliente, con esta misma cuenta.</p>
+      <a href="/cliente/index.html" class="btn btn-primary" style="display:inline-block;text-decoration:none;padding:12px 28px;">Ir a la tienda →</a>
     </div>
   </div>
 

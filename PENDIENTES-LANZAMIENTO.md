@@ -97,6 +97,30 @@ contraseña (3 veces), sanitización HTML (4 veces), inicialización del
 cliente Supabase (5 veces). Funciona todo bien, no bloquea el lanzamiento,
 pero es un buen candidato para una tarea de refactor aparte.
 
+## 9. 🟡 `cliente/login-usuario.html`: falta checkbox de TyC + bug de contraseña
+
+De una auditoría del login del 7 de agosto, todavía sin arreglar (esperando
+que confirmes que querés que los toque):
+- No tiene checkbox de Términos y Condiciones en ningún lado — es la única
+  vía de registro de todo el sitio sin uno.
+- El chequeo de "contraseña mínimo 8 caracteres" se aplica también al
+  iniciar sesión, no solo al registrarse — bloquearía a cualquier cuenta
+  real con contraseña más corta (creada antes de esta regla, o de alta
+  directo en el dashboard de Supabase) aunque ponga la contraseña correcta.
+
+## 10. ✅ `patrocinios` sin las columnas del carrusel — ya resuelto
+
+El botón "Guardar Slot" de la pestaña Carrusel del admin nunca pudo
+guardar nada en producción: a la tabla real le faltaban columnas
+(`titulo`, `sub_titulo`, `imagen_url`, `link_oferta`, `orden`) y además
+tenía `embajador_id`/`comercio_id` como `NOT NULL` sin que nada los
+completara — heredado de un diseño anterior (embajador↔comercio para
+comisiones) mezclado con el uso actual. Ya aplicado
+(`migration-fix-patrocinios-columnas-carrusel.sql`, 7 de agosto). Probado
+con datos de prueba: 3 comercios (uno por ciudad de lanzamiento) + 12
+productos + el switch admin↔cliente para poder comprar con la misma
+cuenta.
+
 ---
 
 ### Lo que ya está resuelto (no necesitás hacer nada más acá)

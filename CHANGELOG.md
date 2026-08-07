@@ -2,6 +2,65 @@
 
 ---
 
+## [3.12.0] — 7 de agosto 2026 (continuación)
+
+### Empty states del home, filtro de cercanía real, switch admin↔cliente, y un bug de schema en `patrocinios`
+
+- **Empty states en vez de secciones que desaparecen.** Con la base recién
+  vaciada (ver 3.11.0), los 3 carruseles del home del cliente (banner de
+  patrocinios, "ofertas de hoy", "recién llegados") y la sección "Comercios
+  cerca de vos" se ocultaban por completo (`display:none`) al no tener
+  datos, sin avisar nada. Ahora muestran un mensaje ("Todavía no hay
+  comercios activos en tu zona", etc.) — se detectó al notar que el
+  carrusel "desapareció" tras el reset.
+- **Filtro de cercanía real (GPS) — `frontend/assets/js/cliente.js`.**
+  `cargarComercios()`, `cargarNuevosComercios()` y
+  `cargarComerciosReferidos()` traían TODOS los comercios activos sin
+  filtrar por ubicación — un cliente en Santiago del Estero veía comercios
+  de La Plata mezclados y viceversa (bug real reportado por el usuario, no
+  hipotético). Se agrega `filtrarPorCercania()` (Haversine, radio 50km)
+  aplicado en las 3 funciones; `detectarUbicacion()` ahora guarda
+  `userLat`/`userLng` reales y vuelve a cargar todo una vez que la
+  geolocalización resuelve. Sin permiso de ubicación, no se filtra nada
+  (se prefiere mostrar de más a mostrar vacío).
+- **Admin/embajador ahora pueden comprar como cliente con la misma cuenta.**
+  Nueva pestaña "Comprar" en `admin/admin.html` (mismo patrón que "Ir a la
+  Tienda" en `embajador/dashboard.html`) y botón "Volver al panel Admin" en
+  el perfil del cliente (`cliente/index.html`), visible solo si
+  `perfiles.rol` es `admin` (fuente de verdad, no `user_metadata`, mismo
+  criterio que el resto de la sesión). De paso se encontró y sacó un guard
+  de sesión duplicado e inconsistente en `cliente/index.html`: un script
+  inline redirigía a admin/embajador fuera de la página apenas detectaba el
+  rol, ANTES de que el guard más permisivo de `cliente.js` (que sí los deja
+  pasar) llegara a correr — sin sacarlo, el switch nuevo nunca hubiera
+  funcionado. El embajador quedaba "andando" solo por una casualidad: su
+  `user_metadata.role` normalmente no coincide con `perfiles.rol`.
+- **Fix de schema real en `patrocinios`** (migration-fix-patrocinios-columnas-carrusel.sql):
+  la tabla en producción nunca tuvo las columnas `titulo`/`sub_titulo`/
+  `imagen_url`/`link_oferta`/`orden`, y además tenía `embajador_id` y
+  `comercio_id` como `NOT NULL` — heredado de un diseño anterior
+  (embajador↔comercio para comisiones) que quedó mezclado con el uso actual
+  (slide genérico del carrusel). Esto significa que el botón "Guardar Slot"
+  del panel admin (pestaña Carrusel) **nunca pudo guardar nada en
+  producción** — se rompía con "column does not exist" o "null value
+  violates not-null constraint" según qué campo faltara. Se agregan las
+  columnas faltantes y se sacan los NOT NULL de embajador_id/comercio_id
+  (un slide de marketing no depende de ningún embajador puntual).
+- **3 comercios de prueba + 12 productos** sembrados manualmente (uno por
+  cada ciudad de lanzamiento: Santiago del Estero, La Plata, Córdoba, 4
+  productos cada uno) para poder probar los carruseles, el filtro de
+  cercanía y el flujo de compra completo con datos reales.
+
+### Pendiente sin resolver (detectado en la auditoría de login, no tocado)
+- `cliente/login-usuario.html` sigue sin checkbox de Términos y
+  Condiciones (única vía de registro del sitio sin uno).
+- En la misma página, el chequeo de "contraseña mínimo 8 caracteres" se
+  aplica también al iniciar sesión (no solo al registrarse) — bloquearía a
+  cualquier cuenta real con contraseña más corta creada antes de esta
+  regla o directo desde el dashboard de Supabase.
+
+---
+
 ## [3.11.0] — 7 de agosto 2026
 
 ### Login único con Google + fix de FK + limpieza de código muerto

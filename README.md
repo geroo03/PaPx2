@@ -19,6 +19,9 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 6. **Payway** — a cargo de Fabri, no tocar sin que él avance.
 7. **`saveCierre()` (panel comercio, cierre especial por fecha) no persiste nada** — hoy solo muestra un toast. No hay columna/tabla en el schema para esto; arreglarlo de verdad requiere una migración nueva, no un simple fix de código. Detectado en la auditoría de código muerto del 2026-08-07 (ver CHANGELOG).
 8. **Duplicación de lógica sin unificar** (login reimplementado 3 veces, toggle de mostrar-contraseña 3 veces, sanitización HTML 4 veces, init del cliente Supabase 5 veces) — funciona, pero es deuda técnica. Detectado en la misma auditoría, dejado para una tarea aparte a propósito.
+9. **`cliente/login-usuario.html` sin checkbox de Términos y Condiciones** — única vía de registro del sitio sin uno (`/login.html`, `registro-comercio.html` y `registro-cadete.html` sí lo tienen). Detectado en una auditoría del login del 2026-08-07, todavía sin arreglar.
+10. **Bug real en la misma página**: el chequeo de "contraseña mínimo 8 caracteres" se aplica también al iniciar sesión, no solo al registrarse — bloquearía a cualquier cuenta real con contraseña más corta (creada antes de esta regla, o de alta directo en el dashboard de Supabase). Todavía sin arreglar.
+11. **El panel admin nunca pudo guardar el carrusel de ofertas** ("Guardar Slot" en la pestaña Carrusel) — la tabla `patrocinios` en producción no tenía las columnas que ese botón necesita, y tenía `embajador_id`/`comercio_id` como `NOT NULL` sin que nada los completara. Ya arreglado (`migration-fix-patrocinios-columnas-carrusel.sql`, aplicada 2026-08-07).
 
 ---
 

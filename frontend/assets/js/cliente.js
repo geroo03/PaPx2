@@ -69,9 +69,9 @@ async function cargarComercios(){
     try { allComercios = JSON.parse(cached); renderRubros(); } catch {}
   }
   try{
-    const{data,error}=await sb.from('comercios').select('id,nombre,categoria,imagen_url,abierto_ahora,rating,total_pedidos,activo').eq('activo',true).order('nombre',{ascending:true});
+    const{data,error}=await sb.from('comercios').select('id,nombre,categoria,imagen_url,abierto_ahora,rating,total_pedidos,activo,lat,lng').eq('activo',true).order('nombre',{ascending:true});
     if(error)throw error;
-    allComercios=data||[];
+    allComercios=filtrarPorCercania(data||[]);
     try { localStorage.setItem('pap_comercios_cache', JSON.stringify(allComercios)); } catch {}
   }catch(e){
     console.error('[PaP] Error cargando comercios:', e);
@@ -111,7 +111,10 @@ async function renderRubros(){
   // Sección 2: solo rubros activos
   const rubrosActivos = RUBROS.filter(r => activos.has(r.id));
   const rubros=rubrosActivos.map(r=>{const tienePromo=categoriasConPromo.has(r.id);const promoBadge=tienePromo?`<div style="position:absolute;top:10px;left:10px;z-index:3;background:#FF6B35;color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;">${_fire} Ofertas</div>`:'';return`<div class="com-card" onclick="abrirRubro('${r.id}','${r.label}')"><div class="com-img"><img src="${r.img}" alt="${r.label}" loading="lazy"/><div class="com-img-overlay"></div>${promoBadge}</div><div class="com-info"><div class="com-name"><span style="display:inline-flex;align-items:center;gap:6px;">${r.svg} ${r.label}</span></div><div class="com-meta"><span>Toca para ver todos</span>${tienePromo?`<span style="color:#FF6B35;font-weight:700;">${_fire} Con ofertas</span>`:''}</div></div></div>`;}).join('');
-  document.getElementById('comercios-container').innerHTML=(tiendas?`<div class="sec-head"><h3>Comercios cerca de vos</h3></div>${tiendas}`:'')+'<div class="sec-head" style="margin-top:8px;"><h3>Explorar por categoría</h3></div>'+rubros;
+  const seccionTiendas = tiendas
+    ? `<div class="sec-head"><h3>Comercios cerca de vos</h3></div>${tiendas}`
+    : `<div class="sec-head"><h3>Comercios cerca de vos</h3></div><div class="empty" style="padding:32px 24px;"><p>Todavía no hay comercios activos en tu zona.<br>¡Muy pronto vas a poder pedir acá!</p></div>`;
+  document.getElementById('comercios-container').innerHTML=seccionTiendas+'<div class="sec-head" style="margin-top:8px;"><h3>Explorar por categoría</h3></div>'+rubros;
 }
 
 async function abrirRubro(catId,label){
@@ -803,7 +806,12 @@ async function elegirRol(rol){
 }
 
 function cargarPerfil(user){const nombre=user.user_metadata?.full_name||user.email?.split('@')[0]||'Usuario';const inicial=nombre.charAt(0).toUpperCase();document.querySelectorAll('.perfil-av').forEach(el=>el.textContent=inicial);const elAv=document.getElementById('perfil-av');const elNombre=document.getElementById('perfil-nombre');const elEmail=document.getElementById('perfil-email');if(elAv)elAv.textContent=inicial;if(elNombre)elNombre.textContent=nombre;if(elEmail)elEmail.textContent=user.email||'';verificarAlertasCliente();
-const rol=user.user_metadata?.role;if(rol==='embajador'){const b=document.getElementById('btn-volver-embajador');if(b)b.style.display='flex';}}
+const rolMeta=user.user_metadata?.role;if(rolMeta==='embajador'){const b=document.getElementById('btn-volver-embajador');if(b)b.style.display='flex';}
+// "Volver al panel Admin": consulta perfiles.rol (fuente de verdad) en vez de
+// confiar solo en user_metadata — un admin puede tener user_metadata.role
+// desactualizado (ver el mismo problema ya resuelto en login-usuario.html).
+(async()=>{try{const{data:perfil}=await sb.from('perfiles').select('rol').eq('usuario_id',user.id).maybeSingle();const rolReal=perfil?.rol||rolMeta;if(rolReal==='admin'){const ba=document.getElementById('btn-volver-admin');if(ba)ba.style.display='flex';}}catch(e){if(rolMeta==='admin'){const ba=document.getElementById('btn-volver-admin');if(ba)ba.style.display='flex';}}})();
+}
 
 function verificarAlertasCliente(){
   const container=document.getElementById('alertas-cliente');
@@ -845,10 +853,46 @@ localStorage.removeItem('pap_ubicacion');
 function setUbicacionTexto(txt){ubicacionActual=txt;localStorage.setItem('pap_ubicacion',txt);document.getElementById('ubicacion-txt').textContent=txt.length>22?txt.slice(0,22)+'…':txt;}
 const GMAPS_KEY='AIzaSyASBhagsg9KOoRLRaXmI8BEw9VMvf3dQo0';
 
+// ─── FILTRO DE CERCANÍA ───────────────────────────────────────────────────────
+// Las 3 ciudades de lanzamiento (Santiago del Estero, La Plata, Córdoba) están
+// a cientos de km entre sí, pero `cargarComercios()`/`cargarNuevosComercios()`/
+// `cargarComerciosReferidos()` traían TODOS los comercios activos sin filtrar
+// por ubicación — un cliente en Santiago del Estero veía comercios de La Plata
+// mezclados y viceversa. Se filtra por distancia real (Haversine) en vez de
+// matchear el string de `ciudad` (texto libre a propósito, ver CLAUDE.md), así
+// funciona sin importar cómo esté tipeada la ciudad de cada comercio.
+const RADIO_CLIENTE_KM = 50; // generoso: cubre el área metro de cualquiera de las 3 ciudades
+let userLat = null, userLng = null;
+
+function haversineKmCliente(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Si todavía no sabemos dónde está el usuario (geolocalización no resuelta o
+// denegada), no se filtra nada — mejor mostrar de más que mostrar vacío.
+// Un comercio sin lat/lng cargado tampoco se puede filtrar, se deja pasar.
+function filtrarPorCercania(lista) {
+  if (userLat == null || userLng == null) return lista;
+  return lista.filter(c => {
+    if (c.lat == null || c.lng == null) return true;
+    return haversineKmCliente(userLat, userLng, c.lat, c.lng) <= RADIO_CLIENTE_KM;
+  });
+}
+
 async function detectarUbicacion(){
   if(!navigator.geolocation){setUbicacionTexto(localStorage.getItem('pap_ubicacion')||'Mi ubicación');return;}
   document.getElementById('ubicacion-txt').textContent='Detectando...';
   navigator.geolocation.getCurrentPosition(async(pos)=>{
+    // Guardar coords reales para filtrar comercios por cercanía — recién ahora
+    // sabemos dónde está el usuario, así que se vuelve a cargar todo lo que ya
+    // se pintó sin filtrar (arrancó en paralelo, antes de tener esta posición).
+    const huboCambioDeUbicacion = userLat==null || userLng==null;
+    userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+    if (huboCambioDeUbicacion) { cargarComercios(); cargarNuevosComercios(); cargarComerciosReferidos(); }
     try{const{latitude:lat,longitude:lng}=pos.coords;const res=await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GMAPS_KEY}&language=es`);const data=await res.json();
     if(data.status==='OK'&&data.results.length>0){let lugar=null,ciudadFinal=null,provinciaFinal=null;for(const result of data.results){const c=result.address_components;if(c.some(x=>x.types.includes('plus_code')))continue;const barrio=c.find(x=>x.types.includes('locality')||x.types.includes('sublocality')||x.types.includes('neighborhood'))?.long_name;const ciudad=c.find(x=>x.types.includes('administrative_area_level_2'))?.long_name;const prov=c.find(x=>x.types.includes('administrative_area_level_1'))?.long_name;if(barrio||ciudad){lugar=barrio;ciudadFinal=ciudad;provinciaFinal=prov;break;}}if(!lugar&&!ciudadFinal){const c=data.results[0].address_components;lugar=c.find(x=>x.types.includes('locality')||x.types.includes('sublocality'))?.long_name;ciudadFinal=c.find(x=>x.types.includes('administrative_area_level_2'))?.long_name;provinciaFinal=c.find(x=>x.types.includes('administrative_area_level_1'))?.long_name;}const partes=[];if(lugar&&lugar!==ciudadFinal)partes.push(lugar);if(ciudadFinal)partes.push(ciudadFinal);if(provinciaFinal&&provinciaFinal!==ciudadFinal&&provinciaFinal!==lugar)partes.push(provinciaFinal);setUbicacionTexto(partes.join(', ')||'Mi ubicación');}else{setUbicacionTexto('Mi ubicación');}}catch{setUbicacionTexto('Mi ubicación');}
   },(err)=>{setUbicacionTexto('Activar ubicacion');},{timeout:10000,maximumAge:0,enableHighAccuracy:true});
@@ -865,8 +909,12 @@ function renderBannerSlides(items){
   const slidesEl = document.getElementById('banner-slides');
   const dotsEl = document.getElementById('banner-dots');
   if(!slidesEl || !dotsEl) return;
-  if(!bannerItems.length){ if(heroEl) heroEl.style.display='none'; return; }
   if(heroEl) heroEl.style.display='block';
+  if(!bannerItems.length){
+    slidesEl.innerHTML = '<div style="min-width:100%;height:160px;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:rgba(255,255,255,.5);font-size:13px;text-align:center;padding:0 24px;">Todavía no hay comercios destacados en tu zona</div>';
+    dotsEl.innerHTML = '';
+    return;
+  }
   slidesEl.innerHTML = bannerItems.map(b=>{
     const title = b.titulo || '';
     const sub = b.sub_titulo || '';
@@ -935,8 +983,11 @@ async function cargarOfertasBanner(){
     const hoy=new Date().toISOString().split('T')[0];
     const{data:promosData} = await sb.from('promociones').select('*').eq('activa',true).gte('fecha_fin',hoy).limit(8);
     const promos = promosData||[];
-    if(!promos.length){document.getElementById('ofertas-banner-wrap').style.display='none';return;}
     document.getElementById('ofertas-banner-wrap').style.display='block';
+    if(!promos.length){
+      document.getElementById('ofertas-slides').innerHTML='<div style="padding:14px 4px;color:var(--gray-400,#A0A0A0);font-size:12px;">No hay ofertas activas por ahora.</div>';
+      return;
+    }
     document.getElementById('ofertas-slides').innerHTML=promos.map(p=>{
       const com=allComercios.find(c=>c.id===p.comercio_id)||{};
       const img=com.imagen_url||imgsCategorias[com.categoria]||'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80';
@@ -961,13 +1012,17 @@ async function cargarNuevosComercios(){
   try{
     const hace30dias=new Date(Date.now()-30*24*60*60*1000).toISOString();
     const{data}=await sb.from('comercios')
-      .select('id,nombre,categoria,imagen_url,rating,created_at')
+      .select('id,nombre,categoria,imagen_url,rating,created_at,lat,lng')
       .eq('estado_registro','activo')
       .order('created_at',{ascending:false})
       .limit(12);
-    const recientes=(data||[]).filter(c=>c.created_at>=hace30dias);
-    const items=recientes.length?recientes:(data||[]).slice(0,8);
-    if(!items.length){wrap.style.display='none';return;}
+    const cercanos=filtrarPorCercania(data||[]);
+    const recientes=cercanos.filter(c=>c.created_at>=hace30dias);
+    const items=recientes.length?recientes:cercanos.slice(0,8);
+    if(!items.length){
+      slides.innerHTML='<div style="padding:14px 4px;color:var(--gray-400,#A0A0A0);font-size:12px;">Todavía no hay comercios nuevos — ¡pronto vas a ver más acá!</div>';
+      return;
+    }
     slides.innerHTML=items.map((c,i)=>{
       const img=c.imagen_url||imgsCategorias[c.categoria]||'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80';
       const rating=c.rating?Number(c.rating).toFixed(1):'5.0';
@@ -987,13 +1042,14 @@ async function cargarComerciosReferidos(){
   grid.innerHTML=Array(4).fill(_SK_GRID).join('');
   try{
     const{data}=await sb.from('comercios')
-      .select('id,nombre,categoria,imagen_url,rating,descripcion')
+      .select('id,nombre,categoria,imagen_url,rating,descripcion,lat,lng')
       .eq('estado_registro','activo')
       .not('creado_por_embajador_id','is',null)
       .order('created_at',{ascending:false})
       .limit(20);
-    if(!data?.length){wrap.style.display='none';return;}
-    grid.innerHTML=data.map((c,i)=>{
+    const cercanos=filtrarPorCercania(data||[]);
+    if(!cercanos.length){wrap.style.display='none';return;}
+    grid.innerHTML=cercanos.map((c,i)=>{
       const img=c.imagen_url||imgsCategorias[c.categoria]||'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80';
       const rating=c.rating?Number(c.rating).toFixed(1):'5.0';
       return`<div onclick="abrirComercio('${c.id}')" class="tarjeta-com" style="border-radius:14px;overflow:hidden;background:var(--white);cursor:pointer;box-shadow:var(--shadow-sm);border:1px solid var(--gray-100);animation:cardIn .32s ease both;animation-delay:${i*0.07}s;"><div style="position:relative;height:90px;overflow:hidden;"><img src="${_escHtml(img)}" alt="${_escHtml(c.nombre)}" loading="lazy" style="width:100%;height:90px;object-fit:cover;display:block;"/><div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.28) 0%,transparent 55%);pointer-events:none;"></div><div style="position:absolute;top:6px;left:6px;background:var(--brand);color:#fff;font-size:8px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.04em;">RECOMENDADO</div></div><div style="padding:8px 10px 10px;"><div style="font-size:12px;font-weight:700;color:var(--black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escHtml(c.nombre)}</div><div style="font-size:10px;color:var(--gray-400);margin-top:2px;text-transform:capitalize;">${_escHtml(c.categoria||'')}</div><div style="font-size:10px;font-weight:700;color:#F59E0B;margin-top:3px;">★ ${rating}</div></div></div>`;
