@@ -11,6 +11,7 @@
  */
 
 import { supabase as sb } from './config.js';
+import { iniciarLoginGoogleNativo, escucharCallbackOAuthNativo } from './auth-service.js';
 
 // ─── RUTAS POR ROL ────────────────────────────────────────────────────────────
 // Paths absolutos para que funcionen desde cualquier subcarpeta del proyecto.
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindForm();
   bindPasswordToggle();
   bindRegisterMenu();
+  bindGoogle();
   // Mostrar checkbox TyC si no aceptó antes
   if (!localStorage.getItem('pap_tyc_aceptados')) {
     const wrap = document.getElementById('tyc-wrap');
@@ -39,12 +41,44 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Detectar retorno del email de reset de contraseña (Supabase procesa el hash automáticamente)
-sb.auth.onAuthStateChange((event) => {
+// En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
+escucharCallbackOAuthNativo((session) => {
+  if (session?.user?.id) redirectPorRol(session.user.id, false);
+});
+
+// Detectar retorno del email de reset de contraseña, y del redirect de
+// Google OAuth en la web (Supabase procesa el hash de la URL solo y dispara
+// SIGNED_IN). Password login también dispara SIGNED_IN — redirectPorRol()
+// corriendo dos veces (acá y en handleLogin) es inofensivo, mismo patrón
+// que ya usa cliente/login-usuario.html.
+sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     showRecoveryForm();
+  } else if (event === 'SIGNED_IN' && session?.user?.id) {
+    redirectPorRol(session.user.id, false);
   }
 });
+
+// ─── HANDLER GOOGLE ───────────────────────────────────────────────────────────
+function bindGoogle() {
+  const btn = document.getElementById('btn-google');
+  btn?.addEventListener('click', async () => {
+    if (!localStorage.getItem('pap_tyc_aceptados')) {
+      const chk = document.getElementById('chk-tyc');
+      if (chk && !chk.checked) { showError('Debes aceptar los terminos y condiciones para continuar.'); return; }
+      localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
+    }
+    btn.disabled = true;
+    hideMessages();
+    try {
+      await iniciarLoginGoogleNativo('/login.html');
+    } catch (err) {
+      btn.disabled = false;
+      showError('Error al conectar con Google. Intentá de nuevo.');
+      console.error('[PaP Login] Google', err.message ?? err);
+    }
+  });
+}
 
 // ─── BIND FORM ────────────────────────────────────────────────────────────────
 function bindForm() {

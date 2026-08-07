@@ -226,6 +226,46 @@
       transition: opacity .15s;
     }
     .btn-ir:hover { opacity: .9; }
+
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-google:hover  { opacity: .9; }
+    .btn-google:active { transform: scale(.98); }
+    .btn-google:disabled { opacity: .5; cursor: not-allowed; }
+    .google-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .google-divider .line { flex: 1; height: 1px; background: #eee; }
+    .google-divider span { font-size: 12px; color: #aaa; white-space: nowrap; }
+    .google-banner {
+      display: none;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #166534;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -247,6 +287,22 @@
   <div class="card" id="form-card">
     <div class="card-title">Sumá tu comercio</div>
     <div class="card-sub">60 días gratis, sin tarjeta. Solo pagás cuando vendás.</div>
+
+    <!-- Banner post-Google -->
+    <div class="google-banner" id="google-banner"></div>
+
+    <!-- Google -->
+    <button class="btn-google" id="btn-google" type="button">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20c11 0 20-9 20-20 0-1.5-.2-3-.4-4.5z"/><path fill="#FF3D00" d="M6.3 15.4l6.6 4.8C14.7 17.1 19 14 24 14c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 16.3 5 9.7 9.2 6.3 15.4z"/><path fill="#4CAF50" d="M24 45c4.9 0 9.3-1.9 12.7-4.9l-5.9-5c-1.8 1.3-4.1 2-6.8 2-5.2 0-9.6-3.5-11.2-8.3l-6.5 5C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l5.9 5C40.8 35.5 44 30.7 44 25c0-1.5-.2-3-.4-4.5z"/></svg>
+      Continuar con Google
+    </button>
+    <div style="font-size:11px;color:#999;text-align:center;margin-top:8px;" id="google-hint">
+      Te identificás con Google y completás los datos de tu comercio a continuación.
+    </div>
+
+    <div class="google-divider">
+      <div class="line"></div><span>o completá el formulario</span><div class="line"></div>
+    </div>
 
     <!-- Sección: Datos del comercio -->
     <div class="sec-label">Datos del comercio</div>
@@ -375,43 +431,45 @@
       <input class="fi" id="r-tel" type="tel" placeholder="Ej: 3854123456" inputmode="tel">
     </div>
 
-    <!-- Sección: Cuenta de acceso -->
-    <div class="sec-label">Tu cuenta de acceso</div>
+    <!-- Sección: Cuenta de acceso (se oculta si ya venís identificado con Google) -->
+    <div id="cuenta-acceso-wrap">
+      <div class="sec-label">Tu cuenta de acceso</div>
 
-    <div class="fg">
-      <label class="fl" for="r-email">Email <span>*</span></label>
-      <input class="fi" id="r-email" type="email" placeholder="tucorreo@gmail.com" autocomplete="email">
-    </div>
-
-    <div class="fr">
       <div class="fg">
-        <label class="fl" for="r-pass">Contraseña <span>*</span></label>
-        <div class="pass-wrap">
-          <input class="fi" id="r-pass" type="password" placeholder="Mín. 8 caracteres" autocomplete="new-password" style="padding-right:40px">
-          <button class="toggle-pass-btn" id="toggle-r-pass" type="button" aria-label="Mostrar contraseña">
-            <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
-            </svg>
-            <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
-              <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
-              <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
+        <label class="fl" for="r-email">Email <span>*</span></label>
+        <input class="fi" id="r-email" type="email" placeholder="tucorreo@gmail.com" autocomplete="email">
       </div>
-      <div class="fg">
-        <label class="fl" for="r-pass2">Repetir contraseña <span>*</span></label>
-        <div class="pass-wrap">
-          <input class="fi" id="r-pass2" type="password" placeholder="Repetir" autocomplete="new-password" style="padding-right:40px">
-          <button class="toggle-pass-btn" id="toggle-r-pass2" type="button" aria-label="Mostrar contraseña">
-            <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
-            </svg>
-            <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
-              <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
-              <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
-            </svg>
-          </button>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl" for="r-pass">Contraseña <span>*</span></label>
+          <div class="pass-wrap">
+            <input class="fi" id="r-pass" type="password" placeholder="Mín. 8 caracteres" autocomplete="new-password" style="padding-right:40px">
+            <button class="toggle-pass-btn" id="toggle-r-pass" type="button" aria-label="Mostrar contraseña">
+              <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
+                <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
+                <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl" for="r-pass2">Repetir contraseña <span>*</span></label>
+          <div class="pass-wrap">
+            <input class="fi" id="r-pass2" type="password" placeholder="Repetir" autocomplete="new-password" style="padding-right:40px">
+            <button class="toggle-pass-btn" id="toggle-r-pass2" type="button" aria-label="Mostrar contraseña">
+              <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none">
+                <path d="M17.94 17.94A10.94 10.94 0 0112 19c-6 0-10-7-10-7a21.86 21.86 0 012.88-4"/>
+                <line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -453,10 +511,14 @@
 <!-- ── Módulo de lógica — CERO handlers inline ── -->
 <script type="module">
 import { supabase as sb } from '../assets/js/config.js';
+import { iniciarLoginGoogleNativo, escucharCallbackOAuthNativo } from '../assets/js/auth-service.js';
 const _REF_EMBAJADOR = new URLSearchParams(window.location.search).get('ref') ?? null;
 
 // ── Estado local ──────────────────────────────────────────
 let catSel = '';
+// Si no es null, el usuario ya se identificó con Google — registrar() salta
+// la creación de cuenta por email/password y usa esta sesión directamente.
+let sesionGoogle = null;
 
 // ── Helpers DOM ───────────────────────────────────────────
 const el = id => document.getElementById(id);
@@ -598,7 +660,59 @@ bindPasswordToggle('toggle-r-pass2', 'r-pass2');
 
 // ── Botón "Volver al login" ───────────────────────────────
 el('btn-back')?.addEventListener('click', () => {
-  window.location.href = 'login.html';
+  window.location.href = '/login.html';
+});
+
+// ── Google: identificarse primero, completar el negocio después ──
+// El trigger de la DB asigna rol='cliente' por defecto a cualquier signup
+// nuevo (incluido Google) — pap_pending_role='comercio' le avisa al guard
+// de comercio.html (y al submit de este form) que hay que corregirlo con
+// POST /api/auth/set-role una vez creada la fila en `comercios`. Mismo
+// patrón que ya usa cadete/registro-cadete.html + cadete.js.
+function activarModoGoogle(session) {
+  sesionGoogle = session;
+  el('cuenta-acceso-wrap').style.display = 'none';
+  const banner = el('google-banner');
+  banner.textContent = `Conectado como ${session.user.email} vía Google`;
+  banner.style.display = 'block';
+  el('btn-google').style.display = 'none';
+  el('google-hint').style.display = 'none';
+  document.querySelector('.google-divider').style.display = 'none';
+}
+
+el('btn-google')?.addEventListener('click', async () => {
+  if (!el('chk-tyc-reg')?.checked) { showErr('Debes aceptar los terminos y condiciones.'); return; }
+  hideErr();
+  localStorage.setItem('pap_tyc_aceptados', new Date().toISOString());
+  localStorage.setItem('pap_pending_role', 'comercio');
+  const btn = el('btn-google');
+  btn.disabled = true;
+  try {
+    await iniciarLoginGoogleNativo('/comercio/registro-comercio.html');
+  } catch (e) {
+    btn.disabled = false;
+    showErr('Error al conectar con Google. Intentá de nuevo.');
+    console.error('[Registro comercio] Google', e?.message ?? e);
+  }
+});
+
+// En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
+escucharCallbackOAuthNativo((session) => {
+  if (session) activarModoGoogle(session);
+});
+
+// En la web, Supabase deja la sesión en el hash de la URL al volver de
+// Google y dispara SIGNED_IN. También cubre refrescar la página ya
+// identificado (con pap_pending_role todavía pendiente).
+(async () => {
+  if (localStorage.getItem('pap_pending_role') !== 'comercio') return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) activarModoGoogle(session);
+})();
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session && localStorage.getItem('pap_pending_role') === 'comercio') {
+    activarModoGoogle(session);
+  }
 });
 
 // ── Registro principal ────────────────────────────────────
@@ -613,7 +727,8 @@ async function registrar() {
   const provincia = (el('r-provincia')?.value  || '').trim();
   const ciudad    = (el('r-ciudad')?.value     || '').trim();
   const tel       = (el('r-tel')?.value        || '').trim();
-  const email     = (el('r-email')?.value      || '').trim();
+  // Con Google, el email/contraseña ya no se piden — vienen de la sesión.
+  const email     = sesionGoogle ? sesionGoogle.user.email : (el('r-email')?.value || '').trim();
   const pass      = (el('r-pass')?.value       || '');
   const pass2     = (el('r-pass2')?.value      || '');
 
@@ -627,9 +742,11 @@ async function registrar() {
     showErr('Marcá la ubicación de tu local en el mapa (arrastrá el pin, tocá el mapa, o usá "Usar mi ubicación").');
     return;
   }
-  if (!email)          { showErr('El email es obligatorio.'); return; }
-  if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
-  if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }
+  if (!sesionGoogle) {
+    if (!email)          { showErr('El email es obligatorio.'); return; }
+    if (pass.length < 8) { showErr('La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (pass !== pass2)  { showErr('Las contraseñas no coinciden.'); return; }
+  }
 
   hideErr();
   setBtnLoading(true);
@@ -637,34 +754,41 @@ async function registrar() {
   const base = window.BACKEND_URL ?? '';
 
   try {
-    // 1. Crear cuenta via backend (usa supabaseAdmin, no reemplaza sesión, confirma email)
-    const regRes = await fetch(`${base}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass, full_name: nombre, role: 'comercio' }),
-    });
-    const regJson = await regRes.json();
-    if (!regRes.ok) {
-      if (regRes.status === 409) {
-        showErr('Este email ya tiene una cuenta. Ingresá con tus credenciales.');
-      } else {
-        showErr(regJson.error || 'Error al crear la cuenta. Intentá de nuevo.');
+    let userId;
+
+    if (sesionGoogle) {
+      // Ya identificado con Google — nada de crear cuenta ni loguear.
+      userId = sesionGoogle.user.id;
+    } else {
+      // 1. Crear cuenta via backend (usa supabaseAdmin, no reemplaza sesión, confirma email)
+      const regRes = await fetch(`${base}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass, full_name: nombre, role: 'comercio' }),
+      });
+      const regJson = await regRes.json();
+      if (!regRes.ok) {
+        if (regRes.status === 409) {
+          showErr('Este email ya tiene una cuenta. Ingresá con tus credenciales.');
+        } else {
+          showErr(regJson.error || 'Error al crear la cuenta. Intentá de nuevo.');
+        }
+        return;
       }
-      return;
-    }
 
-    const userId = regJson.user?.id;
-    if (!userId) { showErr('Error inesperado. Intentá de nuevo.'); return; }
+      userId = regJson.user?.id;
+      if (!userId) { showErr('Error inesperado. Intentá de nuevo.'); return; }
 
-    // 2. Login automático para tener sesión activa
-    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (loginErr) {
-      // Cuenta creada pero login falló — igual mostramos éxito, pueden ingresar después
-      console.warn('[Registro] Login automático falló:', loginErr.message);
-      el('form-card').style.display    = 'none';
-      el('success-card').style.display = 'block';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+      // 2. Login automático para tener sesión activa
+      const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (loginErr) {
+        // Cuenta creada pero login falló — igual mostramos éxito, pueden ingresar después
+        console.warn('[Registro] Login automático falló:', loginErr.message);
+        el('form-card').style.display    = 'none';
+        el('success-card').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
     }
 
     // 3. Insertar comercio con sesión activa (RLS satisfecha)
@@ -693,6 +817,27 @@ async function registrar() {
       })
       .select('id')
       .single();
+
+    // 3b. Si venía de Google, el trigger de la DB le asignó 'cliente' por
+    // defecto — corregir el rol ahora que ya existe la fila en `comercios`.
+    if (sesionGoogle) {
+      try {
+        const resp = await fetch(`${base}/api/auth/set-role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sesionGoogle.access_token}` },
+          body: JSON.stringify({ role: 'comercio' }),
+        });
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          showErr('Tu comercio se creó, pero no se pudo asignar el rol: ' + (body.error || `error ${resp.status}`) + '. Contactá al administrador.');
+          return;
+        }
+        localStorage.removeItem('pap_pending_role');
+      } catch (e) {
+        showErr('Tu comercio se creó, pero hubo un error de red al asignar el rol. Contactá al administrador.');
+        return;
+      }
+    }
 
     // 4. Persistir en sessionStorage
     try {

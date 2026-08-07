@@ -1636,10 +1636,10 @@ if ('Notification' in window && Notification.permission === 'default') {
     }
 
     if (error || !user) {
-      console.warn('[cadete-guard] sin usuario autenticado — redirigiendo a login cliente', { error });
+      console.warn('[cadete-guard] sin usuario autenticado — redirigiendo a /login.html', { error });
       window._cadete_redirecting = true;
       try { await sb.auth.signOut(); } catch {}
-      window.location.replace('../cliente/login-usuario.html');
+      window.location.replace('/login.html');
       return;
     }
 
@@ -1705,7 +1705,7 @@ if ('Notification' in window && Notification.permission === 'default') {
     console.warn('cadete auth guard failed', e);
     window._cadete_redirecting = true;
     try { await sb.auth.signOut(); } catch {}
-    window.location.replace('../cliente/login-usuario.html');
+    window.location.replace('/login.html');
     return;
   }
 

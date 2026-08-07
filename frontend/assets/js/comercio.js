@@ -30,10 +30,10 @@ const S = {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  if (!sb || !sb.auth) { location.href = './login.html'; return; }
+  if (!sb || !sb.auth) { location.href = '/login.html'; return; }
   // ── REAL SUPABASE INIT ─────────────────────────────────────────────────────
   const { data: { session }, error: authErr } = await sb.auth.getSession();
-  if (authErr || !session) { location.href = './login.html'; return; }
+  if (authErr || !session) { location.href = '/login.html'; return; }
 
   S.uid = session.user.id;
 
@@ -240,7 +240,7 @@ async function toggleEstado() {
 
 async function logout() {
   await sb.auth.signOut();
-  location.href = './login.html';
+  location.href = '/login.html';
 }
 
 // ─── VIEW: TABLERO ────────────────────────────────────────────────────────────

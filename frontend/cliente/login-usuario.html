@@ -118,13 +118,34 @@ function redirigirSegunRol(rol){
     window.location.href = '../comercio/comercio.html';
   } else if (rol === 'cadete') {
     window.location.href = '../cadete/cadete.html';
-  } else if (rol === 'usuario') {
-    // Usuarios van al index del cliente (mismo directorio)
+  } else if (rol === 'usuario' || rol === 'cliente') {
+    // 'cliente' es el valor real que guarda la tabla `perfiles` (y el que
+    // escribe authController.js en user_metadata al registrarse); 'usuario'
+    // es el fallback histórico de esta página. Ambos van al mismo lugar.
     window.location.href = 'index.html';
   } else {
     // Unknown or missing role — do not allow client-side guessing.
     showError('Tu cuenta no tiene un rol asignado. Contactá al administrador para habilitar el acceso.');
   }
+}
+
+// Resuelve el rol consultando primero la tabla `perfiles` — fuente de verdad
+// real (mismo criterio que assets/js/login.js) — y solo cae a
+// user_metadata.role si `perfiles` todavía no tiene la fila (p. ej. justo
+// después de un signup). Antes esta página confiaba únicamente en
+// user_metadata, que además de poder quedar desactualizado nunca se completa
+// en un login con Google.
+async function resolverRolYRedirigir(userId, rolMetadata) {
+  let rol = null;
+  try {
+    const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', userId).single();
+    rol = perfil?.rol ?? null;
+  } catch (e) { /* fila de perfiles puede no existir todavía */ }
+
+  if (!rol) rol = rolMetadata || 'usuario';
+
+  try { localStorage.setItem('role', rol); } catch(e) {}
+  redirigirSegunRol(rol);
 }
 
 async function loginGoogle() {
@@ -168,11 +189,7 @@ async function submitForm() {
       }
       sessionActual = data.session;
       try { localStorage.setItem('access_token', sessionActual?.access_token || ''); localStorage.setItem('user_id', data.user?.id || ''); localStorage.setItem('user_email', data.user?.email || ''); } catch(e) {}
-      // Leer rol desde user_metadata; fallback a 'usuario' en esta página de clientes
-      const rol = data.user?.user_metadata?.role || 'usuario';
-      // Persist role locally for UI usage only
-      try { localStorage.setItem('role', rol); } catch(e) {}
-      redirigirSegunRol(rol);
+      await resolverRolYRedirigir(data.user.id, data.user?.user_metadata?.role);
     } else {
         // Registro via backend (usa admin.createUser, sin confirmacion de email)
         const backendUrl = window.BACKEND_URL || '';
@@ -269,14 +286,12 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') { mostrarFormRecovery(); return; }
   if (event === 'SIGNED_IN' && session) {
     sessionActual = session;
-    const rol = session.user?.user_metadata?.role || 'usuario';
     try {
       localStorage.setItem('access_token', session.access_token || '');
       localStorage.setItem('user_id', session.user?.id || '');
       localStorage.setItem('user_email', session.user?.email || '');
-      localStorage.setItem('role', rol);
     } catch(e) {}
-    redirigirSegunRol(rol);
+    resolverRolYRedirigir(session.user.id, session.user?.user_metadata?.role);
   }
 });
 
@@ -292,9 +307,7 @@ sb.auth.getSession().then(({ data: { session } }) => {
   import { escucharCallbackOAuthNativo } from '../assets/js/auth-service.js';
   // En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
   escucharCallbackOAuthNativo((session) => {
-    const rol = session?.user?.user_metadata?.role || 'usuario';
-    try { localStorage.setItem('role', rol); } catch (e) {}
-    window.redirigirSegunRol?.(rol);
+    window.resolverRolYRedirigir?.(session?.user?.id, session?.user?.user_metadata?.role);
   });
 </script>
 </body>
