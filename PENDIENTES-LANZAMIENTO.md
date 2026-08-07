@@ -79,6 +79,24 @@ no lo puedo generar yo.
 No toqué nada de esto a propósito. Cuando Fabri termine su parte, avisame y
 lo integramos/probamos junto con todo lo demás antes del lanzamiento final.
 
+## 7. 🟢 `saveCierre()` (panel comercio) no persiste nada
+
+Detectado en la auditoría de código muerto del 7 de agosto. El botón
+"Guardar cierre especial" muestra el toast de éxito pero no escribe nada en
+la base — no existe ninguna columna/tabla en el schema para "cierre
+especial por fecha" (lo más parecido, `pausado_manual`/`pausado_desde`, es
+un concepto distinto: pausa instantánea que se autolimpia, no una fecha
+futura programada). No lo arreglé porque inventar el schema por mi cuenta
+no me pareció correcto — decime si querés que diseñe la migración.
+
+## 8. 🟢 Duplicación de lógica entre archivos (deuda técnica, no urgente)
+
+También del 7 de agosto: la misma lógica está reimplementada en varios
+archivos en vez de compartirse — login (3 veces), toggle de mostrar/ocultar
+contraseña (3 veces), sanitización HTML (4 veces), inicialización del
+cliente Supabase (5 veces). Funciona todo bien, no bloquea el lanzamiento,
+pero es un buen candidato para una tarea de refactor aparte.
+
 ---
 
 ### Lo que ya está resuelto (no necesitás hacer nada más acá)

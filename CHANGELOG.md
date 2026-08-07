@@ -2,6 +2,69 @@
 
 ---
 
+## [3.11.0] — 7 de agosto 2026
+
+### Login único con Google + fix de FK + limpieza de código muerto
+
+- **Login único con Google para cliente/comercio/cadete.** `/login.html`
+  pasa a ser LA página de login (ya tenía el selector de rol, le faltaba
+  Google) — se le agrega el botón, reutilizando `iniciarLoginGoogleNativo`/
+  `escucharCallbackOAuthNativo` de `auth-service.js` y el `redirectPorRol`
+  que ya existía en `login.js`. `comercio/registro-comercio.html` suma
+  Google como alta de comercio (mismo patrón `pap_pending_role` +
+  `POST /api/auth/set-role` que ya usaba cadete). `comercio/login.html`
+  pasa a ser un stub de redirect a `/login.html` (era casi un duplicado sin
+  Google). De paso: fix real en `cliente/login-usuario.html` — la fuente
+  del rol usaba solo `user_metadata` (nunca `perfiles`), lo que bloqueaba
+  el login por contraseña de cualquier cliente registrado vía backend
+  (`authController.js` graba `'cliente'`, no `'usuario'`, en
+  `user_metadata.role`, y `redirigirSegunRol` no tenía esa rama).
+- **Fix de FK:** `resenas.cadete_id → auth.users(id)` no tenía `ON DELETE`
+  (default `NO ACTION`), a diferencia de prácticamente todas las demás FK a
+  `auth.users` en el schema — bloqueaba borrar cualquier cadete de prueba
+  con al menos una reseña desde el dashboard de Supabase (error `{}` sin
+  explicación). Migración `migration-fix-resenas-cadete-on-delete.sql`
+  agrega `ON DELETE SET NULL`.
+- **Reset de la base pre-lanzamiento:** con el fix de arriba aplicado, se
+  vació toda la base de datos de prueba (121 cuentas + todo su historial de
+  pedidos/comercios/reseñas) dejando solo las 4 cuentas reales indicadas
+  por el usuario — el proyecto todavía no tenía comercios/cadetes/clientes
+  reales operando.
+- **Limpieza exhaustiva de código muerto** (auditoría pedida explícitamente
+  por el usuario, 3 agentes Explore en paralelo + verificación manual de
+  cada hallazgo antes de tocar nada): 3 archivos frontend huérfanos
+  borrados (`assets/js/admin.js`, `assets/js/login-usuario.js` —le pegaba a
+  un endpoint `/api/auth/login` que nunca existió—, `admin/crear-embajador.html`),
+  10 de 13 exports de `auth-service.js` sin ningún caller, 5 funciones
+  muertas + una feature de notificaciones inalcanzable + un selector de
+  propina huérfano en `cliente.js`, `navigateSeguro()` completa en `ui.js`
+  (arquitectura SPA vieja), un bloque de HTML de "Contrato" en
+  `comercio.html` que `loadContratoData()` pisaba siempre antes de que el
+  usuario lo viera, y CSS sin uso en 5 hojas de estilo distintas.
+  Confirmado que el **carrusel de ofertas sigue estando y funciona
+  completo** (hero banner de patrocinios + Realtime + admin, "ofertas de
+  hoy", "recién llegados") — no había nada que limpiar ahí.
+- **Bugs reales arreglados de paso** (aprobado explícitamente, no es dead
+  code): `aN()` no existía en ningún lado en `cadete.html` — `ReferenceError`
+  en cada tap de la nav inferior, y redundante (`stab()` ya hacía el
+  highlight solo); el `navMap` de `stab()` no coincidía con el DOM real
+  ("Ganancias" resaltaba "Ayuda"); 3 `data-action` de `comercio.js` sin
+  case en `dispatchAction` (click sin efecto, ahora avisan "Próximamente");
+  input de carnet de conducir del cadete sin `onchange`; y en el backend,
+  `POST /api/pedidos/notificar-comercio` no traía `cliente_id` en el
+  `select`, por lo que la validación de dueño del pedido siempre daba
+  `true` → 403 — el push de "pedido nuevo" al comercio probablemente no se
+  disparaba para pedidos de clientes reales.
+- **Detectado y documentado, no arreglado a propósito:** `saveCierre()`
+  (panel comercio) no persiste nada — no existe columna/tabla en el schema
+  para "cierre especial por fecha", arreglarlo requiere una migración
+  nueva. La cadena de pago viejo del cadete vía OAuth de MercadoPago
+  (`conectarMPCadete` + `oauth-callback-cadete.html`) y la duplicación de
+  lógica entre archivos (login, toggle de contraseña, sanitización HTML,
+  init de Supabase) se dejaron sin tocar a pedido del usuario.
+
+---
+
 ## [3.10.0] — 31 de julio 2026
 
 ### Preparación de pre-lanzamiento (todo excepto Payway/MercadoPago, que maneja Fabri aparte)

@@ -7,6 +7,21 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 
 ---
 
+## 🔴 IMPORTANTE — Qué falta para poder lanzar
+
+> Checklist completo y en detalle en [`PENDIENTES-LANZAMIENTO.md`](PENDIENTES-LANZAMIENTO.md). Resumen acá porque es lo más importante del repo en este momento.
+
+1. **Cuenta de Google Play Console — no existe todavía.** Es lo más urgente: Google exige un track de Closed Testing (~20 testers, 14 días corridos) a cuentas nuevas antes de habilitar Production, y esos 14 días ni arrancaron. Es el ítem de mayor lead-time de todo el lanzamiento.
+2. **Backup del keystore de firma Android sin confirmar** fuera de esta máquina. Si se pierde, no hay forma de recuperarlo ni de que Google lo resetee — significaría no poder actualizar nunca más la misma ficha de Play Store.
+3. **Claves VAPID sin cargar en Railway** (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL`) — sin esto, el push web (avisos de pedido/oferta) no funciona en producción.
+4. **APK sin probar en un dispositivo real** — login con Google (deep link nativo), flujo de pedido completo, permisos de GPS/cámara. `qa-e2e.mjs` prueba el backend, pero no el shell nativo.
+5. **Feature graphic de Play Store (1024×500 px)** — único gráfico que falta para la ficha.
+6. **Payway** — a cargo de Fabri, no tocar sin que él avance.
+7. **`saveCierre()` (panel comercio, cierre especial por fecha) no persiste nada** — hoy solo muestra un toast. No hay columna/tabla en el schema para esto; arreglarlo de verdad requiere una migración nueva, no un simple fix de código. Detectado en la auditoría de código muerto del 2026-08-07 (ver CHANGELOG).
+8. **Duplicación de lógica sin unificar** (login reimplementado 3 veces, toggle de mostrar-contraseña 3 veces, sanitización HTML 4 veces, init del cliente Supabase 5 veces) — funciona, pero es deuda técnica. Detectado en la misma auditoría, dejado para una tarea aparte a propósito.
+
+---
+
 ## Stack tecnológico
 
 | Capa | Tecnología |
@@ -67,8 +82,10 @@ puertaapuerta-main/
 │   │   └── dashboard.html
 │   ├── admin/
 │   │   ├── admin.html
-│   │   ├── admin-acceso.html
-│   │   └── crear-embajador.html
+│   │   └── admin-acceso.html
+│   │   # crear-embajador.html se borró en la limpieza del 2026-08-07 — era
+│   │   # un stub huérfano sin ningún link entrante, superseded por la
+│   │   # pestaña "Crear usuario" de admin.html
 │   ├── assets/
 │   │   ├── css/   (index, login, cadete, comercio, embajador, admin, pago, etc.)
 │   │   └── js/    (ver detalle de funciones abajo)
@@ -159,19 +176,15 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | `_resolveClient()` | Crea cliente Supabase desde `window.SUPABASE_URL` + `window.SUPABASE_ANON_KEY`. Exporta `supabase`, `USE_MOCK`, `MOCK_DATABASE`. |
 
 ### `frontend/assets/js/auth-service.js`
+> Recortado en la limpieza del 2026-08-07: tenía 13 exports, 10 sin ningún
+> caller en todo el repo (todo el código real usa `sb.auth.X` directo, no
+> este wrapper). Quedaron solo los 3 que sí se usan.
+
 | Función | Descripción |
 |---------|-------------|
-| `initAuthClient()` | Inicializa `window.supabase` desde CDN. |
-| `getClient()` | Retorna el cliente Supabase. |
-| `signInWithPassword({ email, password })` | Login con email/password. |
-| `signUp({ email, password, options })` | Registro directo con Supabase Auth. |
-| `signUpAndAssignRole({ email, password, full_name, role })` | Registro + asignación de rol via `/api/auth/set-role`. |
-| `signInWithOAuth(provider, opts)` | Login con Google/OAuth. |
-| `getSession()` | Obtiene sesión activa. |
-| `resetPasswordForEmail(email, opts)` | Envía email de recuperación. |
-| `signOut()` | Cierra sesión. |
-| `logout(redirectTo)` | Cierra sesión + limpia storage + redirige. |
-| `verifyUserRole(session)` | Lee rol de `session.user.user_metadata.role`. |
+| `initAuthClient()` | Inicializa el cliente Supabase (`window.sb`/`window.supabase`). Dependencia interna de las otras dos. |
+| `iniciarLoginGoogleNativo(redirectPathWeb)` | Login con Google — redirect normal en web, browser in-app + deep link en la app nativa Android. |
+| `escucharCallbackOAuthNativo(onSuccess)` | Listener del deep link de vuelta de Google en la app nativa. |
 
 ### `frontend/assets/js/login.js`
 | Función | Descripción |
@@ -185,6 +198,14 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | `showError(msg)`, `showOk(msg)`, `hideMessages()`, `setLoading(btn, loading)` | Helpers de UI. |
 
 ### `frontend/assets/js/cliente.js`
+> `cambiarCantMenu`, `selPropina`, `addCartMenu`, `initAutocomplete`,
+> `autocompletarDireccion`, `seleccionarDireccion` y la rama de
+> "notificaciones" del perfil se borraron en la limpieza del 2026-08-07 —
+> código muerto sin ningún caller. El selector de propina en particular
+> inyectaba en un contenedor (`#tip-section`) que no existe en el HTML
+> actual: `propinaSeleccionada` sigue sumándose al total pero hoy el
+> usuario no tiene forma de cambiarla de $0 (gap de producto, no arreglado).
+
 | Función | Descripción |
 |---------|-------------|
 | **Navegación** | |
@@ -203,10 +224,8 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | `cargarRatingsComercio(comercioId)` | Lee ratings del comercio y renderiza barras + comentarios. |
 | **Carrito y pedido** | |
 | `addCart(id, nombre, precio)` | Agrega producto al carrito. |
-| `cambiarCantMenu(id, nombre, precio, delta)` | +/- cantidad desde el menú. |
 | `cambiarQty(id, delta)` | +/- cantidad desde el carrito. |
 | `renderCarrito()` | Renderiza items, subtotal, envío, propina, total. |
-| `selPropina(amt)` | Selector de propina: $0, $200, $500, $1000. |
 | `actualizarCartFloat()` | Badge flotante "Ver carrito (N productos)". |
 | `confirmarPedido()` | INSERT en `pedidos`, redirige a pago MP o muestra confirmación. |
 | **Dirección de entrega** | |
@@ -296,7 +315,7 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | **Asistente IA** | |
 | `iniciarAsistenteCadete()`, `enviarIACadete()`, `preguntaRapidaCadete(pregunta)` | Chat IA para cadetes. |
 | **MercadoPago** | |
-| `conectarMPCadete()` | OAuth flow para conectar cuenta MP del cadete. |
+| `conectarMPCadete()` | OAuth flow para conectar cuenta MP del cadete (75% directo, pago inmediato). ⚠️ Diseño de pago viejo, sin ningún botón que la llame hoy — el modelo actual es cobro semanal por CVU/alias. Detectada como código muerto en la auditoría del 2026-08-07 pero se decidió no borrarla, podría retomarse. |
 | **Simulador** | |
 | `simularNuevoViaje()` | Genera oferta falsa para testing local. |
 
@@ -363,22 +382,6 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | `toggleEstado()` | Abierto/cerrado del comercio. |
 | `logout()` | Cierra sesión del comercio. |
 
-### `frontend/assets/js/login-root.js`
-| Función | Descripción |
-|---------|-------------|
-| `setTab(tab)` | Switch entre tab login / registro. |
-| `setRole(role)` | Selecciona rol en el registro (comercio, cadete, usuario). |
-| `loginGoogle()` | OAuth con Google. |
-| `submitForm()` | Login o registro según tab activo + asignación de rol via backend. |
-| `olvideClave()` | Envía email de recuperación. |
-| `initSessionCheck()` | Si ya hay sesión, redirige automáticamente. |
-
-### `frontend/assets/js/login-usuario.js`
-| Función | Descripción |
-|---------|-------------|
-| `handleLoginSubmit(e)` | Login del cliente con email/password. |
-| `attachListeners()` | Bind de eventos del formulario. |
-
 ### `frontend/assets/js/admin-acceso.js`
 | Función | Descripción |
 |---------|-------------|
@@ -391,8 +394,14 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | `state.js` | Estado global del carrito (`window.state.cart`). Persiste en localStorage. |
 | `ui.js` | `formatARS(n)`, `sanitizeHTML(str)` — helpers compartidos. |
 | `icons.js` | Objeto `ICONS` con SVGs como strings (check, close, scooter, pin, etc.). |
-| `order-service.js` | Helpers de pedidos (legacy). |
-| `api.js` | Fetch helpers (legacy). |
+
+> `login-root.js`, `login-usuario.js`, `order-service.js` y `api.js` ya no
+> existen en el repo — quedaban referenciados acá de una versión anterior.
+> `login-usuario.js` en particular se borró en la limpieza del 2026-08-07:
+> era código huérfano que le pegaba a un endpoint (`/api/auth/login`) que
+> nunca existió en el backend. El login real usa `assets/js/login.js` (para
+> `/login.html` y `/comercio/login.html`) y la lógica inline de
+> `cliente/login-usuario.html`.
 
 ---
 
