@@ -474,85 +474,9 @@
           </div>
         </div>
 
-        <!-- Contrato tab -->
-        <div class="tab-content" id="fin-tab-contrato">
-          <div class="contract-grid">
-            <div>
-              <div class="contract-section-title">Contrato</div>
-              <div class="contract-field">
-                <span class="contract-field-label">Nombre de referencia</span>
-                <span class="contract-field-value" id="ct-nombre">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Razón social</span>
-                <span class="contract-field-value" id="ct-razon">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Dirección</span>
-                <span class="contract-field-value" id="ct-direccion">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Código postal</span>
-                <span class="contract-field-value" id="ct-cp">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Ciudad</span>
-                <span class="contract-field-value" id="ct-ciudad">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Barrio</span>
-                <span class="contract-field-value" id="ct-barrio">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Email</span>
-                <span class="contract-field-value" id="ct-email">—</span>
-              </div>
-            </div>
-            <div>
-              <div class="contract-section-title">Datos Bancarios</div>
-              <div class="contract-field">
-                <span class="contract-field-label">Titular</span>
-                <span class="contract-field-value" id="ct-titular">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">CUIT</span>
-                <span class="contract-field-value" id="ct-cuit">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Cuenta terminada en</span>
-                <span class="contract-field-value" id="ct-cuenta">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Tipo</span>
-                <span class="contract-field-value" id="ct-tipo-cuenta">—</span>
-              </div>
-              <div class="contract-field">
-                <span class="contract-field-label">Banco</span>
-                <span class="contract-field-value" id="ct-banco">—</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="pap-card mb-4">
-            <div class="flex justify-between items-center">
-              <div>
-                <div style="font-weight:var(--w-semibold);margin-bottom:var(--sp-1)">Política de cancelación y reclamos de pedidos</div>
-                <div style="font-size:var(--text-sm);color:var(--text-secondary)">Cuando un pedido es cancelado o rechazado se aplican reintegros o cargos de manera automática.</div>
-              </div>
-              <a href="#" class="btn-link-red" style="white-space:nowrap;margin-left:var(--sp-6)">Ver política &rsaquo;</a>
-            </div>
-          </div>
-
-          <div class="section-title">Sucursales asociadas</div>
-          <div class="table-wrap">
-            <table class="pap-table">
-              <thead><tr><th>Nombre</th><th>Dirección</th><th>Ciudad</th><th>Estado</th></tr></thead>
-              <tbody id="tbody-sucursales">
-                <tr><td colspan="4"><div class="empty-state" style="padding:var(--sp-6)"><p>Sin sucursales asociadas.</p></div></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <!-- Contrato tab — poblado por loadContratoData() (comercio.js), que
+             reemplaza este contenedor por completo apenas se abre Finanzas. -->
+        <div class="tab-content" id="fin-tab-contrato"></div>
       </section>
 
       <!-- ════════════════════════════════════════════════

@@ -19,7 +19,7 @@
 
 import { supabaseAdmin }            from '../lib/supabaseClient.js';
 import { registrarComisionSiAplica } from './embajadorController.js';
-import { notificarCadeteNuevoViaje, notificarClienteEstado, notificarComercioNuevoPedido, notificarComercioSinCadetes } from './pushController.js';
+import { notificarCadeteNuevoViaje, notificarClienteEstado, notificarComercioNuevoPedido } from './pushController.js';
 import { generarCodigo4Digitos, codigosIguales } from '../lib/codigoUtils.js';
 import { calcularTarifa } from '../lib/tarifaUtils.js';
 import { haversineKm, rankearCandidatos } from '../lib/matchingUtils.js';
@@ -1024,7 +1024,7 @@ export async function notificarNuevoPedido(req, res) {
   try {
     const { data: pedido } = await supabaseAdmin
       .from('pedidos')
-      .select('id, numero, comercio_id')
+      .select('id, numero, comercio_id, cliente_id')
       .eq('id', pedido_id)
       .single();
 

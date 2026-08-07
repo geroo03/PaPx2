@@ -66,12 +66,6 @@
   border-radius: var(--r-sm);
 }
 
-.btn-lg {
-  height: 46px;
-  padding: 0 var(--sp-8);
-  font-size: var(--text-md);
-}
-
 .btn-full { width: 100%; }
 
 .btn-link {
@@ -118,7 +112,6 @@
 .badge-en_camino  { color: var(--badge-en-camino-text);  background: var(--badge-en-camino-bg); }
 .badge-entregado  { color: var(--badge-entregado-text);  background: var(--badge-entregado-bg); }
 .badge-cancelado  { color: var(--badge-cancelado-text);  background: var(--badge-cancelado-bg); }
-.badge-new        { color: var(--pap-primary-dark); background: var(--pap-primary-light); }
 
 /* ── Cards ───────────────────────────────────────────────── */
 .pap-card {
@@ -234,12 +227,6 @@
   color: var(--text-primary);
   line-height: 1;
 }
-.stat-sub {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
-  margin-top: var(--sp-2);
-}
-
 /* ── Toggle Switch ───────────────────────────────────────── */
 .pap-toggle {
   position: relative;
@@ -777,11 +764,6 @@
   color: var(--text-primary);
   line-height: 1;
 }
-.rating-stars-big {
-  color: #F5A623;
-  font-size: var(--text-xl);
-  line-height: 1;
-}
 .rating-count {
   font-size: var(--text-sm);
   color: var(--text-tertiary);
@@ -843,19 +825,6 @@
 }
 .resena-fecha { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 2px; }
 .resena-stars { color: #F5A623; font-size: var(--text-md); letter-spacing: 1px; }
-.resena-tags  { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
-.resena-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border-radius: var(--r-full);
-  font-size: var(--text-xs);
-  font-weight: var(--w-semibold);
-  text-transform: uppercase;
-  letter-spacing: .3px;
-}
 .resena-comentario {
   font-size: var(--text-sm);
   color: var(--text-secondary);
@@ -957,37 +926,6 @@
 }
 .promo-banner-sub { font-size: var(--text-sm); opacity: .85; }
 
-.contract-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-8);
-  margin-bottom: var(--sp-6);
-}
-.contract-section-title {
-  font-size: var(--text-xl);
-  font-weight: var(--w-bold);
-  margin-bottom: var(--sp-5);
-}
-.contract-field {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--sp-3) 0;
-  border-bottom: 1px solid var(--border-default);
-  gap: var(--sp-4);
-}
-.contract-field:last-child { border-bottom: none; }
-.contract-field-label {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-.contract-field-value {
-  font-size: var(--text-sm);
-  font-weight: var(--w-medium);
-  text-align: right;
-}
-
 /* ── Empty State ─────────────────────────────────────────── */
 .empty-state {
   padding: var(--sp-12) var(--sp-6);
@@ -1058,14 +996,11 @@
 .text-success   { color: var(--color-success); }
 .text-error     { color: var(--color-error); }
 .text-right     { text-align: right; }
-.mt-4  { margin-top: var(--sp-4); }
 .mt-6  { margin-top: var(--sp-6); }
 .mb-4  { margin-bottom: var(--sp-4); }
-.mb-6  { margin-bottom: var(--sp-6); }
 .flex  { display: flex; }
 .items-center { align-items: center; }
 .gap-3 { gap: var(--sp-3); }
-.gap-4 { gap: var(--sp-4); }
 .justify-between { justify-content: space-between; }
 
 /* ── Animations ──────────────────────────────────────────── */
@@ -1079,7 +1014,6 @@
   .promo-cards-grid { grid-template-columns: repeat(2, 1fr); }
   .reviews-layout { grid-template-columns: 1fr; }
   .rating-summary { position: static; }
-  .contract-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }

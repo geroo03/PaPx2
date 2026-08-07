@@ -1,7 +1,7 @@
 // assets/js/main.js
 // Usa el cliente Supabase ya inicializado por el UMD bundle en el HTML.
 // NO importa config.js ni api.js para evitar la cadena de sub-módulos ESM de la CDN.
-import { sanitizeHTML, formatARS, navigateSeguro } from './ui.js';
+import { sanitizeHTML, formatARS } from './ui.js';
 import { state } from './state.js';
 import { ICONS } from './icons.js';
 import { registrarPush } from './push.js';
@@ -40,14 +40,6 @@ export function buildUrl(relativePath){
 }
 window.buildUrl = buildUrl;
 
-// 1. Navegación Segura de Pantallas (reemplaza old `go` y repara el History API)
-
-
-// 2. Carrito LocalStorage Wrapper
-
-
-
-
 // ==========================================
 // LISTENERS GLOBALES
 // ==========================================
@@ -63,12 +55,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar push notifications si hay sesión activa
   if (session?.user) registrarPush().catch(() => {});
-
-  // Listen for auth state changes — only handle sign out
-  try{
-    supabase.auth.onAuthStateChange((event, sess) => {
-    });
-  }catch(e){console.warn('Failed to attach auth state listener', e);}
 });
 
 

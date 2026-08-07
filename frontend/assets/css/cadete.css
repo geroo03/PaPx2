@@ -25,40 +25,8 @@ body{background:#f5f5f5;-webkit-overflow-scrolling:touch;overscroll-behavior-y:c
 .viaje-card{border-radius:14px;padding:14px;margin-bottom:12px;border:1.5px solid #f0f0f0;}
 .viaje-card.nuevo{border-color:#FF6B35;background:#FFFAF8;}
 .viaje-card.activo{border-color:#00C853;background:#F0FFF4;}
-.v-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-.v-num{font-size:13px;font-weight:700;color:#111;}
-.v-time{font-size:11px;color:#888;margin-top:2px;}
-.v-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
-.vp-nuevo{background:#FFF3E0;color:#E65100;}
-.vp-camino{background:#E8F5E9;color:#2E7D32;}
-.v-route{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
-.v-stop{display:flex;gap:10px;align-items:flex-start;}
-.v-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px;}
-.vd-retiro{background:#FF6B35;}
-.vd-entrega{background:#00C853;}
-.v-line{width:2px;height:14px;background:#eee;margin-left:5px;}
-.v-stop-label{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;}
-.v-stop-addr{font-size:13px;color:#111;margin-top:1px;}
-.v-stop-name{font-size:11px;color:#888;}
-.v-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-.v-tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
-.vt-earn{background:#E8F5E9;color:#2E7D32;}
-.vt-dist{background:#E3F2FD;color:#1565C0;}
-.vt-time{background:#FFF3E0;color:#E65100;}
-.v-acts{display:flex;gap:8px;}
 .btn{flex:1;padding:11px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;}
 .btn-o{background:#FF6B35;color:#fff;}
-.btn-g{background:#f0f0f0;color:#555;}
-.cod-box{background:#111;border-radius:12px;padding:14px;margin:10px 0;}
-.cod-title{font-size:12px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-.cod-desc{font-size:11px;color:#888;margin-bottom:12px;line-height:1.5;}
-.cod-input-row{display:flex;gap:8px;margin-bottom:10px;}
-.cod-digit{flex:1;height:52px;border-radius:10px;border:2px solid #333;background:#1a1a1a;color:#00E676;font-size:24px;font-weight:900;text-align:center;outline:none;}
-.cod-digit:focus{border-color:#FF6B35;}
-.btn-verificar{width:100%;background:#FF6B35;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;}
-.btn-verificar:disabled{opacity:.4;cursor:not-allowed;}
-.cod-error{font-size:12px;color:#FF5252;text-align:center;margin-top:6px;display:none;}
-.cod-ok{background:#00C853;color:#fff;border-radius:10px;padding:10px;text-align:center;font-size:13px;font-weight:700;display:none;}
 .earn-card{background:#111;border-radius:14px;padding:16px;margin-bottom:12px;color:#fff;}
 .earn-val{font-size:32px;font-weight:900;color:#00E676;margin-bottom:4px;}
 .earn-lbl{font-size:12px;color:#aaa;}
@@ -67,9 +35,6 @@ body{background:#f5f5f5;-webkit-overflow-scrolling:touch;overscroll-behavior-y:c
 .eg-val{font-size:18px;font-weight:700;color:#fff;}
 .eg-lbl{font-size:11px;color:#888;margin-top:2px;}
 .perf-av{width:60px;height:60px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;}
-.perf-menu{background:#f9f9f9;border-radius:14px;overflow:hidden;}
-.pm-item{padding:14px 16px;border-bottom:1px solid #eee;font-size:13px;font-weight:500;color:#111;display:flex;justify-content:space-between;}
-.pm-item:last-child{border-bottom:none;}
 .empty{text-align:center;padding:50px 20px;color:#aaa;}
 .empty .big{font-size:44px;margin-bottom:10px;}
 .empty p{font-size:13px;line-height:1.7;}

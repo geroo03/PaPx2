@@ -15,7 +15,7 @@ const SERVER_URL   = process.env.SERVER_URL   ?? 'http://localhost:3000';
  * Body: { items, total, comercio_id, cliente_id, direccion_entrega, metodo_pago, propina_cadete? }
  */
 export async function crearPreferencia(req, res) {
-  const { pedido_id, items, total, comercio_id, cliente_id, direccion_entrega, metodo_pago, propina_cadete } = req.body ?? {};
+  const { pedido_id, items, total, comercio_id, cliente_id, direccion_entrega, propina_cadete } = req.body ?? {};
 
   if (!Array.isArray(items) || items.length === 0 || !total) {
     return res.status(400).json({ error: 'Campos requeridos: items (array), total (number)' });

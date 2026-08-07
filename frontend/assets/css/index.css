@@ -46,7 +46,6 @@ body{background:#F5F5F5;display:flex;flex-direction:column;align-items:center;mi
 .com-meta span{display:flex;align-items:center;gap:3px;}
 .tag{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.02em;}
 .tag-g{background:#DCFCE7;color:#15803D;}
-.tag-gr{background:var(--gray-100);color:var(--gray-600);}
 .closed-badge{background:#FEE2E2;color:#B91C1C;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;}
 .rating-screen{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.7);align-items:flex-end;justify-content:center;}
 .rating-screen.visible{display:flex;}
@@ -151,8 +150,6 @@ body{background:#F5F5F5;display:flex;flex-direction:column;align-items:center;mi
 .track-hdr{background:var(--black);padding:18px 18px 20px;}
 .track-title{font-size:17px;font-weight:800;color:var(--white);margin-bottom:4px;}
 .track-sub{font-size:13px;color:var(--brand);font-weight:600;}
-.map-mock{height:130px;background:#1A1A1A;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
-.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,107,53,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,107,53,.06) 1px,transparent 1px);background-size:28px 28px;}
 .cadete-card{margin:14px 18px;background:var(--white);border-radius:var(--radius-lg);padding:14px 16px;display:flex;align-items:center;gap:14px;border:1px solid var(--gray-100);box-shadow:var(--shadow-sm);}
 .cad-av{width:44px;height:44px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;color:var(--white);font-size:15px;font-weight:800;flex-shrink:0;}
 .cad-name{font-size:14px;font-weight:700;color:var(--black);}
@@ -204,4 +201,3 @@ body{background:#F5F5F5;display:flex;flex-direction:column;align-items:center;mi
 .toast.hidden{display:none;}
 .toast-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brand);margin-right:7px;vertical-align:middle;}
 .section-card{background:var(--white);border-top:1px solid var(--gray-100);border-bottom:1px solid var(--gray-100);}
-.open-dot{width:7px;height:7px;border-radius:50%;background:#4CAF50;display:inline-block;margin-right:4px;}

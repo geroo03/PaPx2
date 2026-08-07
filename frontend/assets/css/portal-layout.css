@@ -162,27 +162,6 @@ img { display: block; max-width: 100%; }
   margin: var(--sp-3) var(--sp-5);
 }
 
-/* Sidebar bottom */
-.sidebar-footer {
-  padding: var(--sp-4) var(--sp-5);
-  border-top: 1px solid var(--border-default);
-  flex-shrink: 0;
-}
-.sidebar-collapse-btn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: var(--sp-2);
-  background: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--r-sm);
-  color: var(--text-tertiary);
-  font-size: var(--text-lg);
-  transition: background var(--t-fast);
-}
-.sidebar-collapse-btn:hover { background: var(--surface-hover); }
-
 /* ── Mobile Overlay ──────────────────────────────────────── */
 .sidebar-overlay {
   display: none;
@@ -326,9 +305,6 @@ img { display: block; max-width: 100%; }
   justify-content: center;
   border-radius: var(--r-sm);
 }
-.btn-topbar.btn-logout { color: var(--color-error); border-color: transparent; }
-.btn-topbar.btn-logout:hover { background: var(--color-error-bg); }
-
 /* ── Portal Content ──────────────────────────────────────── */
 .portal-content {
   flex: 1;

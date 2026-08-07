@@ -195,6 +195,11 @@ function dispatchAction(t, originalEvent) {
     case 'finanzas-tab':         switchFinanzasTab(t.dataset.tab); break;
     case 'fin-filter':           setFinFilter(t.dataset.period); break;
     case 'config-seccion':       handleConfigSeccion(t.dataset.sec); break;
+    // Todavía sin implementar del lado del panel — evita que el click no haga
+    // nada en silencio (antes no tenían case acá).
+    case 'ver-orden':
+    case 'descargar-pedidos':
+    case 'resenas-filter':       showToast('Próximamente'); break;
   }
 }
 

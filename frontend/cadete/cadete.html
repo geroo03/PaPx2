@@ -283,8 +283,9 @@
           <input type="text" id="cd-patente" placeholder="XXX 000" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;text-transform:uppercase;"/>
         </label>
         <label style="color:#aaa;font-size:12px;">Carnet de conducir (foto)
-          <input type="file" id="cd-carnet-file" accept="image/*" capture="environment" style="width:100%;margin-top:4px;color:#aaa;font-size:13px;"/>
+          <input type="file" id="cd-carnet-file" accept="image/*" capture="environment" style="width:100%;margin-top:4px;color:#aaa;font-size:13px;" onchange="subirDocumento(this,'carnet')"/>
         </label>
+        <div id="carnet-status" style="font-size:11px;color:#888;"></div>
       </div>
     </div>
   </div>
@@ -499,19 +500,19 @@
 </div>
 
 <div class="nav">
-  <div class="ni active" id="ni-v" onclick="stab('v');aN('ni-v')">
+  <div class="ni active" id="ni-v" onclick="stab('v')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     <span>Viajes</span>
   </div>
-  <div class="ni" id="ni-g" onclick="stab('g');aN('ni-g')">
+  <div class="ni" id="ni-g" onclick="stab('g')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
     <span>Ganancias</span>
   </div>
-  <div class="ni" id="ni-ia" onclick="stab('ia');iniciarAsistenteCadete();aN('ni-ia')">
+  <div class="ni" id="ni-ia" onclick="stab('ia');iniciarAsistenteCadete()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
     <span>Ayuda</span>
   </div>
-  <div class="ni" id="ni-p" onclick="stab('p');aN('ni-p')">
+  <div class="ni" id="ni-p" onclick="stab('p')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     <span>Perfil</span>
   </div>
@@ -521,7 +522,6 @@
 </div><!-- /app -->
 
 <script type="module">
-  const __env_cad = document.createElement('script'); __env_cad.src = '/env.js'; document.head.appendChild(__env_cad);
   import { supabase as sb } from '../assets/js/config.js';
   window.sb = sb;
 </script>

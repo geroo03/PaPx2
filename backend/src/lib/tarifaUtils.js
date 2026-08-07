@@ -5,8 +5,8 @@
  * para poder testearlo sin pegarle a Supabase.
  */
 
-export const TARIFA_POR_KM = 750;
-export const TARIFA_BASE_VEHICULO = { moto: 1800, bici: 1200 };
+const TARIFA_POR_KM = 750;
+const TARIFA_BASE_VEHICULO = { moto: 1800, bici: 1200 };
 
 /**
  * @param {string} vehiculo     — 'moto' | 'bici' (case-insensitive). Cualquier

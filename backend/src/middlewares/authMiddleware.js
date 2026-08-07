@@ -65,6 +65,7 @@ export async function requireAdmin(req, res, next) {
       }
       next();
     } catch (e) {
+      console.error('[requireAdmin] Error:', e?.message ?? e);
       return res.status(500).json({ error: 'Error verificando permisos.' });
     }
   });
