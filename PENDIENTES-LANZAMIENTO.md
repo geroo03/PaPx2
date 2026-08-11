@@ -69,16 +69,19 @@ Sin esto, la key vieja sigue siendo válida y sin restricciones — cualquiera
 que la vea en el historial de git podría usarla contra tu cuota/facturación
 de Google Cloud.
 
-## 5. 🟡 Cargar las claves VAPID en Railway
+## 5. 🟡 VAPID — ya cargado en Railway, faltaba el mismo par en el frontend
 
-Ya te las pasé en el chat anterior (no las repito acá para no dejarlas
-guardadas en un archivo del repo). Entrá a Railway → tu servicio backend →
-pestaña **Variables** y cargá las 3: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
-`VAPID_EMAIL`. Confirmá que Railway redeployó después de guardarlas.
+Confirmado el 11 de agosto: las 3 variables (`VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, `VAPID_EMAIL`) ya estaban cargadas en Railway. El
+problema real era que `frontend/env.js` tenía una pública de **otro**
+par distinto (huérfana, sin la privada correspondiente en ningún lado) —
+VAPID exige que ambas mitades sean del mismo par, si no, el push falla
+en silencio. Corregido: `frontend/env.js` ahora usa la misma pública que
+ya está en Railway.
 
-Sin esto, las notificaciones push por web (avisos de pedido, oferta, etc.)
-no llegan — no rompe nada más, pero es una feature muerta hasta que lo
-hagas.
+**Falta solo el push** de ese commit a `main` para que Vercel lo
+despliegue — sin eso, el frontend en producción sigue usando la pública
+vieja aunque el código ya esté arreglado localmente.
 
 ## 6. 🟡 Probar el APK en un dispositivo real — en curso, aparecieron bugs de CSS
 
