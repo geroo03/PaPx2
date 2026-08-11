@@ -41,7 +41,17 @@ Google que lo resetee** — significa no poder subir nunca más una
 actualización a la misma ficha de Play Store. El archivo `LEEME-CRITICO.txt`
 en esa misma carpeta tiene el detalle completo (contraseña, alias, etc.).
 
-## 3. 🔴 Rotar la key de Google Maps (`GMAPS_KEY`) en Google Cloud Console
+## 3. ✅ Inhabilitar el Client Secret viejo de Google OAuth — ya resuelto
+
+Cabo suelto del incidente del login roto (ver más abajo, no era parte de
+este checklist todavía). El secret del 29 de junio quedó desincronizado de
+Supabase y causó semanas de login con Google roto en producción; se arregló
+el 7 de agosto generando un secret nuevo. El 11 de agosto se confirmó que
+Supabase tiene el secret correcto cargado y se inhabilitó el viejo en
+Google Cloud Console (Credentials → ese Client → "Inhabilitar", no
+"Borrar" — reversible por las dudas). Cerrado, no necesitás hacer nada más.
+
+## 4. 🔴 Rotar la key de Google Maps (`GMAPS_KEY`) en Google Cloud Console
 
 GitGuardian avisó (7 de agosto) que la key de Google Maps estaba hardcodeada
 en `cliente.js`. Ya se movió a `frontend/env.js` (mismo patrón que
