@@ -485,10 +485,22 @@ El frontend usa el bundle UMD de Supabase cargado desde CDN:
 
 ## 12. Capacitor (app nativa Android/iOS)
 
-**Estado actual:** Configurado pero sin `android/` generado.
+**Estado actual — Android:** `android/` generado y sincronizado con el
+código (ver `docs/ANDROID-BUILD.md`). Keystore de release ya generado.
+
+**Estado actual — iOS (2026-08-11):** `@capacitor/ios` agregado a
+`package.json`. `ios/` se generó una vez desde Windows (`npx cap add
+ios`) pero **sin `pod install` real** (CocoaPods no corre en Windows) —
+no se puede abrir en Xcode todavía, hace falta la Mac. Como `ios/` está
+en `.gitignore` (mismo criterio que `android/`, evita ~200MB en el repo),
+es probable que se regenere de cero ahí — ver `docs/IOS-BUILD.md` para
+los 3 ajustes manuales que hay que reaplicar después de `cap add ios`
+(permisos de cámara/ubicación, deep link de Google OAuth, push
+notifications) y qué falta del ícono (no hay una fuente cuadrada de
+1024×1024 en el repo todavía, ver ese doc).
 
 ```json
-// capacitor.config.json
+// capacitor.config.json — mismo config para ambas plataformas, sin bloque "ios" propio
 {
   "appId": "com.puertaapuertax.app",
   "appName": "Puerta a Puerta X",
@@ -497,7 +509,7 @@ El frontend usa el bundle UMD de Supabase cargado desde CDN:
 }
 ```
 
-**Para buildear el APK:**
+**Para buildear el APK (Android, cualquier SO):**
 ```bash
 npm install                  # instala Capacitor 7
 npx cap add android          # genera android/ (~200MB, excluido de git)
@@ -505,11 +517,23 @@ npx cap sync android         # copia frontend/ al proyecto Android
 npx cap open android         # abre Android Studio
 # En Android Studio: Build → Build APK(s)
 ```
+Detalle completo, incluido el deep link de Google OAuth y Firebase:
+`docs/ANDROID-BUILD.md`.
 
-**Íconos listos:** `frontend/assets/img/android-icons/ic_launcher_[mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi].png`
+**Para buildear iOS (requiere Mac + Xcode + CocoaPods):**
+```bash
+npm install
+npx cap add ios               # genera ios/App, corre pod install (en Mac)
+npx cap sync ios
+npx cap open ios              # abre Xcode
+```
+Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
+`docs/IOS-BUILD.md`.
 
-**Migraciones pendientes post-capicator:**
-- Firebase / FCM para push nativas (ninguna migración de Supabase pendiente)
+**Íconos listos (Android):** `frontend/assets/img/android-icons/ic_launcher_[mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi].png`
+
+**Migraciones pendientes post-capacitor:**
+- Firebase / FCM para push nativas, Android e iOS (ninguna migración de Supabase pendiente)
 
 ---
 
@@ -527,7 +551,7 @@ npx cap open android         # abre Android Studio
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
 
-**iOS (Capacitor):** hoy no hay nada armado — sin `@capacitor/ios`, sin carpeta `ios/`, sin bloque `ios` en `capacitor.config.json`. `npx cap add ios` necesita CocoaPods (Mac/Xcode), así que no hay nada útil para preparar en código hasta que el usuario tenga una Mac (previsto fines de agosto 2026).
+**iOS (Capacitor):** `@capacitor/ios` agregado y `ios/` generado una vez desde Windows (2026-08-11), pero sin `pod install` real (CocoaPods no corre en Windows) — no se puede compilar/abrir en Xcode todavía. Falta la Mac (prevista fines de agosto 2026) para terminarlo — ver §12 y `docs/IOS-BUILD.md`.
 
 ~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
 

@@ -164,9 +164,23 @@ cuenta.
 - `CLAUDE.md` al día con todo lo de arriba.
 
 ### Sobre la Mac de fines de agosto (iOS)
-Hoy el proyecto no tiene absolutamente nada de iOS armado: sin
-`@capacitor/ios`, sin carpeta `ios/`, sin bloque `ios` en
-`capacitor.config.json`. No hay nada útil para preparar en código todavía
-— `npx cap add ios` necesita CocoaPods, que solo corre en Mac. Cuando
-tengas la Mac, avisame y arrancamos ese workstream (agregar la plataforma,
-generar los íconos de iOS, configurar signing en Xcode, etc.).
+Ya dejé lo que se podía preparar sin la Mac (11 de agosto):
+`@capacitor/ios` instalado, carpeta `ios/` generada (`npx cap add ios`,
+proyecto Xcode completo), y 3 ajustes manuales ya aplicados en
+`Info.plist` (permisos de cámara/ubicación, deep link de Google OAuth,
+scheme del bundle) — documentados en `docs/IOS-BUILD.md` por si hay que
+reaplicarlos (`ios/` está en `.gitignore`, igual que `android/`, así que
+si se regenera de cero en la Mac esos 3 ajustes se pierden).
+
+**Lo que sí necesita la Mac sí o sí:**
+- Correr `pod install` de verdad (CocoaPods no corre en Windows) — sin
+  esto no abre en Xcode.
+- Un ícono de app en 1024×1024 — no hay ninguna fuente cuadrada de esa
+  resolución en el repo todavía (la más grande es 512×512), así que el
+  ícono de iOS quedó en el placeholder de Capacitor por ahora.
+- Cuenta de Apple Developer ($99/año) para firmar y subir a TestFlight/App
+  Store — separada de la de Google Play, hay que crearla en algún momento
+  antes de esa parte.
+
+Avisame cuando tengas la Mac y seguimos con eso (`docs/IOS-BUILD.md`
+tiene el paso a paso completo).

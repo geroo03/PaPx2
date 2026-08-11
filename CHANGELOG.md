@@ -2,6 +2,40 @@
 
 ---
 
+## [3.14.0] — 11 de agosto 2026 (continuación)
+
+### Preparar lo que se puede de iOS antes de que el usuario tenga la Mac
+
+El usuario va a tener una Mac recién a fines de agosto — se deja armado
+todo lo que no requiere Xcode/CocoaPods, para que ese día sea directo.
+
+- `@capacitor/ios` agregado a `package.json` (más scripts `sync:ios`/
+  `open:ios`/`build:ios`, mismo patrón que los de Android).
+- `npx cap add ios` generó `ios/App` (proyecto Xcode completo) — **sin**
+  `pod install` real, porque CocoaPods no corre en Windows (el propio
+  Capacitor lo saltea con un warning). No se puede abrir en Xcode ni
+  compilar hasta correr `pod install` de verdad en la Mac.
+- 3 ajustes manuales aplicados a mano en `ios/App/App/Info.plist` (Capacitor
+  no los agrega solo): usage descriptions de cámara/ubicación (el código usa
+  `@capacitor/geolocation` y `@capacitor/camera`, sin esto la app crashea al
+  pedir el permiso), y el Custom URL Scheme (`CFBundleURLTypes`) para que
+  el deep link del login nativo con Google
+  (`com.puertaapuertax.app://oauth-callback`, ya usado en Android) también
+  funcione en iOS.
+- Nuevo `docs/IOS-BUILD.md` (mismo formato que `docs/ANDROID-BUILD.md`)
+  documentando esos 3 ajustes — importante porque `ios/` está en
+  `.gitignore` (igual que `android/`), así que si se regenera de cero en
+  la Mac con `npx cap add ios`, esos ajustes se pierden y hay que
+  reaplicarlos a mano; quedan documentados ahí para no depender de que
+  sobreviva la carpeta generada en esta compu.
+- **Detectado, no resuelto:** no hay ninguna imagen cuadrada de 1024×1024
+  en el repo para el ícono de iOS (`logo-original.png` es 241×235,
+  `logo-512.png`/`playstore-icon.png` son 512×512) — el ícono de iOS
+  quedó en el placeholder que genera Capacitor por defecto. Documentado en
+  `docs/IOS-BUILD.md`.
+
+---
+
 ## [3.13.0] — 11 de agosto 2026
 
 ### Cierra los 3 pendientes de código del checklist de lanzamiento
