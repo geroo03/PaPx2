@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-07-31.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-11.
 
 ---
 
@@ -132,7 +132,8 @@ puertaapuerta-main/
 │       ├── migration-ofertas-cadetes-campos-matching.sql
 │       ├── migration-clima-cache.sql                   # tabla clima_cache (grid geográfico)
 │       ├── migration-comercios-pausa-manual.sql        # comercios.pausado_manual/pausado_desde
-│       └── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
+│       ├── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
+│       └── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11, pendiente correr en Supabase
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -296,6 +297,7 @@ WHERE id=? AND cadete_id IS NULL
 - El switch manual pasa a ser una pausa temporal (`pausado_manual`/`pausado_desde`) cuando hay horario configurado: cierra al instante, se limpia sola en la próxima apertura programada.
 - No soportado (a propósito, ver el job): horarios que cruzan medianoche (`horario_cierre <= horario_apertura`).
 - Un comercio "cerrado" bloquea de verdad la creación de pedidos: policy RLS **restrictiva** en `pedidos` (`pedidos_bloquear_comercio_cerrado`) exige `comercios.abierto_ahora=true` (u admin) para el INSERT — antes solo era un bloqueo cosmético del botón en el cliente.
+- **Cierres especiales por fecha (2026-08-11):** el comercio puede cargar días puntuales (feriado, vacaciones) desde el panel (Horarios → "Agregar cierre especial"), tabla `cierres_especiales` (`comercio_id`, `fecha`, `motivo` opcional). `horariosScheduler.js` fuerza `abierto_ahora=false` cuando hay una fila con `fecha = hoy` para ese comercio — mismo alcance que `pausado_manual`: solo aplica a comercios con horario configurado, y se autolimpia solo (el chequeo es siempre contra la fecha de hoy, no queda ningún flag que revertir al otro día).
 
 ---
 
@@ -311,11 +313,18 @@ comercios.usuario_id → auth.users.id   // FK real.
 ```
 
 ### Problema conocido de tipos (RLS)
-`reportes.comercio_id` y `advertencias_comercio.comercio_id` son `text`, no `uuid`.
-En políticas RLS que comparan con `auth.uid()` (que retorna `uuid`) se debe castear:
+`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` son `text`,
+no `uuid` (`reportes.comercio_id` sí es `uuid` — se corrigió en
+`fix-criticos-importantes.sql`, no confundir con las otras dos). En
+políticas RLS que comparan con `auth.uid()` (que retorna `uuid`) o con
+`comercios.id` (`uuid`) se debe castear:
 ```sql
 auth.uid()::text = comercio_id
+-- o, comparando contra otra tabla:
+c.id::text = comercio_id
 ```
+Ver §13 — migrar ambas a `uuid` es deuda técnica conocida, evaluada y
+pospuesta a propósito (no bloquea el lanzamiento).
 
 ### RLS — usar siempre `public.rol_actual()`, nunca subqueries inline
 `public.rol_actual()` (`SECURITY DEFINER`, `LANGUAGE plpgsql`, no `sql` — el planner
@@ -339,10 +348,15 @@ acceso directo desde cliente/comercio/cadete): policy `FOR ALL USING
 - `configuracion_zonas` — parámetros de matching/tuning por ciudad (o fila `NULL` = fallback global): radio_km, radio_ampliado_km, max_ofertas, oferta_timeout_seg, redifusion_intervalo_seg, redifusion_max_intentos, anticipacion_difusion_min, pesos de ranking. Se edita por SQL directo, no hay pantalla de admin.
 - `clima_cache` — caché de clima por grilla geográfica (`grid_lat`,`grid_lng` redondeados a 1 decimal), usada por `climaService.js`.
 
+### Tabla nueva (2026-08-11)
+- `cierres_especiales` — días puntuales en los que un comercio no abre (feriado, vacaciones), una fila por fecha. `comercio_id`, `fecha`, `motivo` opcional. `horariosScheduler.js` la consulta cada tick para forzar `abierto_ahora=false` el día que corresponda — ver §6. **Pendiente de correr en Supabase** (`migration-cierres-especiales.sql`) antes de pushear el código que la usa.
+
 ### Migraciones — estado
-Todas las migraciones aplicadas hasta el 2026-07-31 (ver lista completa en §3).
-Todas siguen la convención `ADD COLUMN IF NOT EXISTS` / `DROP POLICY IF EXISTS`
-+ `CREATE POLICY` — aditivas e idempotentes, seguras de re-correr.
+Todas las migraciones aplicadas hasta el 2026-07-31 (ver lista completa en §3),
+salvo `migration-cierres-especiales.sql` (2026-08-11, todavía sin correr en
+Supabase — ver arriba). Todas siguen la convención `ADD COLUMN IF NOT EXISTS`
+/ `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e idempotentes,
+seguras de re-correr.
 
 ---
 
@@ -508,11 +522,18 @@ npx cap open android         # abre Android Studio
 | 3 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). | App nativa |
 | 4 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
 | 5 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
-| 6 | `reportes.comercio_id` y `advertencias_comercio.comercio_id` migrar a `uuid` | Deuda técnica |
+| 6 | Rotar y restringir `GMAPS_KEY` en Google Cloud Console (alerta GitGuardian 2026-08-07) — el código ya se movió a `frontend/env.js` (2026-08-11) pero la key en sí sigue siendo la que quedó expuesta en el historial de git | Seguridad |
+| 7 | `advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` migrar a `uuid` (`reportes.comercio_id` ya es `uuid`, se corrigió en `fix-criticos-importantes.sql`) — evaluado 2026-08-11 y dejado afuera del lanzamiento a propósito, las RLS ya castean ambos lados a `text` | Deuda técnica |
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
 
+**iOS (Capacitor):** hoy no hay nada armado — sin `@capacitor/ios`, sin carpeta `ios/`, sin bloque `ios` en `capacitor.config.json`. `npx cap add ios` necesita CocoaPods (Mac/Xcode), así que no hay nada útil para preparar en código hasta que el usuario tenga una Mac (previsto fines de agosto 2026).
+
 ~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
+
+~~`saveCierre()` no persistía nada~~ — shippeado 2026-08-11 (tabla `cierres_especiales` + wiring en `comercio.js`/`horariosScheduler.js`), ver CHANGELOG v3.13.0. Migración `migration-cierres-especiales.sql` pendiente de correr en Supabase antes de pushear.
+
+~~`login-usuario.html` sin checkbox de TyC + bug de password en login~~ — shippeado 2026-08-11, ver CHANGELOG v3.13.0.
 
 **Contexto de mercado (investigación 2026-07-31, ver memoria de sesión):** Uber Eats
 relanzó en Argentina en enero 2026 eligiendo **Córdoba** (una de las 3 ciudades de

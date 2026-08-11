@@ -41,7 +41,25 @@ Google que lo resetee** — significa no poder subir nunca más una
 actualización a la misma ficha de Play Store. El archivo `LEEME-CRITICO.txt`
 en esa misma carpeta tiene el detalle completo (contraseña, alias, etc.).
 
-## 3. 🟡 Cargar las claves VAPID en Railway
+## 3. 🔴 Rotar la key de Google Maps (`GMAPS_KEY`) en Google Cloud Console
+
+GitGuardian avisó (7 de agosto) que la key de Google Maps estaba hardcodeada
+en `cliente.js`. Ya se movió a `frontend/env.js` (mismo patrón que
+`SUPABASE_ANON_KEY`), pero es solo un refactor de ubicación — **la key en sí
+sigue siendo la misma que ya quedó expuesta** en el historial de git.
+
+- Entrá a Google Cloud Console → APIs & Services → Credentials.
+- Generá una key nueva (o regenerá el secreto de la actual) y restringila:
+  **Application restriction = HTTP referrers** (`pa-px2.vercel.app/*`) +
+  **API restriction** = solo Geocoding API (o las que uses).
+- Reemplazá el valor de `window.GMAPS_KEY` en `frontend/env.js` por la key
+  nueva y hacé commit + push.
+
+Sin esto, la key vieja sigue siendo válida y sin restricciones — cualquiera
+que la vea en el historial de git podría usarla contra tu cuota/facturación
+de Google Cloud.
+
+## 5. 🟡 Cargar las claves VAPID en Railway
 
 Ya te las pasé en el chat anterior (no las repito acá para no dejarlas
 guardadas en un archivo del repo). Entrá a Railway → tu servicio backend →
@@ -52,7 +70,7 @@ Sin esto, las notificaciones push por web (avisos de pedido, oferta, etc.)
 no llegan — no rompe nada más, pero es una feature muerta hasta que lo
 hagas.
 
-## 4. 🟡 Probar el APK en un dispositivo real
+## 6. 🟡 Probar el APK en un dispositivo real
 
 Ya generé un `.apk` de debug con todo el código de julio (matching
 automático, horarios automáticos, edición de productos, recargo 20%, todo).
@@ -68,28 +86,18 @@ Instalalo en un celular Android real (o pasáselo a Fabri) y probá a mano:
 prueba el shell nativo — este paso a mano no es opcional antes de mandar
 nada a Play Store.
 
-## 5. 🟢 Diseñar el "feature graphic" de Play Store (1024×500 px)
+## 7. 🟢 Diseñar el "feature graphic" de Play Store (1024×500 px)
 
 Es el único gráfico que falta para la ficha — el ícono de 512×512 ya existe.
 Si querés, te ayudo con el texto/concepto, pero el diseño en sí (imagen)
 no lo puedo generar yo.
 
-## 6. 🟢 Cuando tengan Payway resuelto (Fabri)
+## 8. 🟢 Cuando tengan Payway resuelto (Fabri)
 
 No toqué nada de esto a propósito. Cuando Fabri termine su parte, avisame y
 lo integramos/probamos junto con todo lo demás antes del lanzamiento final.
 
-## 7. 🟢 `saveCierre()` (panel comercio) no persiste nada
-
-Detectado en la auditoría de código muerto del 7 de agosto. El botón
-"Guardar cierre especial" muestra el toast de éxito pero no escribe nada en
-la base — no existe ninguna columna/tabla en el schema para "cierre
-especial por fecha" (lo más parecido, `pausado_manual`/`pausado_desde`, es
-un concepto distinto: pausa instantánea que se autolimpia, no una fecha
-futura programada). No lo arreglé porque inventar el schema por mi cuenta
-no me pareció correcto — decime si querés que diseñe la migración.
-
-## 8. 🟢 Duplicación de lógica entre archivos (deuda técnica, no urgente)
+## 9. 🟢 Duplicación de lógica entre archivos (deuda técnica, no urgente)
 
 También del 7 de agosto: la misma lógica está reimplementada en varios
 archivos en vez de compartirse — login (3 veces), toggle de mostrar/ocultar
@@ -97,18 +105,37 @@ contraseña (3 veces), sanitización HTML (4 veces), inicialización del
 cliente Supabase (5 veces). Funciona todo bien, no bloquea el lanzamiento,
 pero es un buen candidato para una tarea de refactor aparte.
 
-## 9. 🟡 `cliente/login-usuario.html`: falta checkbox de TyC + bug de contraseña
+## 10. 🟢 Deuda técnica: `comercio_id` como `text` en 2 tablas
 
-De una auditoría del login del 7 de agosto, todavía sin arreglar (esperando
-que confirmes que querés que los toque):
-- No tiene checkbox de Términos y Condiciones en ningún lado — es la única
-  vía de registro de todo el sitio sin uno.
-- El chequeo de "contraseña mínimo 8 caracteres" se aplica también al
-  iniciar sesión, no solo al registrarse — bloquearía a cualquier cuenta
-  real con contraseña más corta (creada antes de esta regla, o de alta
-  directo en el dashboard de Supabase) aunque ponga la contraseña correcta.
+`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` deberían
+ser `uuid`, no `text` (`reportes.comercio_id` ya se arregló en su momento).
+Evaluado el 11 de agosto y dejado afuera **a propósito** — no bloquea el
+lanzamiento, las policies RLS ya castean ambos lados a `text` así que
+funcionan igual hoy. Candidato para una limpieza aparte, sin apuro.
 
-## 10. ✅ `patrocinios` sin las columnas del carrusel — ya resuelto
+## 11. 🟡 `saveCierre()` (panel comercio) — código listo, falta correr la migración
+
+Detectado en la auditoría de código muerto del 7 de agosto: el botón
+"Guardar cierre especial" mostraba éxito pero no escribía nada en la base
+— no existía la tabla. Código ya escrito y commiteado (11 de agosto): nueva
+tabla `cierres_especiales` (`supabase/migrations/migration-cierres-especiales.sql`)
++ `comercio.js`/`comercio.html` ahora persisten, listan y borran cierres de
+verdad, y `horariosScheduler.js` fuerza el comercio cerrado ese día.
+
+**Antes de pushear este código a `main`:** correr
+`migration-cierres-especiales.sql` en el SQL Editor de Supabase (es
+aditiva/idempotente, se puede re-correr sin problema). Si se pushea sin
+correrla primero, el botón "Guardar cierre especial" va a fallar en
+producción (la tabla no existe todavía).
+
+## 12. ✅ `cliente/login-usuario.html`: checkbox de TyC + bug de contraseña — ya resuelto
+
+De la auditoría del login del 7 de agosto. Ya aplicado (11 de agosto):
+checkbox de Términos y Condiciones agregado (mismo patrón que
+`registro-comercio.html`) y el mínimo de 8 caracteres de contraseña ahora
+solo se exige al registrarse, no al iniciar sesión.
+
+## 13. ✅ `patrocinios` sin las columnas del carrusel — ya resuelto
 
 El botón "Guardar Slot" de la pestaña Carrusel del admin nunca pudo
 guardar nada en producción: a la tabla real le faltaban columnas
@@ -130,4 +157,16 @@ cuenta.
 - `android/` sincronizado con el código de julio.
 - `capacitor.config.json` limpio (sacamos una referencia a un keystore que
   no correspondía).
+- `GMAPS_KEY` sacada del código, movida a `env.js` (11 de agosto) — falta
+  solo el paso manual de rotarla, ver ítem 3.
+- `cliente/login-usuario.html`: checkbox de TyC + bug de contraseña (11 de
+  agosto), ver ítem 12.
 - `CLAUDE.md` al día con todo lo de arriba.
+
+### Sobre la Mac de fines de agosto (iOS)
+Hoy el proyecto no tiene absolutamente nada de iOS armado: sin
+`@capacitor/ios`, sin carpeta `ios/`, sin bloque `ios` en
+`capacitor.config.json`. No hay nada útil para preparar en código todavía
+— `npx cap add ios` necesita CocoaPods, que solo corre en Mac. Cuando
+tengas la Mac, avisame y arrancamos ese workstream (agregar la plataforma,
+generar los íconos de iOS, configurar signing en Xcode, etc.).

@@ -2,6 +2,53 @@
 
 ---
 
+## [3.13.0] — 11 de agosto 2026
+
+### Cierra los 3 pendientes de código del checklist de lanzamiento
+
+- **`GMAPS_KEY` sacada de código, movida a `env.js`.** Refactor que había
+  quedado sin commitear de una sesión anterior (alerta GitGuardian del
+  7/8) — la key de Google Maps hardcodeada en `cliente.js` pasa a
+  `window.GMAPS_KEY` (`frontend/env.js`/`env.js.template`), mismo patrón que
+  `SUPABASE_ANON_KEY`. Es un refactor de ubicación nada más: la key en sí
+  sigue siendo la misma que ya estaba expuesta en el historial de git —
+  falta rotarla y restringirla (HTTP referrer + API restriction) en Google
+  Cloud Console, agregado como pendiente manual nuevo en
+  `PENDIENTES-LANZAMIENTO.md`.
+- **`cliente/login-usuario.html`: checkbox de Términos y Condiciones + fix
+  de bug real.** Era la única vía de registro del sitio sin checkbox de
+  TyC (mismo patrón que ya usaba `registro-comercio.html`: link a
+  `/legal.html`, validación antes de crear la cuenta). De paso, el mínimo
+  de 8 caracteres de contraseña se aplicaba también al iniciar sesión, no
+  solo al registrarse — bloqueaba a cualquier cuenta real con contraseña
+  más corta creada antes de esta regla (o de alta directo en el dashboard
+  de Supabase). Ambos detectados en la auditoría de login del 7 de agosto,
+  sin tocar hasta ahora.
+- **`saveCierre()` (panel comercio) ahora persiste de verdad.** El botón
+  "Guardar cierre especial" mostraba éxito pero no escribía nada — no
+  existía la tabla. Nueva tabla `cierres_especiales` (comercio_id, fecha,
+  motivo opcional — un día puntual por fila, `migration-cierres-especiales.sql`)
+  con RLS (`es_dueno_de_comercio()`). `comercio.js` ahora inserta, lista
+  los próximos cierres del comercio (reemplaza el empty-state estático) y
+  permite borrarlos. `horariosScheduler.js` fuerza `abierto_ahora=false`
+  cuando hay un cierre especial para hoy — mismo criterio que
+  `pausado_manual`, sin necesitar limpieza propia (el chequeo es siempre
+  "¿hay fila con `fecha = hoy`?", se deja de aplicar solo al otro día), y
+  con el mismo alcance: solo corre para comercios con horario configurado.
+
+Verificado: `backend/test` 40/40 OK, `node --check` sobre todo el JS
+tocado. Deuda técnica evaluada y **dejada afuera a propósito** (decisión
+del usuario): migrar `advertencias_comercio.comercio_id`/
+`chat_reportes.comercio_id` de `text` a `uuid` — no bloquea el lanzamiento,
+las policies RLS ya castean ambos lados a `text` así que funcionan igual
+hoy.
+
+Todo commiteado en `main` local, **sin pushear** — pendiente de que el
+usuario corra `migration-cierres-especiales.sql` en Supabase y revise antes
+de pushear (Vercel/Railway hacen auto-deploy en cuanto se pushea).
+
+---
+
 ## [3.12.0] — 7 de agosto 2026 (continuación)
 
 ### Empty states del home, filtro de cercanía real, switch admin↔cliente, y un bug de schema en `patrocinios`
