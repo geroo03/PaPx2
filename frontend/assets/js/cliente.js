@@ -851,7 +851,12 @@ function selMetodoPago(m){metodoPagoGuardado=m;localStorage.setItem('pap_metodo_
 let ubicacionActual='';
 localStorage.removeItem('pap_ubicacion');
 function setUbicacionTexto(txt){ubicacionActual=txt;localStorage.setItem('pap_ubicacion',txt);document.getElementById('ubicacion-txt').textContent=txt.length>22?txt.slice(0,22)+'…':txt;}
-const GMAPS_KEY='AIzaSyASBhagsg9KOoRLRaXmI8BEw9VMvf3dQo0';
+// Google Maps API key: vive en env.js (como SUPABASE_ANON_KEY), no hardcodeada
+// acá. Es una key client-side por diseño (Google la espera visible en el
+// navegador) — lo que la protege de verdad son las restricciones de
+// HTTP referrer + API restriction puestas en Google Cloud Console, no que
+// esté "escondida" en el código. Ver CLAUDE.md §4.
+const GMAPS_KEY=window.GMAPS_KEY||'';
 
 // ─── FILTRO DE CERCANÍA ───────────────────────────────────────────────────────
 // Las 3 ciudades de lanzamiento (Santiago del Estero, La Plata, Córdoba) están
