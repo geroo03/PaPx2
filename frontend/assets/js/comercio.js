@@ -1188,7 +1188,10 @@ function switchFinanzasTab(tab) {
 
 // ─── VIEW: HORARIOS ───────────────────────────────────────────────────────────
 // Usa columnas reales: horario_apertura (time), horario_cierre (time), dias_abierto (ARRAY)
-async function loadHorarios() { renderHorarios(); }
+async function loadHorarios() {
+  renderHorarios();
+  await loadCierres();
+}
 
 function renderHorarios() {
   const grid = g('horarios-grid'); if (!grid) return;
@@ -1254,10 +1257,72 @@ function openModalCierre() {
   g('modal-overlay-cierre')?.classList.remove('hidden');
 }
 function closeModalCierre() { g('modal-overlay-cierre')?.classList.add('hidden'); setVal('cierre-fecha',''); setVal('cierre-motivo',''); }
-function saveCierre() {
-  if (!g('cierre-fecha')?.value) { showToast('Seleccioná una fecha','warning'); return; }
-  showToast('Cierre especial configurado ✓'); closeModalCierre();
+
+async function saveCierre() {
+  const fecha  = g('cierre-fecha')?.value;
+  const motivo = g('cierre-motivo')?.value?.trim() || null;
+  if (!fecha) { showToast('Seleccioná una fecha','warning'); return; }
+  const { error } = await sb.from('cierres_especiales').insert([{ comercio_id: S.cid, fecha, motivo }]);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Cierre especial configurado ✓');
+  closeModalCierre();
+  await loadCierres();
 }
+
+async function loadCierres() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const { data, error } = await sb.from('cierres_especiales')
+    .select('id,fecha,motivo')
+    .eq('comercio_id', S.cid)
+    .gte('fecha', hoy)
+    .order('fecha', { ascending: true });
+  if (error) { console.error('loadCierres:', error.message); return; }
+  renderCierres(data || []);
+}
+
+function renderCierres(cierres) {
+  const cont = g('cierres-panel-body'); if (!cont) return;
+  if (!cierres.length) {
+    cont.innerHTML = `
+      <div style="font-size:48px;margin-bottom:var(--sp-4)"></div>
+      <div style="font-weight:var(--w-bold);font-size:var(--text-lg);margin-bottom:var(--sp-2)">
+        No tienes un cierre especial configurado
+      </div>
+      <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--sp-5);line-height:var(--lh-relaxed)">
+        No tienes un cierre especial configurado para tus locales. Agrega un nuevo cierre especial haciendo clic en el botón a continuación.
+      </p>
+      <button class="btn btn-primary btn-full" data-action="agregar-cierre">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar cierre especial
+      </button>`;
+    return;
+  }
+  const filas = cierres.map(c => {
+    const fechaFmt = new Date(c.fecha + 'T00:00:00').toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' });
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--border,#eee);border-radius:10px;margin-bottom:8px;text-align:left;">
+      <div>
+        <div style="font-weight:700;font-size:var(--text-sm)">${fechaFmt}</div>
+        ${c.motivo ? `<div style="font-size:var(--text-xs);color:var(--text-secondary)">${esc(c.motivo)}</div>` : ''}
+      </div>
+      <button onclick="window.borrarCierre('${c.id}')" style="background:none;border:none;color:var(--danger,#DC2626);cursor:pointer;font-size:12px;font-weight:700;">Borrar</button>
+    </div>`;
+  }).join('');
+  cont.style.textAlign = 'left';
+  cont.innerHTML = `
+    <div style="font-weight:var(--w-bold);font-size:var(--text-lg);margin-bottom:var(--sp-3);text-align:center">Próximos cierres</div>
+    ${filas}
+    <button class="btn btn-primary btn-full" style="margin-top:8px" data-action="agregar-cierre">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Agregar cierre especial
+    </button>`;
+}
+
+window.borrarCierre = async function(id) {
+  const { error } = await sb.from('cierres_especiales').delete().eq('id', id);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Cierre especial eliminado');
+  await loadCierres();
+};
 
 // ─── VIEW: PROMOCIONES ────────────────────────────────────────────────────────
 // EJEMPLO FINANCIERO:

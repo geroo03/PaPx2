@@ -142,6 +142,30 @@ Tiendas registradas. `estado_registro` controla la visibilidad pública.
 
 ---
 
+### `cierres_especiales`
+
+Días puntuales en los que un comercio no abre, sin importar su
+`horario_apertura`/`horario_cierre`/`dias_abierto` normal (feriado,
+vacaciones, etc.). Una fila por fecha — varios días seguidos son varias
+filas. `horariosScheduler.js` fuerza `abierto_ahora=false` cuando hay una
+fila con `fecha = hoy` para ese comercio (solo si el comercio tiene horario
+configurado — igual criterio que `pausado_manual`).
+
+| Columna | Tipo | Constraints |
+|---------|------|-------------|
+| `id` | `uuid` | PK |
+| `comercio_id` | `uuid` | NOT NULL, FK → comercios |
+| `fecha` | `date` | NOT NULL |
+| `motivo` | `text` | Opcional |
+| `created_at` | `timestamptz` | |
+
+**RLS:**
+- `cierres_especiales_owner_all` — el dueño del comercio gestiona los suyos (`es_dueno_de_comercio()`)
+- `cierres_especiales_lectura_publica` — SELECT público (mismo criterio que `abierto_ahora`)
+- `cierres_especiales_admin_all` — admin tiene acceso total
+
+---
+
 ## Cadetes
 
 ### `cadetes`

@@ -14,6 +14,12 @@
  * menos un día calendario (Argentina) desde que se activó — así no repite el
  * problema de "se olvidaron de reactivarlo y quedó cerrado para siempre".
  *
+ * cierres_especiales (feriados, vacaciones, etc.) funciona igual que
+ * pausado_manual pero sin necesitar limpieza propia: el chequeo es siempre
+ * "¿hay una fila con fecha = hoy?", así que al otro día deja de aplicar
+ * solo. Mismo alcance que pausado_manual: solo corre para comercios con
+ * horario configurado (los 100% manuales quedan sin tocar).
+ *
  * Corre dentro del propio proceso Node de Railway (persistente, no
  * serverless) — mismo patrón que matchingScheduler.js, sin infraestructura
  * de cron nueva.
@@ -71,6 +77,17 @@ async function tickHorarios() {
     const horaHoy = horaHHMM(ahora);
     const hoy = hoyISO(ahora);
 
+    const { data: cierresHoy, error: cierresError } = await supabaseAdmin
+      .from('cierres_especiales')
+      .select('comercio_id')
+      .in('comercio_id', comercios.map(c => c.id))
+      .eq('fecha', hoy);
+
+    if (cierresError) {
+      console.error('[horariosScheduler] Error leyendo cierres_especiales:', cierresError.message);
+    }
+    const comerciosCerradosHoy = new Set((cierresHoy || []).map(c => c.comercio_id));
+
     for (const c of comercios) {
       // horario_apertura/horario_cierre vienen de Postgres como "HH:MM:SS"
       const apertura = String(c.horario_apertura).slice(0, 5);
@@ -88,7 +105,8 @@ async function tickHorarios() {
 
       const dentroDia     = Array.isArray(c.dias_abierto) && c.dias_abierto.includes(diaHoy);
       const dentroHorario = horaHoy >= apertura && horaHoy < cierre;
-      const calculadoAbierto = dentroDia && dentroHorario;
+      const cierreEspecialHoy = comerciosCerradosHoy.has(c.id);
+      const calculadoAbierto = dentroDia && dentroHorario && !cierreEspecialHoy;
 
       let pausadoManual = !!c.pausado_manual;
       let pausadoDesde  = c.pausado_desde;
