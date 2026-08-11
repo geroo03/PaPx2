@@ -80,21 +80,17 @@ Sin esto, las notificaciones push por web (avisos de pedido, oferta, etc.)
 no llegan — no rompe nada más, pero es una feature muerta hasta que lo
 hagas.
 
-## 6. 🟡 Probar el APK en un dispositivo real
+## 6. 🟡 Probar el APK en un dispositivo real — en curso, aparecieron bugs de CSS
 
-Ya generé un `.apk` de debug con todo el código de julio (matching
-automático, horarios automáticos, edición de productos, recargo 20%, todo).
-Instalalo en un celular Android real (o pasáselo a Fabri) y probá a mano:
-
-- Login con Google (el flow nativo con deep link) — confirmá que redirige
-  bien de vuelta a la app.
-- Un pedido de punta a punta: cliente → comercio acepta con tiempo de
-  preparación → cadete recibe la oferta automáticamente → retiro → entrega.
-- Permisos de GPS y cámara.
+Probado en un celular real el 11 de agosto — aparecieron errores de CSS
+(el usuario los va a detallar). Falta:
+- Recibir el detalle de los bugs de CSS y arreglarlos.
+- Terminar de confirmar el resto: login con Google (deep link), un pedido
+  de punta a punta, permisos de GPS y cámara.
 
 `qa-e2e.mjs` ya prueba todo el backend (56/56 la última vez) pero **no**
-prueba el shell nativo — este paso a mano no es opcional antes de mandar
-nada a Play Store.
+prueba el shell nativo — este paso a mano sigue sin ser opcional antes de
+mandar nada a Play Store.
 
 ## 7. 🟢 Diseñar el "feature graphic" de Play Store (1024×500 px)
 
@@ -123,20 +119,16 @@ Evaluado el 11 de agosto y dejado afuera **a propósito** — no bloquea el
 lanzamiento, las policies RLS ya castean ambos lados a `text` así que
 funcionan igual hoy. Candidato para una limpieza aparte, sin apuro.
 
-## 11. 🟡 `saveCierre()` (panel comercio) — código listo, falta correr la migración
+## 11. ✅ `saveCierre()` (panel comercio) — ya resuelto
 
 Detectado en la auditoría de código muerto del 7 de agosto: el botón
 "Guardar cierre especial" mostraba éxito pero no escribía nada en la base
-— no existía la tabla. Código ya escrito y commiteado (11 de agosto): nueva
+— no existía la tabla. Código escrito y commiteado el 11 de agosto: nueva
 tabla `cierres_especiales` (`supabase/migrations/migration-cierres-especiales.sql`)
 + `comercio.js`/`comercio.html` ahora persisten, listan y borran cierres de
 verdad, y `horariosScheduler.js` fuerza el comercio cerrado ese día.
-
-**Antes de pushear este código a `main`:** correr
-`migration-cierres-especiales.sql` en el SQL Editor de Supabase (es
-aditiva/idempotente, se puede re-correr sin problema). Si se pushea sin
-correrla primero, el botón "Guardar cierre especial" va a fallar en
-producción (la tabla no existe todavía).
+Migración corrida en Supabase el 11 de agosto — el commit ya está seguro
+para pushear.
 
 ## 12. ✅ `cliente/login-usuario.html`: checkbox de TyC + bug de contraseña — ya resuelto
 
