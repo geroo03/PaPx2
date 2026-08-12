@@ -2,6 +2,53 @@
 
 ---
 
+## [3.15.0] — 11 de agosto 2026 (continuación)
+
+### Fix preventivo de CSS cross-device (Android/iOS) tras probar el APK en un celular real
+
+El usuario probó el `.apk` en un dispositivo Android real por primera vez
+y encontró errores de CSS (capturas puntuales pendientes de compartir).
+Investigación (agente Explore sobre todo el repo + research externo sobre
+Capacitor/WebView) antes de ver los casos concretos, para no ir a ciegas.
+
+- **Causa más probable identificada:** `android/variables.gradle` tiene
+  `targetSdkVersion=35` (Android 15), que fuerza edge-to-edge por
+  defecto — el WebView dibuja el contenido detrás de la barra de estado.
+  `@capacitor/status-bar` estaba instalado pero nunca se usaba, no había
+  `viewport-fit=cover` en ningún HTML (con lo cual `env(safe-area-inset-*)`
+  siempre resolvía a `0`, aunque ya se usaba en 2 archivos), y no había
+  ninguna protección de `safe-area-inset-top` en ningún lado.
+- Nuevo `frontend/assets/css/safe-area.css` — expone
+  `--safe-top`/`--safe-bottom`/`--safe-left`/`--safe-right`, primer
+  stylesheet cargado por **todas** las páginas (antes no existía ningún
+  archivo común entre las familias cliente/cadete/portal-comercio-admin/
+  embajador). `viewport-fit=cover` agregado a las 17 páginas con
+  `<meta viewport>`.
+- Padding de safe-area aplicado al contenedor raíz de cada familia, al
+  sidebar/topbar del panel de comercio (`portal-layout.css`) y al
+  side-drawer del cadete.
+- Fallback `100vh` → `100dvh` en los ~12 sitios que dependían de `vh`
+  puro (el más riesgoso: `.sidebar` tenía `height:100vh` fijo, no
+  `min-height`).
+- `StatusBar` wireado: `capacitor.config.json` (`overlaysWebView:true` —
+  se acepta el edge-to-edge en vez de pelear contra él, Android 15+ no
+  deja optar por lo viejo de todos modos) + llamada gateada en `main.js`
+  para el contraste de los íconos de la barra.
+- Todos los `input`/`select`/`textarea` del proyecto subidos de 12-15px a
+  16px — por debajo de eso, iOS hace zoom automático al enfocar un campo.
+  No es la causa del bug de Android, pero se resuelve de una vez antes de
+  probar en iOS (`ios/` sigue pendiente de la Mac).
+- `-webkit-tap-highlight-color`/`-webkit-text-size-adjust` normalizados
+  donde faltaban (varios `<style>` inline y `portal-layout.css`/
+  `embajador.css`).
+
+**Sin verificar todavía en el dispositivo real** — es la única prueba que
+realmente confirma esto (ninguna herramienta emula el WebView nativo con
+exactitud). Backend sin impacto (`test` 40/40), balance de tags/llaves
+revisado en los 31 archivos tocados.
+
+---
+
 ## [3.14.0] — 11 de agosto 2026 (continuación)
 
 ### Preparar lo que se puede de iOS antes de que el usuario tenga la Mac

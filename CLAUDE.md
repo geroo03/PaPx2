@@ -586,6 +586,9 @@ No hay pre-orders ni carrito grupal (confirmado ausentes, no es un bug).
 - `sanitize(str)` antes de cualquier interpolación en innerHTML
 - `window.sb` es el cliente Supabase global (inicializado en el guard de sesión de cada HTML)
 - Los módulos ES usan `import { supabase } from './config.js'` que es alias de `window.sb`
+- **Toda página nueva** debe tener `viewport-fit=cover` en su `<meta viewport">` y linkear `frontend/assets/css/safe-area.css` **primero**, antes de su propio CSS — es el único stylesheet compartido por todas las familias (cliente/cadete/portal-comercio-admin/embajador) y expone `--safe-top`/`--safe-bottom`/`--safe-left`/`--safe-right` (fix de CSS cross-device 2026-08-11, ver CHANGELOG v3.15.0).
+- Todo `input`/`select`/`textarea` nuevo: `font-size` mínimo **16px** — por debajo de eso, iOS hace zoom automático al enfocar el campo.
+- Layouts a pantalla completa: `min-height:100vh; min-height:100dvh;` (el segundo pisa al primero en navegadores que soportan `dvh`, fallback gratis para los que no).
 
 ---
 

@@ -82,11 +82,23 @@ ya está en Railway.
 despliegue — sin eso, el frontend en producción sigue usando la pública
 vieja aunque el código ya esté arreglado localmente.
 
-## 6. 🟡 Probar el APK en un dispositivo real — en curso, aparecieron bugs de CSS
+## 6. 🟡 Probar el APK en un dispositivo real — en curso, fix de CSS ya aplicado
 
-Probado en un celular real el 11 de agosto — aparecieron errores de CSS
-(el usuario los va a detallar). Falta:
-- Recibir el detalle de los bugs de CSS y arreglarlos.
+Probado en un celular real el 11 de agosto — aparecieron errores de CSS.
+Investigado y arreglado el mismo día (sin haber visto todavía las capturas
+puntuales del usuario): la causa más probable es que Android 15
+(`targetSdkVersion=35`) fuerza edge-to-edge por defecto, y no había
+ninguna protección de `safe-area-inset-top` en ningún lado — el contenido
+de arriba de cada pantalla probablemente se dibujaba debajo de la barra de
+estado. Fix aplicado (`safe-area.css` nuevo + `viewport-fit=cover` +
+padding en sidebar/topbar/headers + `StatusBar` wireado + inputs a 16px
+para prevenir zoom en iOS).
+
+**Falta:**
+- Reinstalar el APK actualizado (`npx cap sync android` + rebuild) en el
+  mismo celular y confirmar que los bugs desaparecieron — es la única
+  verificación real, nada emula el WebView nativo con exactitud.
+- Si algo sigue roto, mandar las capturas para un segundo pase puntual.
 - Terminar de confirmar el resto: login con Google (deep link), un pedido
   de punta a punta, permisos de GPS y cámara.
 
