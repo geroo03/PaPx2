@@ -465,7 +465,7 @@ Mensajes del chat de soporte asociado a un reporte.
 | `id` | `uuid` | PK |
 | `reporte_id` | `uuid` | FK → reportes |
 | `pedido_id` | `uuid` | FK → pedidos |
-| `comercio_id` | `text` | |
+| `comercio_id` | `uuid` | Migración de `text` a `uuid` escrita el 2026-08-11 (`migration-comercio-id-uuid.sql`) — pendiente de correr en Supabase |
 | `de` | `text` | Identificador del remitente |
 | `texto` | `text` | |
 | `created_at` | `timestamptz` | |
@@ -481,10 +481,12 @@ Advertencias administrativas emitidas contra un comercio.
 | Columna | Tipo | Constraints |
 |---------|------|-------------|
 | `id` | `uuid` | PK |
-| `comercio_id` | `text` | Debería ser `uuid` — pendiente migrar |
+| `comercio_id` | `uuid` | Migración de `text` a `uuid` escrita el 2026-08-11 (`migration-comercio-id-uuid.sql`) — pendiente de correr en Supabase, FK implícita a comercios |
 | `pedido_id` | `uuid` | FK → pedidos |
 | `motivo` | `text` | |
 | `created_at` | `timestamptz` | |
+
+**RLS:** `advertencias_comercio_ver` — el comercio dueño ve las suyas (`es_dueno_de_comercio()`). `advertencias_comercio_admin` — admin, acceso total.
 
 ---
 
@@ -732,8 +734,8 @@ Habilitar en el Dashboard de Supabase → Table Editor → Replication:
 |---|-------|----------|--------|
 | 1 | `patrocinios` | Estructura híbrida (banners + embajador mezclados) | Resuelto en `fix-criticos-importantes.sql` (pendiente ejecutar) |
 | 2 | `ratings` | Falta columna `rating` que usa el backend | Resuelto en `fix-criticos-importantes.sql` |
-| 3 | `reportes` | `comercio_id` es `text` en vez de `uuid` | Resuelto en `fix-criticos-importantes.sql` |
-| 4 | `advertencias_comercio` | `comercio_id` es `text` en vez de `uuid` | Resuelto en `fix-criticos-importantes.sql` |
+| 3 | `reportes` | `comercio_id` es `text` en vez de `uuid` | Resuelto — se agregó como `uuid` desde el principio en `fix-criticos-importantes.sql` |
+| 4 | `advertencias_comercio` / `chat_reportes` | `comercio_id` es `text` en vez de `uuid` | El intento en `fix-criticos-importantes.sql` era best-effort y solo cubría `advertencias_comercio` — `chat_reportes` nunca se tocó. Migración nueva 2026-08-11 (`migration-comercio-id-uuid.sql`), pendiente de correr en Supabase |
 | 5 | `referidos_cadete` | Faltan columnas `viajes_contados`, `comision_acumulada`, `viajes_limite` | Resuelto en `fix-criticos-importantes.sql` |
 | 6 | `chat_reportes` | Sin RLS (deny-all por defecto) | Resuelto en `fix-criticos-importantes.sql` |
 | 7 | `comercios` | `lat`/`lng` de comercios existentes pueden estar NULL | Manual: poblar desde el Dashboard |
