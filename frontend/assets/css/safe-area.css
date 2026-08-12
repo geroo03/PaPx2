@@ -1,0 +1,25 @@
+/* ============================================================
+   SAFE-AREA — variables compartidas entre TODAS las páginas
+   ============================================================
+   Único stylesheet que cargan las 16 páginas del proyecto (cliente,
+   cadete, comercio/admin "portal", embajador, login, etc.) — antes no
+   había ningún archivo común entre esas familias.
+
+   Expone --safe-top/--safe-bottom/--safe-left/--safe-right para no
+   tener que repetir env(safe-area-inset-*) por todos lados y para que
+   cualquier página nueva tenga el hook disponible sin pensarlo.
+
+   Depende de que <meta name="viewport"> tenga viewport-fit=cover — sin
+   eso, env(safe-area-inset-*) siempre vale 0px (ver cada HTML).
+
+   No rompe nada fuera de un dispositivo con notch/status-bar/gestos:
+   env() cae al valor por default (0px) en cualquier navegador de
+   escritorio o celular sin esas áreas.
+   ============================================================ */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}

@@ -9,6 +9,18 @@ import { registrarPush } from './push.js';
 // window.sb es inicializado en el session guard del HTML antes de que este script corra.
 const supabase = window.sb;
 
+// ─── STATUS BAR NATIVA (Capacitor / Android-iOS) ─────────────────────────────
+// Android 15+ (API 35) fuerza edge-to-edge: el WebView dibuja detrás de la
+// barra de estado por defecto. capacitor.config.json ya deja overlaysWebView
+// en true (no hay forma de optar por lo viejo de todos modos) — esto solo
+// ajusta el color de los íconos (hora/batería) para que tengan contraste
+// contra el fondo oscuro de la app. El padding real que evita que el
+// contenido quede tapado lo pone el CSS (--safe-top, ver safe-area.css).
+if (window.Capacitor?.isNativePlatform?.()) {
+  const { StatusBar, Style } = window.Capacitor.Plugins;
+  StatusBar?.setStyle?.({ style: Style?.Dark ?? 'DARK' }).catch(() => {});
+}
+
 // Globales para scripts clásicos (cliente.js los lee en el evento 'load')
 window.ICONS        = ICONS;
 window.sanitizeHTML = sanitizeHTML;

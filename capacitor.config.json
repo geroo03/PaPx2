@@ -19,6 +19,11 @@
     },
     "Geolocation": {
       "requestLocationWhenInUseAuthorization": true
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DARK",
+      "backgroundColor": "#00000000"
     }
   }
 }

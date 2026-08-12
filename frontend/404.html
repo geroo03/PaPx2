@@ -2,14 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <link rel="icon" type="image/jpeg" href="/puertaapuertax.jpg">
   <title>Puerta a Puerta X — Pagina no encontrada</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/safe-area.css">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0d0d0d;color:#fff;padding:24px;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html{-webkit-text-size-adjust:100%;}
+    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:#0d0d0d;color:#fff;padding:24px;padding-top:calc(24px + var(--safe-top));padding-bottom:calc(24px + var(--safe-bottom));}
     .wrap{text-align:center;max-width:400px;}
     .code{font-size:120px;font-weight:900;background:linear-gradient(135deg,#FF6B35,#ff8a5a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
     .title{font-size:22px;font-weight:800;margin:12px 0 8px;}

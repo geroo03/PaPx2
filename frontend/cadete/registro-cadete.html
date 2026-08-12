@@ -2,14 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <link rel="icon" type="image/jpeg" href="/puertaapuertax.jpg">
   <title>Puerta a Puerta X — Cadete</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/env.js"></script>
+  <link rel="stylesheet" href="../assets/css/safe-area.css">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d0d0d;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html{-webkit-text-size-adjust:100%;}
+    body{font-family:-apple-system,'Segoe UI',sans-serif;background:#0d0d0d;min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:32px 16px;padding-top:calc(32px + var(--safe-top));padding-bottom:calc(32px + var(--safe-bottom));}
     .container{width:100%;max-width:420px;text-align:center}
     .logo{width:64px;height:64px;border-radius:16px;background:#FF6B35;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 6px 24px rgba(255,107,53,.4)}
     h1{font-size:24px;font-weight:800;color:#fff;margin-bottom:6px}
@@ -30,7 +32,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     /* email form */
     .email-form{display:flex;flex-direction:column;gap:12px;text-align:left}
-    .email-form input{width:100%;background:#1a1a1a;color:#fff;border:1.5px solid #333;border-radius:12px;padding:14px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .15s}
+    .email-form input{width:100%;background:#1a1a1a;color:#fff;border:1.5px solid #333;border-radius:12px;padding:14px 16px;font-size:16px;font-family:inherit;outline:none;transition:border-color .15s}
     .email-form input:focus{border-color:#FF6B35}
     .email-form input::placeholder{color:#555}
     .btn-registrar{width:100%;background:#FF6B35;color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s}

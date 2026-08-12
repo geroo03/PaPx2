@@ -2,12 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <link rel="icon" type="image/jpeg" href="/puertaapuertax.jpg">
 <title>Puerta a Puerta X — Panel del Cadete</title>
 <link rel="preconnect" href="https://fmqlpgerqdiplnvjjarl.supabase.co">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../assets/css/safe-area.css">
 <link rel="stylesheet" href="../assets/css/animations.css">
 <link rel="stylesheet" href="../assets/css/cadete.css">
 <script src="/env.js"></script>
@@ -172,7 +173,7 @@
     <div id="ia-msgs" style="height:300px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;"></div>
     <div style="padding:12px;display:flex;gap:8px;align-items:center;border-top:1px solid #333;">
       <input id="ia-input" placeholder="Preguntame lo que necesitás..."
-        style="flex:1;background:#1a1a1a;border:1.5px solid #333;border-radius:20px;padding:9px 14px;font-size:13px;outline:none;color:#fff;font-family:inherit;"
+        style="flex:1;background:#1a1a1a;border:1.5px solid #333;border-radius:20px;padding:9px 14px;font-size:16px;outline:none;color:#fff;font-family:inherit;"
         onkeydown="if(event.key==='Enter')enviarIACadete()"/>
       <button onclick="enviarIACadete()" id="ia-btn" style="width:38px;height:38px;border-radius:50%;background:#FF6B35;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -230,19 +231,19 @@
     <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;">Datos personales</div>
     <form id="cadete-form" style="display:flex;flex-direction:column;gap:12px;">
       <label style="color:#aaa;font-size:12px;">Nombre completo
-        <input type="text" id="cd-nombre" required style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;"/>
+        <input type="text" id="cd-nombre" required style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;"/>
       </label>
       <label style="color:#aaa;font-size:12px;">Fecha de nacimiento
-        <input type="date" id="cd-fecha" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;"/>
+        <input type="date" id="cd-fecha" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;"/>
       </label>
       <label style="color:#aaa;font-size:12px;">Email
-        <input type="email" id="cd-email" readonly style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#0a0a0a;color:#666;font-size:14px;"/>
+        <input type="email" id="cd-email" readonly style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#0a0a0a;color:#666;font-size:16px;"/>
       </label>
       <label style="color:#aaa;font-size:12px;">Telefono / WhatsApp
-        <input type="tel" id="cd-telefono" placeholder="Ej: 385-1234567" inputmode="tel" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;"/>
+        <input type="tel" id="cd-telefono" placeholder="Ej: 385-1234567" inputmode="tel" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;"/>
       </label>
       <label style="color:#aaa;font-size:12px;">CVU / Alias (para cobros semanales)
-        <input type="text" id="cd-cvu" placeholder="Ej: mi.alias.mp o 0000000000000000000000" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;"/>
+        <input type="text" id="cd-cvu" placeholder="Ej: mi.alias.mp o 0000000000000000000000" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;"/>
       </label>
       <button type="submit" id="cd-btn-save" style="background:#FF6B35;color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;font-family:inherit;">Guardar datos</button>
       <div id="cd-msg" style="font-size:12px;text-align:center;"></div>
@@ -269,18 +270,18 @@
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div style="display:flex;gap:10px;">
         <label style="color:#aaa;font-size:12px;flex:1;">Vehículo
-          <select id="cd-vehiculo" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;">
+          <select id="cd-vehiculo" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;">
             <option value="bici">Bicicleta</option>
             <option value="moto">Moto</option>
           </select>
         </label>
         <label style="color:#aaa;font-size:12px;flex:1;">Color
-          <input type="text" id="cd-color" placeholder="Ej: Rojo" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;"/>
+          <input type="text" id="cd-color" placeholder="Ej: Rojo" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;"/>
         </label>
       </div>
       <div id="moto-fields" style="display:none;flex-direction:column;gap:12px;">
         <label style="color:#aaa;font-size:12px;">Patente
-          <input type="text" id="cd-patente" placeholder="XXX 000" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:14px;text-transform:uppercase;"/>
+          <input type="text" id="cd-patente" placeholder="XXX 000" style="width:100%;margin-top:4px;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:16px;text-transform:uppercase;"/>
         </label>
         <label style="color:#aaa;font-size:12px;">Carnet de conducir (foto)
           <input type="file" id="cd-carnet-file" accept="image/*" capture="environment" style="width:100%;margin-top:4px;color:#aaa;font-size:13px;" onchange="subirDocumento(this,'carnet')"/>
@@ -385,7 +386,7 @@
       <!-- Nombre -->
       <label style="color:#aaa;font-size:12px;font-weight:600;">
         Nombre completo <span style="color:#FF6B35;">*</span>
-        <input type="text" id="ob-nombre" required placeholder="Tu nombre y apellido" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:15px;"/>
+        <input type="text" id="ob-nombre" required placeholder="Tu nombre y apellido" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:16px;"/>
       </label>
 
       <!-- DNI -->
@@ -401,7 +402,7 @@
       <!-- CVU -->
       <label style="color:#aaa;font-size:12px;font-weight:600;">
         CVU / Alias para cobros <span style="color:#FF6B35;">*</span>
-        <input type="text" id="ob-cvu" required placeholder="Ej: mi.alias.mp" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:15px;"/>
+        <input type="text" id="ob-cvu" required placeholder="Ej: mi.alias.mp" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:16px;"/>
       </label>
 
       <!-- Vehículo -->
@@ -417,7 +418,7 @@
       <div id="ob-moto-fields" style="display:none;flex-direction:column;gap:16px;">
         <label style="color:#aaa;font-size:12px;font-weight:600;">
           Patente <span style="color:#FF6B35;">*</span>
-          <input type="text" id="ob-patente" placeholder="Ej: AB 123 CD" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:15px;text-transform:uppercase;"/>
+          <input type="text" id="ob-patente" placeholder="Ej: AB 123 CD" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:16px;text-transform:uppercase;"/>
         </label>
         <div>
           <div style="color:#aaa;font-size:12px;font-weight:600;margin-bottom:6px;">Foto del carnet de conducir</div>
@@ -440,7 +441,7 @@
       <!-- Código de referido (opcional) -->
       <label style="color:#aaa;font-size:12px;font-weight:600;">
         ¿Te invitó otro cadete? Ingresá su codigo
-        <input type="text" id="ob-referido" placeholder="Ej: PAP-A1B2" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:15px;text-transform:uppercase;letter-spacing:1px;"/>
+        <input type="text" id="ob-referido" placeholder="Ej: PAP-A1B2" style="width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1.5px solid #333;background:#1a1a1a;color:#fff;font-size:16px;text-transform:uppercase;letter-spacing:1px;"/>
       </label>
 
       <!-- Info cobro -->

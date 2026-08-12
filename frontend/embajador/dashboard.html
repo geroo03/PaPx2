@@ -2,13 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <link rel="icon" type="image/jpeg" href="/puertaapuertax.jpg">
   <title>Embajador · Puerta a Puerta X</title>
   <link rel="preconnect" href="https://fmqlpgerqdiplnvjjarl.supabase.co">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/safe-area.css">
   <link rel="stylesheet" href="../assets/css/animations.css">
   <link rel="stylesheet" href="../assets/css/embajador.css">
   <style>
@@ -31,7 +32,7 @@
     .modal-overlay.open { display:flex; }
     .modal { background:#fff; border-radius:16px; padding:32px; width:min(440px,92vw); }
     .modal h3 { margin:0 0 20px; font-size:20px; }
-    .modal input { width:100%; box-sizing:border-box; padding:12px; border:1.5px solid #ddd; border-radius:8px; font-size:15px; margin-bottom:12px; }
+    .modal input { width:100%; box-sizing:border-box; padding:12px; border:1.5px solid #ddd; border-radius:8px; font-size:16px; margin-bottom:12px; }
     .modal .btn-row { display:flex; gap:12px; margin-top:8px; }
     .modal .btn-row button { flex:1; padding:12px; border-radius:8px; border:none; cursor:pointer; font:600 15px/1 'Plus Jakarta Sans',sans-serif; }
     .btn-confirm { background:#16a34a; color:#fff; }
@@ -112,7 +113,7 @@
         <h2>Tu Link de Referidos</h2>
         <p style="font-size:14px;color:#666;margin:0 0 12px">Compartí este link para que nuevos comercios se registren con tu código y recibas comisiones automáticamente.</p>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <input id="ref-link" readonly style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:12px;background:#f9f9f9;color:#333;outline:none">
+          <input id="ref-link" readonly style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:16px;background:#f9f9f9;color:#333;outline:none">
           <button id="btn-copy-ref" style="padding:10px 16px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;cursor:pointer;font:600 14px/1 'Plus Jakarta Sans',sans-serif;white-space:nowrap">Copiar</button>
         </div>
         <button id="btn-wa-ref" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;background:#25d366;color:#fff;border:none;border-radius:8px;cursor:pointer;font:600 14px/1 'Plus Jakarta Sans',sans-serif;width:100%;box-sizing:border-box">

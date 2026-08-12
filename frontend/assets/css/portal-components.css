@@ -288,7 +288,10 @@
   border: 1px solid var(--border-default);
   border-radius: var(--r-md);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
+  /* 16px fijo (no var(--text-base), que se usa tambien para texto que
+     no es de inputs) -- por debajo de 16px, iOS hace zoom automatico
+     al enfocar el campo. */
+  font-size: 16px;
   color: var(--text-primary);
   transition: border-color var(--t-fast), box-shadow var(--t-fast);
   outline: none;

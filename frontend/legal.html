@@ -2,15 +2,17 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <link rel="icon" type="image/jpeg" href="/puertaapuertax.jpg">
   <title>Puerta a Puerta X — Legales</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/safe-area.css">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:#fff;color:#1a1a1a;line-height:1.7;padding:0;}
-    .top-bar{background:#0d0d0d;padding:16px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html{-webkit-text-size-adjust:100%;}
+    body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:#fff;color:#1a1a1a;line-height:1.7;padding:0;padding-bottom:var(--safe-bottom);}
+    .top-bar{background:#0d0d0d;padding:16px 20px;padding-top:calc(16px + var(--safe-top));position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;}
     .top-bar a{color:#FF6B35;text-decoration:none;font-size:14px;font-weight:600;}
     .top-bar h1{color:#fff;font-size:16px;font-weight:800;margin:0;}
     .tabs-legal{display:flex;gap:0;border-bottom:2px solid #f0f0f0;background:#fafafa;position:sticky;top:52px;z-index:99;}
