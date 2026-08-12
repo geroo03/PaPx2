@@ -143,17 +143,13 @@ nada — resultó que no todo era copy-paste accidental:
   tocar el modelo de seguridad del admin — **se dejó sin tocar a
   propósito**, no es una tarea de limpieza mecánica.
 
-## 10. 🟡 `comercio_id` como `text` en 2 tablas — código listo, falta correr en Supabase
+## 10. ✅ `comercio_id` como `text` en 2 tablas — ya resuelto
 
-`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` debían
-ser `uuid`, no `text` (`reportes.comercio_id` ya se había arreglado antes).
-Migración escrita el 11 de agosto
-(`supabase/migrations/migration-comercio-id-uuid.sql`) — mismo criterio
-guardado que las migraciones anteriores (si algún dato no tiene forma de
-uuid, no convierte nada y avisa por `RAISE NOTICE` en vez de romper).
-
-**Antes de pushear el código que depende de esto:** correr
-`migration-comercio-id-uuid.sql` en el SQL Editor de Supabase.
+`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` eran
+`text`, deberían haber sido `uuid` desde siempre (`reportes.comercio_id`
+ya se había arreglado antes). Migración
+(`supabase/migrations/migration-comercio-id-uuid.sql`) escrita y corrida
+en Supabase el 11 de agosto, código ya pusheado a `main`.
 
 ## 11. ✅ `saveCierre()` (panel comercio) — ya resuelto
 

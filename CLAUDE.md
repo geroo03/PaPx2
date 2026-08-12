@@ -133,7 +133,8 @@ puertaapuerta-main/
 │       ├── migration-clima-cache.sql                   # tabla clima_cache (grid geográfico)
 │       ├── migration-comercios-pausa-manual.sql        # comercios.pausado_manual/pausado_desde
 │       ├── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
-│       └── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11, pendiente correr en Supabase
+│       ├── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11
+│       └── migration-comercio-id-uuid.sql               # advertencias_comercio/chat_reportes.comercio_id a uuid — 2026-08-11
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -312,21 +313,15 @@ cadetes.auth_uid     → auth.users.id   // FK real.
 comercios.usuario_id → auth.users.id   // FK real.
 ```
 
-### Problema de tipos (RLS) — en vías de resolución
+### Problema de tipos (RLS) — resuelto
 `advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` eran
-`text`, no `uuid` (`reportes.comercio_id` sí es `uuid` — se corrigió en
-`fix-criticos-importantes.sql`, no confundir con las otras dos).
-Migración escrita el 2026-08-11
-(`supabase/migrations/migration-comercio-id-uuid.sql`), **pendiente de
-correr en Supabase** — hasta que se corra, seguir tratando ambas columnas
-como potencialmente `text` en cualquier policy RLS nueva:
-```sql
-auth.uid()::text = comercio_id
--- o, comparando contra otra tabla:
-c.id::text = comercio_id
-```
-Una vez corrida la migración, el cast ya no hace falta (aunque dejarlo no
-rompe nada — comparar `uuid::text = uuid::text` sigue funcionando).
+`text`, no `uuid` (`reportes.comercio_id` ya era `uuid` desde antes — se
+corrigió en `fix-criticos-importantes.sql`). Migrado el 2026-08-11
+(`supabase/migrations/migration-comercio-id-uuid.sql`, corrida en
+Supabase). Las policies RLS que ya casteaban a `::text` (patrón
+`auth.uid()::text = comercio_id` / `c.id::text = comercio_id`) siguen
+funcionando igual — comparar `uuid::text = uuid::text` no rompe nada —
+pero ya no hace falta ese cast en policies nuevas.
 
 ### RLS — usar siempre `public.rol_actual()`, nunca subqueries inline
 `public.rol_actual()` (`SECURITY DEFINER`, `LANGUAGE plpgsql`, no `sql` — el planner
@@ -351,14 +346,14 @@ acceso directo desde cliente/comercio/cadete): policy `FOR ALL USING
 - `clima_cache` — caché de clima por grilla geográfica (`grid_lat`,`grid_lng` redondeados a 1 decimal), usada por `climaService.js`.
 
 ### Tabla nueva (2026-08-11)
-- `cierres_especiales` — días puntuales en los que un comercio no abre (feriado, vacaciones), una fila por fecha. `comercio_id`, `fecha`, `motivo` opcional. `horariosScheduler.js` la consulta cada tick para forzar `abierto_ahora=false` el día que corresponda — ver §6. **Pendiente de correr en Supabase** (`migration-cierres-especiales.sql`) antes de pushear el código que la usa.
+- `cierres_especiales` — días puntuales en los que un comercio no abre (feriado, vacaciones), una fila por fecha. `comercio_id`, `fecha`, `motivo` opcional. `horariosScheduler.js` la consulta cada tick para forzar `abierto_ahora=false` el día que corresponda — ver §6.
 
 ### Migraciones — estado
-Todas las migraciones aplicadas hasta el 2026-07-31 (ver lista completa en §3),
-salvo `migration-cierres-especiales.sql` (2026-08-11, todavía sin correr en
-Supabase — ver arriba). Todas siguen la convención `ADD COLUMN IF NOT EXISTS`
-/ `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e idempotentes,
-seguras de re-correr.
+Todas las migraciones aplicadas, incluidas las del 2026-08-11
+(`migration-cierres-especiales.sql`, `migration-comercio-id-uuid.sql` —
+ver lista completa en §3). Todas siguen la convención `ADD COLUMN IF NOT
+EXISTS` / `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e
+idempotentes, seguras de re-correr.
 
 ---
 
@@ -559,11 +554,11 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 
 ~~Rotar `GMAPS_KEY`~~ — resuelto 2026-08-11. Key nueva creada y restringida (HTTP referrer `pa-px2.vercel.app/*` + Geocoding API) en el proyecto correcto de Google Cloud (la vieja vivía en otro proyecto, por eso no aparecía en "Puerta a Puerta X"). Encontrar y deshabilitar la vieja queda como ítem #5 de baja prioridad.
 
-~~`advertencias_comercio.comercio_id`/`chat_reportes.comercio_id` migrar a `uuid`~~ — código listo 2026-08-11 (`migration-comercio-id-uuid.sql`), **pendiente de correr en Supabase**. De paso se simplificó la policy `advertencias_comercio_ver` (usa `es_dueno_de_comercio()` en vez de un `EXISTS` con cast `::text` inline) y se sacó un `String()` ya innecesario en `comercio.js`. Ver §7.
+~~`advertencias_comercio.comercio_id`/`chat_reportes.comercio_id` migrar a `uuid`~~ — resuelto 2026-08-11 (`migration-comercio-id-uuid.sql`, corrida en Supabase y código pusheado). De paso se simplificó la policy `advertencias_comercio_ver` (usa `es_dueno_de_comercio()` en vez de un `EXISTS` con cast `::text` inline) y se sacó un `String()` ya innecesario en `comercio.js`. Ver §7.
 
 ~~Duplicación de lógica entre archivos~~ — resuelto parcialmente 2026-08-11: sanitización HTML (5 implementaciones distintas, 2 con bugs reales — `comercio.js` no escapaba `'` y colapsaba `0`/`false` a `''` — consolidadas en `ui.js` → `sanitizeHTML()`), toggle de mostrar/ocultar contraseña (`ui.js` → `bindPasswordToggle()`), e inicialización de Supabase (nuevo `bootstrap-supabase.js`, saca la versión del SDK que `login-usuario.html` tenía fijada en `@2.43.4` mientras el resto usa `@2`). **El login se dejó a propósito sin tocar** — investigado y confirmado que las 3 implementaciones (`login.js`, `login-usuario.html`, `admin-acceso.js`) tienen diferencias de comportamiento intencionales (admin-acceso.js nunca consulta `perfiles` para el rol, por seguridad; login.js no auto-redirige con sesión activa por el fix anti-secuestro de sesión pero admin-acceso.js sí; login-usuario.html usa `localStorage` en vez de `sessionStorage`) — unificarlo de verdad requeriría tocar el modelo de seguridad del admin, decisión que no correspondía tomar en una tarea de limpieza.
 
-~~`saveCierre()` no persistía nada~~ — shippeado 2026-08-11 (tabla `cierres_especiales` + wiring en `comercio.js`/`horariosScheduler.js`), ver CHANGELOG v3.13.0. Migración `migration-cierres-especiales.sql` pendiente de correr en Supabase antes de pushear.
+~~`saveCierre()` no persistía nada~~ — shippeado y resuelto 2026-08-11 (tabla `cierres_especiales` + wiring en `comercio.js`/`horariosScheduler.js`, migración corrida en Supabase, código pusheado), ver CHANGELOG v3.13.0.
 
 ~~`login-usuario.html` sin checkbox de TyC + bug de password en login~~ — shippeado 2026-08-11, ver CHANGELOG v3.13.0.
 
