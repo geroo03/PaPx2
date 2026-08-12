@@ -2,6 +2,43 @@
 
 ---
 
+## [3.16.0] — 11 de agosto 2026 (continuación)
+
+### Clustering opcional (`WEB_CONCURRENCY`) + graceful shutdown en el backend
+
+A raíz de una charla sobre cuántos usuarios simultáneos aguanta el
+backend con el plan Hobby de Railway (hasta 48 vCPU por servicio):
+investigado y confirmado que Node es de un solo hilo por proceso — sin
+clustering, un servicio con muchos vCPU asignados solo usa uno para
+ejecutar JS.
+
+- `backend/src/server.js` reestructurado con `node:cluster`. Nueva
+  variable `WEB_CONCURRENCY` (opcional, default `1` = sin clustering,
+  comportamiento idéntico al de siempre) reparte las conexiones HTTP
+  entre N workers por round-robin (forzado explícito, Windows no lo hace
+  por defecto a diferencia de Linux/Railway).
+- Los 2 schedulers (`matchingScheduler.js`/`horariosScheduler.js`) corren
+  **solo en el proceso primario**, nunca en los workers — investigado a
+  fondo antes de tocar nada (agente Explore sobre todo `backend/src`) qué
+  estado en memoria se rompería con más de un proceso: solo esos 2
+  schedulers (ningún candado entre procesos). El anti-colisión real de
+  pedidos (`UPDATE ... WHERE cadete_id IS NULL`) ya era atómico a nivel
+  de Postgres, no necesitó cambios.
+- Graceful shutdown (`SIGTERM`/`SIGINT`) agregado de paso — antes un
+  restart/redeploy de Railway mataba el proceso a mitad de un request o
+  un tick del scheduler sin cleanup.
+- Documentado (`CLAUDE.md` §16, `PENDIENTES-LANZAMIENTO.md`): múltiples
+  **réplicas** de Railway (contenedores separados, no núcleos de uno
+  solo) seguirían necesitando coordinar los schedulers entre sí — dejado
+  para más adelante a propósito, no se usan réplicas hoy.
+
+Probado en local: sin `WEB_CONCURRENCY` arranca igual que siempre (1
+proceso, log idéntico); con `WEB_CONCURRENCY=2` arrancan 2 workers +
+un solo juego de schedulers, y las requests alternan entre los 2 PIDs de
+verdad. `backend/test` sin impacto.
+
+---
+
 ## [3.15.0] — 11 de agosto 2026 (continuación)
 
 ### Fix preventivo de CSS cross-device (Android/iOS) tras probar el APK en un celular real

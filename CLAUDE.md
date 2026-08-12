@@ -161,6 +161,7 @@ VAPID_PUBLIC_KEY=...                # Configurado en Railway (2026-08-11)
 VAPID_PRIVATE_KEY=...               # Configurado en Railway (2026-08-11)
 VAPID_EMAIL=mailto:puertaapuertax@gmail.com
 PORT=3000
+WEB_CONCURRENCY=1                   # Opcional — workers HTTP por instancia. Default 1 (sin clustering). Ver §16
 ```
 
 ### Frontend (`frontend/env.js`)
@@ -602,7 +603,59 @@ No hay pre-orders ni carrito grupal (confirmado ausentes, no es un bug).
 
 ---
 
-## 16. Comandos útiles
+## 16. Capacidad y escalado del backend
+
+**Estado (2026-08-11):** el backend corre como un solo proceso Node en
+Railway (plan Hobby, hasta 48 vCPU/48 GB **por servicio**, hasta 5
+réplicas de 8 vCPU/8 GB cada una). Node es de un solo hilo por proceso —
+sin clustering, un servicio con muchos vCPU asignados solo usa **uno**
+para ejecutar JS, sin importar cuánta CPU le des.
+
+### `WEB_CONCURRENCY` — clustering dentro de una sola instancia
+`backend/src/server.js` soporta `node:cluster`: con la variable de
+entorno `WEB_CONCURRENCY=N` en Railway, el proceso primario reparte las
+conexiones HTTP entre `N` workers (por round-robin, forzado explícitamente
+para que sea igual en Linux/Windows) y es el único que corre los 2
+schedulers (`matchingScheduler.js`/`horariosScheduler.js`) — nunca en los
+workers, para no terminar con pedidos difundidos o pushes duplicados.
+
+- **Sin configurar `WEB_CONCURRENCY` (o `<=1`): comportamiento idéntico al
+  de siempre**, un solo proceso hace todo. Es opt-in a propósito, no
+  cambia nada en producción solo por pushear el código.
+- Para elegirlo: mirar en el dashboard de Railway cuántos vCPU tiene
+  asignados el servicio de verdad, no adivinar — no calcula un default
+  de `os.cpus()` porque dentro de un contenedor eso puede reportar los
+  núcleos del host físico completo, no lo asignado.
+- Con `WEB_CONCURRENCY > 1`, el rate limiter (`express-rate-limit`, store
+  en memoria por defecto) cuenta aparte por worker — el límite efectivo
+  real es ~300×N por IP en vez de 300 estrictos. Aceptado a propósito, no
+  se sumó Redis solo para esto.
+- Graceful shutdown (`SIGTERM`/`SIGINT`) agregado de paso — antes un
+  restart/redeploy de Railway mataba el proceso a mitad de un request o
+  un tick del scheduler sin ningún cleanup.
+
+### Lo que esto NO resuelve — múltiples réplicas de Railway
+`WEB_CONCURRENCY` solo coordina workers **dentro de una misma
+instancia/contenedor**. Si en algún momento se necesitan **réplicas**
+separadas de Railway (escalado horizontal, no vertical), el problema de
+los schedulers duplicados vuelve — cada réplica tendría su propio
+primario corriendo su propia copia de `matchingScheduler.js`/
+`horariosScheduler.js`. Evaluado y dejado explícitamente para más
+adelante (no se usan réplicas hoy, y el techo de vCPU por servicio ya es
+alto) — si hace falta, la solución sería un lease/lock en una tabla nueva
+de Supabase (mismo patrón atómico `UPDATE ... WHERE` que ya usa
+`aceptarPedido` para el anti-colisión de cadetes).
+
+### Lo que ya es seguro sin cambios, para cualquier cantidad de procesos
+- El anti-colisión real (`POST /api/pedidos/aceptar`,
+  `aceptar-comercio`) — `UPDATE ... WHERE cadete_id IS NULL` atómico a
+  nivel de Postgres, no depende de ningún estado en memoria del proceso.
+- El caché de clima — vive 100% en la tabla `clima_cache`, sin capa en
+  memoria.
+
+---
+
+## 17. Comandos útiles
 
 ```bash
 # Backend local

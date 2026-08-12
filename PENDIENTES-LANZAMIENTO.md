@@ -218,3 +218,23 @@ si se regenera de cero en la Mac esos 3 ajustes se pierden).
 
 Avisame cuando tengas la Mac y seguimos con eso (`docs/IOS-BUILD.md`
 tiene el paso a paso completo).
+
+### Sobre usuarios simultáneos / capacidad (no bloquea el lanzamiento)
+
+A raíz de la charla sobre cuántos usuarios aguanta el backend: agregado
+soporte de clustering (`WEB_CONCURRENCY`, 11 de agosto) para aprovechar
+más de un vCPU de tu Railway Hobby cuando haga falta. **No tenés que
+hacer nada ahora** — sin configurar la variable, todo sigue funcionando
+exactamente igual que hoy.
+
+Cuando el uso real lo justifique (no antes, no hace falta adivinar):
+1. Entrá al dashboard de Railway → tu servicio backend → mirá cuántos
+   vCPU tiene asignados de verdad.
+2. Variables → agregá `WEB_CONCURRENCY` con un número acorde a eso (ej:
+   si tiene 4 vCPU, probá con 2-4, no con 48 aunque el plan lo permita).
+3. Confirmá que sigue respondiendo bien (`/health`) y mirá los logs — con
+   clustering prendido vas a ver "Primary... levantando N workers HTTP".
+
+Ver `CLAUDE.md` §16 para el detalle técnico completo (qué resuelve, qué
+no resuelve — réplicas múltiples de Railway todavía necesitarían un paso
+extra que no está hecho, documentado ahí).
