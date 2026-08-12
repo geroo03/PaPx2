@@ -18,16 +18,7 @@
   <link rel="stylesheet" href="../assets/css/portal-components.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/env.js"></script>
-  <script>
-    // Inicializa window.sb para que config.js (shim) y comercio.js lo encuentren
-    (function(){
-      if (!window.sb && window.supabase && window.supabase.createClient) {
-        var url = window.SUPABASE_URL     || '';
-        var key = window.SUPABASE_ANON_KEY || '';
-        if (url && key) window.sb = window.supabase.createClient(url, key);
-      }
-    })();
-  </script>
+  <script src="../assets/js/bootstrap-supabase.js"></script>
 </head>
 <body class="portal-body">
 

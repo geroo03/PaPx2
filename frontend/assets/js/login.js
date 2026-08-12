@@ -12,6 +12,7 @@
 
 import { supabase as sb } from './config.js';
 import { iniciarLoginGoogleNativo, escucharCallbackOAuthNativo } from './auth-service.js';
+import { bindPasswordToggle as bindPasswordToggleUi } from './ui.js';
 
 // ─── RUTAS POR ROL ────────────────────────────────────────────────────────────
 // Paths absolutos para que funcionen desde cualquier subcarpeta del proyecto.
@@ -31,7 +32,7 @@ const RUTAS = {
 // ─── BIND: cuando el DOM esté listo ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   bindForm();
-  bindPasswordToggle();
+  bindPasswordToggleUi('toggle-pass', 'input-pass');
   bindRegisterMenu();
   bindGoogle();
   // Mostrar checkbox TyC si no aceptó antes
@@ -215,23 +216,6 @@ async function handleForgot() {
 }
 
 // ─── PASSWORD TOGGLE ──────────────────────────────────────────────────────────
-function bindPasswordToggle() {
-  const btn    = document.getElementById('toggle-pass');
-  const pass   = document.getElementById('input-pass');
-  const eyeOpen   = btn?.querySelector('.eye-open');
-  const eyeClosed = btn?.querySelector('.eye-closed');
-  if (!btn || !pass) return;
-
-  btn.addEventListener('click', () => {
-    const isPass = pass.type === 'password';
-    pass.type = isPass ? 'text' : 'password';
-    if (eyeOpen)   eyeOpen.style.display   = isPass ? 'none'  : 'block';
-    if (eyeClosed) eyeClosed.style.display = isPass ? 'block' : 'none';
-    btn.setAttribute('aria-label', isPass ? 'Ocultar contraseña' : 'Mostrar contraseña');
-    pass.focus();
-  });
-}
-
 // ─── REGISTER MENU ────────────────────────────────────────────────────────────
 function bindRegisterMenu() {
   const btnReg = document.getElementById('btn-register');

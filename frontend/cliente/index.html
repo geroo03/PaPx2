@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="../assets/css/animations.css">
 <link rel="stylesheet" href="../assets/css/index.css">
 <script src="/env.js"></script>
+<script src="../assets/js/bootstrap-supabase.js"></script>
 </head>
 <body>
 <!-- SPLASH SCREEN -->
@@ -37,14 +38,9 @@
 // SESSION GUARD: Use Supabase to check the authenticated session and role.
 // Redirect to login if there's no authenticated user.
 (async function(){
-  // Siempre inicializar window.sb primero (incluso en bypass) para que cargarComercios() funcione
-  if (!window.sb) {
-    const _url = window.SUPABASE_URL     || '';
-    const _key = window.SUPABASE_ANON_KEY || '';
-    if (window.supabase?.createClient && _url && _key) {
-      window.sb = window.supabase.createClient(_url, _key);
-    }
-  }
+  // window.sb ya lo inicializó bootstrap-supabase.js (cargado en el <head>,
+  // antes que este script) -- este chequeo queda como red de seguridad por
+  // si el SDK o env.js no llegaron a cargar (ej: bloqueado por red/adblock).
   const sb = window.sb;
   if (!sb) {
     console.warn('No Supabase client available. Redirecting to login.');

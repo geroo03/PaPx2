@@ -1,4 +1,5 @@
 import { ICONS } from './icons.js';
+import { sanitizeHTML as esc } from './ui.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ESTADO GLOBAL
@@ -20,21 +21,6 @@ let tripProductos      = null;
 let tripProductosChannel = null;
 
 window._cadete_activeTripState = () => ({ activeTripState, activeTrip });
-
-// Escapa texto que viene de la DB (nombre/dirección/teléfono de comercio o
-// cliente, mensajes de chat) antes de interpolarlo en innerHTML — este
-// archivo no tenía ningún helper de escape (a diferencia de comercio.js/
-// cliente.js), lo que dejaba varios XSS almacenados explotables contra el
-// cadete (chat del pedido, datos del comercio/cliente en ofertas y viajes).
-function esc(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HAVERSINE — espejo del backend para cálculo live en el cliente

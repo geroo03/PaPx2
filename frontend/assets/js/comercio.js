@@ -4,6 +4,7 @@
  */
 
 import { supabase as sb } from './config.js';
+import { sanitizeHTML as esc } from './ui.js';
 
 // ─── CONSTANTES FINANCIERAS ───────────────────────────────────────────────────
 // El 20% se SUMA al precio que pone el comercio para el cliente.
@@ -329,7 +330,7 @@ async function loadPedidos() {
     sb.from('pedidos')
       .select('id,numero,comercio_id,cadete_id,cliente_id,estado,productos,total,metodo_pago,monto_comision_app,direccion_entrega,created_at,codigo_retiro,propina_cadete,distancia_estimada,pago_cadete')
       .eq('comercio_id', S.cid).gte('created_at', desde.toISOString()).order('created_at', { ascending: false }),
-    sb.from('advertencias_comercio').select('id,pedido_id,motivo,created_at').eq('comercio_id', String(S.cid)),
+    sb.from('advertencias_comercio').select('id,pedido_id,motivo,created_at').eq('comercio_id', S.cid),
   ]);
 
   // 4d: Cargar perfiles de cadetes asignados (batch seguro, gracefully degrades si RLS no lo permite aún)
@@ -1659,6 +1660,5 @@ function showToast(msg, type = 'success') {
 const g       = id  => document.getElementById(id);
 const setText = (id,val) => { const e=g(id); if(e) e.textContent = String(val??'—'); };
 const setVal  = (id,val) => { const e=g(id); if(e) e.value = val??''; };
-const esc     = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function formatNum(n) { return (n||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function formatARS(n) { return '$ '+(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }

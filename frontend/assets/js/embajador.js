@@ -1,6 +1,7 @@
 // embajador.js — dashboard del embajador
 // Usa el backend API (BACKEND_URL) para todas las operaciones sensibles.
 import { supabase } from './config.js';
+import { sanitizeHTML as sanitize } from './ui.js';
 
 const API  = window.BACKEND_URL ?? '';
 const $    = id => document.getElementById(id);
@@ -293,10 +294,6 @@ async function authFetch(url, opts = {}) {
       ...(opts.headers ?? {}),
     },
   });
-}
-
-function sanitize(str) {
-  return String(str ?? '').replace(/[<>"'&]/g, c => ({ '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":"&#39;", '&':'&amp;' }[c]));
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
