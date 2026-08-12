@@ -156,8 +156,8 @@ MP_ACCESS_TOKEN=APP_USR-...        # MercadoPago producción
 MP_WEBHOOK_SECRET=...              # Firma HMAC del webhook
 FRONTEND_URL=https://tu-dominio.com,https://otro-dominio.com
 SERVER_URL=https://tu-backend.railway.app
-VAPID_PUBLIC_KEY=...               # ⚠ NO configurado aún → push notifications rotas
-VAPID_PRIVATE_KEY=...              # ⚠ NO configurado aún
+VAPID_PUBLIC_KEY=...                # Configurado en Railway (2026-08-11)
+VAPID_PRIVATE_KEY=...               # Configurado en Railway (2026-08-11)
 VAPID_EMAIL=mailto:puertaapuertax@gmail.com
 PORT=3000
 ```
@@ -474,7 +474,7 @@ El frontend usa el bundle UMD de Supabase cargado desde CDN:
 - Service Worker en `frontend/sw.js` — escucha evento `push` y muestra notificación
 - `frontend/assets/js/push.js` → `registrarPush()` — registra la suscripción VAPID
 - Backend: `pushController.js` → usa `web-push` npm package
-- **⚠ VAPID keys NO están configuradas en Railway** → push notifications no funcionan en producción
+- VAPID keys configuradas en Railway y alineadas con `frontend/env.js` desde el 2026-08-11 — push web funcional en producción
 
 ### Nativa Android (Capacitor — pendiente Firebase)
 - `push.js` detecta `window.Capacitor.isNativePlatform()` → usa `@capacitor/push-notifications`
@@ -542,18 +542,21 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 | # | Tarea | Impacto |
 |---|-------|---------|
 | 1 | Crear cuenta de desarrollador de Google Play Console ($25) — **todavía no existe**. Google exige a cuentas nuevas un track de Closed Testing (~20 testers, 14 días corridos) antes de habilitar Production — es el ítem de mayor lead time de todo el lanzamiento, arrancarlo antes que nada. | Distribución / fecha real de lanzamiento |
-| 2 | Cargar `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_EMAIL` en Railway (par nuevo generado 2026-07-31, `frontend/env.js` ya tiene la pública) — push web no funciona en producción sin esto | Push notifications |
-| 3 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). | App nativa |
-| 4 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
-| 5 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
-| 6 | Rotar y restringir `GMAPS_KEY` en Google Cloud Console (alerta GitGuardian 2026-08-07) — el código ya se movió a `frontend/env.js` (2026-08-11) pero la key en sí sigue siendo la que quedó expuesta en el historial de git | Seguridad |
-| 7 | `advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` migrar a `uuid` (`reportes.comercio_id` ya es `uuid`, se corrigió en `fix-criticos-importantes.sql`) — evaluado 2026-08-11 y dejado afuera del lanzamiento a propósito, las RLS ya castean ambos lados a `text` | Deuda técnica |
+| 2 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). En curso 2026-08-11: probado en un celular real, aparecieron bugs de CSS pendientes de detalle. | App nativa |
+| 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
+| 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
+| 5 | `advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` migrar a `uuid` (`reportes.comercio_id` ya es `uuid`, se corrigió en `fix-criticos-importantes.sql`) — evaluado 2026-08-11 y dejado afuera del lanzamiento a propósito, las RLS ya castean ambos lados a `text` | Deuda técnica |
+| 6 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
 
 **iOS (Capacitor):** `@capacitor/ios` agregado y `ios/` generado una vez desde Windows (2026-08-11), pero sin `pod install` real (CocoaPods no corre en Windows) — no se puede compilar/abrir en Xcode todavía. Falta la Mac (prevista fines de agosto 2026) para terminarlo — ver §12 y `docs/IOS-BUILD.md`.
 
 ~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
+
+~~Cargar VAPID en Railway~~ — resuelto 2026-08-11. Ya estaba cargado (par completo), el problema real era que `frontend/env.js` tenía la pública de otro par distinto (huérfana) — corregido para que coincida con el par de Railway.
+
+~~Rotar `GMAPS_KEY`~~ — resuelto 2026-08-11. Key nueva creada y restringida (HTTP referrer `pa-px2.vercel.app/*` + Geocoding API) en el proyecto correcto de Google Cloud (la vieja vivía en otro proyecto, por eso no aparecía en "Puerta a Puerta X"). Encontrar y deshabilitar la vieja queda como ítem #6 de baja prioridad.
 
 ~~`saveCierre()` no persistía nada~~ — shippeado 2026-08-11 (tabla `cierres_especiales` + wiring en `comercio.js`/`horariosScheduler.js`), ver CHANGELOG v3.13.0. Migración `migration-cierres-especiales.sql` pendiente de correr en Supabase antes de pushear.
 

@@ -3,6 +3,7 @@ window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 window.BACKEND_URL       = 'https://papx2-production.up.railway.app';
 window.VAPID_PUBLIC_KEY  = 'BH6KOcdfhTnWhXT5Qw0VNEOenAmZc27RQ-qk3P-_vqlMxy42tK-9wW8AoArY0suevxeD_ZbQcBA-tFdyMkBFLvo';
 // GMAPS_KEY: Google Maps/Geocoding API key usada por cliente.js (detectarUbicacion).
-// ⚠ Rotar en Google Cloud Console y restringirla (HTTP referrers: pa-px2.vercel.app/*
-// + API restriction: solo Geocoding API) — ver alerta GitGuardian del 2026-08-07.
-window.GMAPS_KEY         = 'AIzaSyASBhagsg9KOoRLRaXmI8BEw9VMvf3dQo0';
+// Rotada el 2026-08-11 (la anterior quedó expuesta en el historial de git,
+// alerta GitGuardian del 2026-08-07) y restringida en Google Cloud Console:
+// HTTP referrers = pa-px2.vercel.app/* + API restriction = solo Geocoding API.
+window.GMAPS_KEY         = 'AIzaSyC90rOQODcDBU1ssd-CN_5k_tjHYRphu1Q';

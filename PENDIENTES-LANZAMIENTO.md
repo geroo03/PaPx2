@@ -51,23 +51,22 @@ Supabase tiene el secret correcto cargado y se inhabilitó el viejo en
 Google Cloud Console (Credentials → ese Client → "Inhabilitar", no
 "Borrar" — reversible por las dudas). Cerrado, no necesitás hacer nada más.
 
-## 4. 🔴 Rotar la key de Google Maps (`GMAPS_KEY`) en Google Cloud Console
+## 4. ✅ Rotar la key de Google Maps (`GMAPS_KEY`) en Google Cloud Console — ya resuelto
 
 GitGuardian avisó (7 de agosto) que la key de Google Maps estaba hardcodeada
-en `cliente.js`. Ya se movió a `frontend/env.js` (mismo patrón que
-`SUPABASE_ANON_KEY`), pero es solo un refactor de ubicación — **la key en sí
-sigue siendo la misma que ya quedó expuesta** en el historial de git.
+en `cliente.js`. Resuelto del todo el 11 de agosto: la key vieja vivía en un
+proyecto de Google Cloud distinto (por eso no aparecía en las credenciales
+de "Puerta a Puerta X") — se habilitó la Geocoding API en el proyecto
+correcto y se creó una key nueva, restringida (HTTP referrers =
+`pa-px2.vercel.app/*` + API restriction = solo Geocoding API).
+`frontend/env.js` actualizado con la key nueva, ya en uso.
 
-- Entrá a Google Cloud Console → APIs & Services → Credentials.
-- Generá una key nueva (o regenerá el secreto de la actual) y restringila:
-  **Application restriction = HTTP referrers** (`pa-px2.vercel.app/*`) +
-  **API restriction** = solo Geocoding API (o las que uses).
-- Reemplazá el valor de `window.GMAPS_KEY` en `frontend/env.js` por la key
-  nueva y hacé commit + push.
-
-Sin esto, la key vieja sigue siendo válida y sin restricciones — cualquiera
-que la vea en el historial de git podría usarla contra tu cuota/facturación
-de Google Cloud.
+**Ojo, cabo suelto real:** la key vieja (`AIzaSyASBhagsg9K...`) sigue sin
+rastrear — vive en algún otro proyecto de Google Cloud (no en "Puerta a
+Puerta X") y nunca tuvo restricciones. La app ya no la usa, pero si querés
+cerrarla del todo hay que encontrar en qué proyecto está (puede ser una
+cuenta/proyecto viejo de quien la generó originalmente) y deshabilitarla
+ahí. No es urgente porque ya no está en uso, pero técnicamente sigue viva.
 
 ## 5. 🟡 VAPID — ya cargado en Railway, faltaba el mismo par en el frontend
 
