@@ -117,21 +117,43 @@ no lo puedo generar yo.
 No toqué nada de esto a propósito. Cuando Fabri termine su parte, avisame y
 lo integramos/probamos junto con todo lo demás antes del lanzamiento final.
 
-## 9. 🟢 Duplicación de lógica entre archivos (deuda técnica, no urgente)
+## 9. ✅ Duplicación de lógica entre archivos — resuelta en su mayor parte
 
-También del 7 de agosto: la misma lógica está reimplementada en varios
-archivos en vez de compartirse — login (3 veces), toggle de mostrar/ocultar
-contraseña (3 veces), sanitización HTML (4 veces), inicialización del
-cliente Supabase (5 veces). Funciona todo bien, no bloquea el lanzamiento,
-pero es un buen candidato para una tarea de refactor aparte.
+Del 7 de agosto: la misma lógica estaba reimplementada en varios archivos
+en vez de compartirse. Investigado a fondo el 11 de agosto antes de tocar
+nada — resultó que no todo era copy-paste accidental:
 
-## 10. 🟢 Deuda técnica: `comercio_id` como `text` en 2 tablas
+- **Sanitización HTML, toggle de contraseña, init de Supabase** — sí eran
+  duplicación real (y la de sanitización tenía 2 bugs de verdad: en
+  `comercio.js` no escapaba `'` y convertía `0`/`false` en `''`, lo que
+  rompería mostrar por ejemplo un precio de `$0`). **Consolidado y
+  arreglado** — todo vive ahora en `ui.js` (`sanitizeHTML`,
+  `bindPasswordToggle`) y en un `bootstrap-supabase.js` nuevo. De paso se
+  sacó una inconsistencia real: `login-usuario.html` tenía la versión del
+  SDK de Supabase fijada en `2.43.4` mientras el resto usa la última
+  versión 2.x sin fijar.
+- **Login (3 implementaciones)** — investigado y confirmado que las
+  diferencias son **intencionales, no accidentales**: `admin-acceso.js`
+  nunca consulta la tabla `perfiles` para el rol (decisión de seguridad,
+  el rol de admin no debería poder asignarse por lo que sea que escriba
+  ahí), `login.js` no redirige solo si ya hay sesión activa (fix
+  anti-secuestro de sesión) pero `admin-acceso.js` sí lo hace, y
+  `login-usuario.html` guarda en `localStorage` en vez de
+  `sessionStorage` como los otros dos. Unificar esto de verdad implica
+  tocar el modelo de seguridad del admin — **se dejó sin tocar a
+  propósito**, no es una tarea de limpieza mecánica.
 
-`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` deberían
-ser `uuid`, no `text` (`reportes.comercio_id` ya se arregló en su momento).
-Evaluado el 11 de agosto y dejado afuera **a propósito** — no bloquea el
-lanzamiento, las policies RLS ya castean ambos lados a `text` así que
-funcionan igual hoy. Candidato para una limpieza aparte, sin apuro.
+## 10. 🟡 `comercio_id` como `text` en 2 tablas — código listo, falta correr en Supabase
+
+`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` debían
+ser `uuid`, no `text` (`reportes.comercio_id` ya se había arreglado antes).
+Migración escrita el 11 de agosto
+(`supabase/migrations/migration-comercio-id-uuid.sql`) — mismo criterio
+guardado que las migraciones anteriores (si algún dato no tiene forma de
+uuid, no convierte nada y avisa por `RAISE NOTICE` en vez de romper).
+
+**Antes de pushear el código que depende de esto:** correr
+`migration-comercio-id-uuid.sql` en el SQL Editor de Supabase.
 
 ## 11. ✅ `saveCierre()` (panel comercio) — ya resuelto
 

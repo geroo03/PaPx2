@@ -312,19 +312,21 @@ cadetes.auth_uid     → auth.users.id   // FK real.
 comercios.usuario_id → auth.users.id   // FK real.
 ```
 
-### Problema conocido de tipos (RLS)
-`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` son `text`,
-no `uuid` (`reportes.comercio_id` sí es `uuid` — se corrigió en
-`fix-criticos-importantes.sql`, no confundir con las otras dos). En
-políticas RLS que comparan con `auth.uid()` (que retorna `uuid`) o con
-`comercios.id` (`uuid`) se debe castear:
+### Problema de tipos (RLS) — en vías de resolución
+`advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` eran
+`text`, no `uuid` (`reportes.comercio_id` sí es `uuid` — se corrigió en
+`fix-criticos-importantes.sql`, no confundir con las otras dos).
+Migración escrita el 2026-08-11
+(`supabase/migrations/migration-comercio-id-uuid.sql`), **pendiente de
+correr en Supabase** — hasta que se corra, seguir tratando ambas columnas
+como potencialmente `text` en cualquier policy RLS nueva:
 ```sql
 auth.uid()::text = comercio_id
 -- o, comparando contra otra tabla:
 c.id::text = comercio_id
 ```
-Ver §13 — migrar ambas a `uuid` es deuda técnica conocida, evaluada y
-pospuesta a propósito (no bloquea el lanzamiento).
+Una vez corrida la migración, el cast ya no hace falta (aunque dejarlo no
+rompe nada — comparar `uuid::text = uuid::text` sigue funcionando).
 
 ### RLS — usar siempre `public.rol_actual()`, nunca subqueries inline
 `public.rol_actual()` (`SECURITY DEFINER`, `LANGUAGE plpgsql`, no `sql` — el planner
@@ -545,8 +547,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 | 2 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). En curso 2026-08-11: probado en un celular real, aparecieron bugs de CSS pendientes de detalle. | App nativa |
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
 | 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
-| 5 | `advertencias_comercio.comercio_id` y `chat_reportes.comercio_id` migrar a `uuid` (`reportes.comercio_id` ya es `uuid`, se corrigió en `fix-criticos-importantes.sql`) — evaluado 2026-08-11 y dejado afuera del lanzamiento a propósito, las RLS ya castean ambos lados a `text` | Deuda técnica |
-| 6 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
+| 5 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
 
@@ -556,7 +557,11 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 
 ~~Cargar VAPID en Railway~~ — resuelto 2026-08-11. Ya estaba cargado (par completo), el problema real era que `frontend/env.js` tenía la pública de otro par distinto (huérfana) — corregido para que coincida con el par de Railway.
 
-~~Rotar `GMAPS_KEY`~~ — resuelto 2026-08-11. Key nueva creada y restringida (HTTP referrer `pa-px2.vercel.app/*` + Geocoding API) en el proyecto correcto de Google Cloud (la vieja vivía en otro proyecto, por eso no aparecía en "Puerta a Puerta X"). Encontrar y deshabilitar la vieja queda como ítem #6 de baja prioridad.
+~~Rotar `GMAPS_KEY`~~ — resuelto 2026-08-11. Key nueva creada y restringida (HTTP referrer `pa-px2.vercel.app/*` + Geocoding API) en el proyecto correcto de Google Cloud (la vieja vivía en otro proyecto, por eso no aparecía en "Puerta a Puerta X"). Encontrar y deshabilitar la vieja queda como ítem #5 de baja prioridad.
+
+~~`advertencias_comercio.comercio_id`/`chat_reportes.comercio_id` migrar a `uuid`~~ — código listo 2026-08-11 (`migration-comercio-id-uuid.sql`), **pendiente de correr en Supabase**. De paso se simplificó la policy `advertencias_comercio_ver` (usa `es_dueno_de_comercio()` en vez de un `EXISTS` con cast `::text` inline) y se sacó un `String()` ya innecesario en `comercio.js`. Ver §7.
+
+~~Duplicación de lógica entre archivos~~ — resuelto parcialmente 2026-08-11: sanitización HTML (5 implementaciones distintas, 2 con bugs reales — `comercio.js` no escapaba `'` y colapsaba `0`/`false` a `''` — consolidadas en `ui.js` → `sanitizeHTML()`), toggle de mostrar/ocultar contraseña (`ui.js` → `bindPasswordToggle()`), e inicialización de Supabase (nuevo `bootstrap-supabase.js`, saca la versión del SDK que `login-usuario.html` tenía fijada en `@2.43.4` mientras el resto usa `@2`). **El login se dejó a propósito sin tocar** — investigado y confirmado que las 3 implementaciones (`login.js`, `login-usuario.html`, `admin-acceso.js`) tienen diferencias de comportamiento intencionales (admin-acceso.js nunca consulta `perfiles` para el rol, por seguridad; login.js no auto-redirige con sesión activa por el fix anti-secuestro de sesión pero admin-acceso.js sí; login-usuario.html usa `localStorage` en vez de `sessionStorage`) — unificarlo de verdad requeriría tocar el modelo de seguridad del admin, decisión que no correspondía tomar en una tarea de limpieza.
 
 ~~`saveCierre()` no persistía nada~~ — shippeado 2026-08-11 (tabla `cierres_especiales` + wiring en `comercio.js`/`horariosScheduler.js`), ver CHANGELOG v3.13.0. Migración `migration-cierres-especiales.sql` pendiente de correr en Supabase antes de pushear.
 
