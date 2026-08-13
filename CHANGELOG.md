@@ -2,6 +2,56 @@
 
 ---
 
+## [3.17.0] — 13 de agosto 2026
+
+### Fix: el link de referidos del embajador nunca generaba comisión
+
+Surgió charlando sobre cómo hacer más simple el alta de comercios por parte
+de un embajador. Investigando el flujo completo (link de referidos +
+formulario manual del dashboard) apareció un bug real, no solo un tema de UX:
+
+- **El link de referidos** (`comercio/registro-comercio.html?ref=<embajador_id>`,
+  el flujo que el propio dashboard del embajador promueve) crea el comercio
+  con `creado_por_embajador_id` seteado, pero la sesión del comercio nunca
+  pudo insertar la fila correspondiente en `patrocinios` — la policy RLS
+  exige rol `embajador`. Como `registrarComisionSiAplica()` (la fuente de
+  verdad real de las comisiones desde que se sacó el trigger de base
+  duplicado, ver v3.x / `migration-fix-seguridad-y-comisiones.sql`) busca un
+  patrocinio activo antes de acreditar nada, ningún comercio traído por el
+  link generó comisión real para su embajador, desde que existe la feature.
+- **El formulario "Registrar Comercio" del dashboard del embajador**
+  (`POST /api/embajadores/comercios`, `agregarComercio`) sí creaba la fila en
+  `patrocinios`, pero el comercio quedaba **sin `usuario_id`** — sin login,
+  sin forma de que el dueño entrara nunca a gestionar pedidos/productos.
+  Ninguno de los dos flujos, solo, producía un comercio funcional Y con
+  comisión.
+
+**Fix:**
+- Nuevo endpoint `POST /api/embajadores/vincular-referido` — lo llama la
+  propia sesión del comercio justo después de registrarse vía link, crea la
+  fila en `patrocinios` vía `service_role` validando server-side que el
+  comercio pertenece a quien llama.
+- `registro-comercio.html` ahora acepta datos precargados en la URL
+  (`&nombre=&cat=&dir=&tel=&email=`), todo editable.
+- El formulario del dashboard del embajador ("Armar Link para un Comercio")
+  ya no crea el comercio directo — genera un link personalizado con esos
+  datos precargados (mismo mecanismo del link genérico), así el comercio
+  siempre termina con login propio y comisión bien trackeada.
+- Se sacó `agregarComercio` (creaba comercios huérfanos, sin login).
+- `supabase/migrations/migration-backfill-patrocinios-referidos.sql`
+  (corrida en Supabase) — backfill para los comercios ya traídos por el link
+  antes de este fix, así generan comisión desde su próximo pedido entregado.
+  No recalcula comisión retroactiva de pedidos ya entregados.
+
+Ver CLAUDE.md §6 y §13 (ítem #6 de pendientes) para el detalle completo. De
+paso, encontrado (no corregido en este cambio, queda como pendiente #7):
+`admin.html` (carrusel de patrocinios/banners del home) todavía lee/escribe
+la tabla `patrocinios` con forma de banner, cuando esa tabla se redefinió el
+2026-08-11 como la relación embajador-comercio y los banners se migraron a
+una tabla `banners` separada — no confirmado si ya está roto en producción.
+
+---
+
 ## [3.16.0] — 11 de agosto 2026 (continuación)
 
 ### Clustering opcional (`WEB_CONCURRENCY`) + graceful shutdown en el backend

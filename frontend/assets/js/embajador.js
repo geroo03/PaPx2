@@ -215,44 +215,46 @@ function bindRetiroModal() {
   });
 }
 
-// ─── FORM ALTA COMERCIO ───────────────────────────────────────────────────────
+// ─── FORM ALTA COMERCIO (genera link personalizado, no crea nada todavía) ─────
 
 function bindFormAlta() {
-  $('form-alta').addEventListener('submit', async ev => {
+  $('form-alta').addEventListener('submit', ev => {
     ev.preventDefault();
-    const btn    = $('btn-alta');
-    const msgEl  = $('alta-msg');
     const nombre    = $('c-nombre').value.trim();
-    const direccion = $('c-direccion').value.trim();
     const rubro     = $('c-rubro').value.trim();
+    const direccion = $('c-direccion').value.trim();
     const telefono  = $('c-tel').value.trim();
     const email     = $('c-email').value.trim();
 
-    if (!nombre || !direccion || !rubro) { toast('Completá los campos obligatorios.'); return; }
+    if (!nombre || !rubro) { toast('Completá al menos el nombre y el rubro.'); return; }
 
-    btn.disabled    = true;
-    btn.textContent = 'Registrando...';
-    msgEl.textContent = '';
+    const uid    = SESSION.user.id;
+    const params = new URLSearchParams({ ref: uid, nombre, cat: rubro });
+    if (direccion) params.set('dir', direccion);
+    if (telefono)  params.set('tel', telefono);
+    if (email)     params.set('email', email);
+    const url = `${window.location.origin}/comercio/registro-comercio.html?${params.toString()}`;
 
-    try {
-      const res = await authFetch(`${API}/api/embajadores/comercios`, {
-        method: 'POST',
-        body:   JSON.stringify({ nombre, direccion, rubro, telefono: telefono || null, email: email || null }),
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) {
-        toast('Error: ' + (json.error ?? res.status));
-        return;
+    $('alta-msg').textContent  = `Link listo para "${nombre}" — el comercio completa el resto y confirma su propia contraseña.`;
+    $('alta-link').value       = url;
+    $('alta-resultado').style.display = 'block';
+
+    $('btn-copy-alta').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast('Link copiado al portapapeles.');
+      } catch {
+        try { $('alta-link').select(); document.execCommand('copy'); toast('Link copiado.'); } catch {}
       }
-      msgEl.textContent = `"${json.comercio?.nombre}" registrado. Estado: pendiente de aprobación.`;
-      $('form-alta').reset();
-      await cargarDashboard();
-    } catch (err) {
-      toast('Error de red al registrar el comercio.');
-    } finally {
-      btn.disabled    = false;
-      btn.textContent = 'Registrar Comercio';
-    }
+    };
+
+    $('btn-wa-alta').onclick = () => {
+      const msg = encodeURIComponent(
+        `¡Hola! Te dejo el link para dar de alta "${nombre}" en Puerta a Puerta X 🚀\n` +
+        `Ya viene con tus datos cargados, solo confirmá y poné tu contraseña:\n\n${url}`
+      );
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
+    };
   });
 }
 

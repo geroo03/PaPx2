@@ -162,7 +162,7 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | Función | Ruta | Descripción |
 |---------|------|-------------|
 | `getDashboard(req, res)` | `GET /api/embajadores/dashboard` | Retorna: billetera (3 saldos), últimas 50 comisiones, patrocinios con datos comercio, solicitudes retiro. |
-| `agregarComercio(req, res)` | `POST /api/embajadores/comercios` | Body: `{ nombre, direccion, rubro, telefono?, email?, lat?, lng? }`. Crea comercio + patrocinio. Estado: `pendiente`. |
+| `vincularReferido(req, res)` | `POST /api/embajadores/vincular-referido` | Body: `{ comercioId }`. Llamado por la propia sesión del comercio justo tras registrarse vía link (`?ref=`). Crea la fila en `patrocinios` (la sesión del comercio no puede por RLS) validando server-side que `comercios.usuario_id = req.user.id`. Reemplaza al viejo `agregarComercio`, que creaba comercios sin `usuario_id` (sin login posible). |
 | `solicitarRetiro(req, res)` | `POST /api/embajadores/solicitar-retiro` | Body: `{ monto, cbu_alias? }`. Llama RPC `solicitar_retiro_embajador` (atómico, congela saldo). |
 | `confirmarPago(req, res)` | `PATCH /api/embajadores/retiro/:id/pagar` | Solo admin. Llama RPC `confirmar_pago_retiro`. |
 | `rechazarRetiro(req, res)` | `PATCH /api/embajadores/retiro/:id/rechazar` | Solo admin. Body: `{ motivo? }`. Llama RPC `rechazar_retiro`, devuelve saldo. |
@@ -334,7 +334,8 @@ Exporta `supabaseAdmin` — cliente Supabase con `service_role` key (bypass tota
 | `renderComisiones(comisiones)` | Historial con tasa visible (5% o 2%) y monto. |
 | `renderPatrocinios(patrocinios)` | Comercios registrados con meses activo y tasa actual. |
 | `bindRetiroModal()` | Modal "Solicitar Retiro": valida saldo, envía a backend. |
-| `bindFormAlta()` | Formulario "Agregar Comercio": nombre, dirección, rubro, teléfono, email. |
+| `bindFormAlta()` | Formulario "Armar Link para un Comercio": nombre, rubro, dirección, teléfono, email → genera un link personalizado a `registro-comercio.html` con esos datos precargados (querystring), no crea nada por sí solo — el comercio confirma y pone su contraseña del otro lado. |
+| `cargarLinkReferidos()` | Arma el link fijo genérico `registro-comercio.html?ref=<uid>` y lo deja listo para copiar/compartir por WhatsApp. |
 | `authFetch(url, opts)` | Fetch con Bearer JWT. |
 | `sanitize(str)` | Escapa HTML para prevenir XSS. |
 

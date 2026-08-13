@@ -515,7 +515,8 @@
 <script type="module">
 import { supabase as sb } from '../assets/js/config.js';
 import { iniciarLoginGoogleNativo, escucharCallbackOAuthNativo } from '../assets/js/auth-service.js';
-const _REF_EMBAJADOR = new URLSearchParams(window.location.search).get('ref') ?? null;
+const _Q = new URLSearchParams(window.location.search);
+const _REF_EMBAJADOR = _Q.get('ref') ?? null;
 
 // ── Estado local ──────────────────────────────────────────
 let catSel = '';
@@ -642,6 +643,32 @@ el('cat-grid')?.addEventListener('click', e => {
   hideErr();
 });
 
+// ── Prefill desde link personalizado del embajador (opcional) ──────────
+// El dashboard de embajador puede armar el link de referido con estos datos
+// ya cargados (?ref=...&nombre=...&dir=...&cat=...&tel=...&email=...) para
+// que el dueño del comercio solo tenga que revisar y poner su contraseña.
+// Todo queda editable — el embajador puede haberse equivocado en algo.
+(function prefillDesdeLink() {
+  const pNombre = _Q.get('nombre');
+  const pDir    = _Q.get('dir');
+  const pCat    = _Q.get('cat');
+  const pTel    = _Q.get('tel');
+  const pEmail  = _Q.get('email');
+
+  if (pNombre && el('r-nombre')) el('r-nombre').value = pNombre;
+  if (pDir    && el('r-dir'))    el('r-dir').value    = pDir;
+  if (pTel    && el('r-tel'))    el('r-tel').value    = pTel;
+  if (pEmail  && el('r-email'))  el('r-email').value  = pEmail;
+  if (pCat) {
+    const opt = document.querySelector(`.cat-opt[data-cat="${CSS.escape(pCat)}"]`);
+    if (opt) {
+      document.querySelectorAll('.cat-opt').forEach(o => o.classList.remove('sel'));
+      opt.classList.add('sel');
+      catSel = pCat;
+    }
+  }
+})();
+
 // ── Toggle password visibility ────────────────────────────
 function bindPasswordToggle(btnId, inputId) {
   const btn  = el(btnId);
@@ -758,10 +785,12 @@ async function registrar() {
 
   try {
     let userId;
+    let accessToken;
 
     if (sesionGoogle) {
       // Ya identificado con Google — nada de crear cuenta ni loguear.
-      userId = sesionGoogle.user.id;
+      userId      = sesionGoogle.user.id;
+      accessToken = sesionGoogle.access_token;
     } else {
       // 1. Crear cuenta via backend (usa supabaseAdmin, no reemplaza sesión, confirma email)
       const regRes = await fetch(`${base}/api/auth/register`, {
@@ -783,7 +812,7 @@ async function registrar() {
       if (!userId) { showErr('Error inesperado. Intentá de nuevo.'); return; }
 
       // 2. Login automático para tener sesión activa
-      const { error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+      const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
       if (loginErr) {
         // Cuenta creada pero login falló — igual mostramos éxito, pueden ingresar después
         console.warn('[Registro] Login automático falló:', loginErr.message);
@@ -792,6 +821,7 @@ async function registrar() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
+      accessToken = loginData?.session?.access_token;
     }
 
     // 3. Insertar comercio con sesión activa (RLS satisfecha)
@@ -820,6 +850,24 @@ async function registrar() {
       })
       .select('id')
       .single();
+
+    // 3a. Si vino de un link de referido de embajador, vincular la comisión.
+    // `creado_por_embajador_id` ya quedó en `comercios` (RLS lo permite porque
+    // lo hace el dueño), pero `patrocinios` — la fuente real de las comisiones —
+    // solo la puede insertar una sesión con rol 'embajador'. Este paso lo hace
+    // vía backend (service_role). Best-effort: si falla, el comercio ya quedó
+    // creado y funcional igual, solo no se le acredita la comisión al embajador.
+    if (_REF_EMBAJADOR && comData?.id && accessToken) {
+      try {
+        await fetch(`${base}/api/embajadores/vincular-referido`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+          body:    JSON.stringify({ comercioId: comData.id }),
+        });
+      } catch (e) {
+        console.warn('[Registro] No se pudo vincular el comercio al embajador:', e);
+      }
+    }
 
     // 3b. Si venía de Google, el trigger de la DB le asignó 'cliente' por
     // defecto — corregir el rol ahora que ya existe la fila en `comercios`.

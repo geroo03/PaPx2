@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 import {
   getDashboard,
-  agregarComercio,
+  vincularReferido,
   solicitarRetiro,
   confirmarPago,
   rechazarRetiro,
@@ -11,9 +11,9 @@ import {
 const router = Router();
 
 // Embajador
-router.get('/dashboard',         requireAuth, getDashboard);
-router.post('/comercios',        requireAuth, agregarComercio);
-router.post('/solicitar-retiro', requireAuth, solicitarRetiro);
+router.get('/dashboard',          requireAuth, getDashboard);
+router.post('/vincular-referido', requireAuth, vincularReferido);
+router.post('/solicitar-retiro',  requireAuth, solicitarRetiro);
 
 // Admin
 router.patch('/retiro/:id/pagar',   requireAuth, confirmarPago);

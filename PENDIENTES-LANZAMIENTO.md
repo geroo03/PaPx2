@@ -68,19 +68,15 @@ cerrarla del todo hay que encontrar en qué proyecto está (puede ser una
 cuenta/proyecto viejo de quien la generó originalmente) y deshabilitarla
 ahí. No es urgente porque ya no está en uso, pero técnicamente sigue viva.
 
-## 5. 🟡 VAPID — ya cargado en Railway, faltaba el mismo par en el frontend
+## 5. ✅ VAPID — ya resuelto y en producción
 
 Confirmado el 11 de agosto: las 3 variables (`VAPID_PUBLIC_KEY`,
 `VAPID_PRIVATE_KEY`, `VAPID_EMAIL`) ya estaban cargadas en Railway. El
 problema real era que `frontend/env.js` tenía una pública de **otro**
 par distinto (huérfana, sin la privada correspondiente en ningún lado) —
 VAPID exige que ambas mitades sean del mismo par, si no, el push falla
-en silencio. Corregido: `frontend/env.js` ahora usa la misma pública que
-ya está en Railway.
-
-**Falta solo el push** de ese commit a `main` para que Vercel lo
-despliegue — sin eso, el frontend en producción sigue usando la pública
-vieja aunque el código ya esté arreglado localmente.
+en silencio. Corregido y pusheado — `frontend/env.js` en `main` ya usa la
+misma pública que Railway. Push web funcional en producción.
 
 ## 6. 🟡 Probar el APK en un dispositivo real — en curso, fix de CSS ya aplicado
 
@@ -95,12 +91,17 @@ padding en sidebar/topbar/headers + `StatusBar` wireado + inputs a 16px
 para prevenir zoom en iOS).
 
 **Falta:**
-- Reinstalar el APK actualizado (`npx cap sync android` + rebuild) en el
-  mismo celular y confirmar que los bugs desaparecieron — es la única
-  verificación real, nada emula el WebView nativo con exactitud.
+- Instalar en el celular el APK debug ya recompilado el 13 de agosto
+  (`android/app/build/outputs/apk/debug/app-debug.apk`, sincronizado con
+  todo lo de `main` hasta `d96ff83`) y confirmar que los bugs de CSS
+  desaparecieron — es la única verificación real, nada emula el WebView
+  nativo con exactitud.
 - Si algo sigue roto, mandar las capturas para un segundo pase puntual.
 - Terminar de confirmar el resto: login con Google (deep link), un pedido
   de punta a punta, permisos de GPS y cámara.
+- Este APK todavía **no** incluye el fix de comisiones de embajador del
+  ítem 14 (sigue sin pushear) — si querés probar eso también, avisame y
+  recompilo después de pushear.
 
 `qa-e2e.mjs` ya prueba todo el backend (56/56 la última vez) pero **no**
 prueba el shell nativo — este paso a mano sigue sin ser opcional antes de
@@ -111,6 +112,28 @@ mandar nada a Play Store.
 Es el único gráfico que falta para la ficha — el ícono de 512×512 ya existe.
 Si querés, te ayudo con el texto/concepto, pero el diseño en sí (imagen)
 no lo puedo generar yo.
+
+## 8b. 🟡 Fix de comisiones de embajador — listo, esperando que confirmes el push
+
+Surgió el 13 de agosto charlando de cómo simplificar el alta de comercios
+por parte de un embajador. Se encontró un bug real, no solo de UX: el link
+de referidos (el que el dashboard del embajador promueve) nunca generó
+comisión — la sesión del comercio no puede crear la fila en `patrocinios`
+que hace falta para que se acredite algo. Detalle completo en `CLAUDE.md`
+§6/§13 y `CHANGELOG.md` v3.17.0.
+
+- Código ya escrito, testeado (`backend/test` 40/40) y verificado —
+  **todavía sin commitear ni pushear**, a propósito: toca el sistema de
+  comisiones (plata real de embajadores) y hasta ahora no dijiste que
+  pusheara.
+- La migración de backfill (`migration-backfill-patrocinios-referidos.sql`)
+  **ya la corriste en Supabase** — eso ya está aplicado, no depende del
+  push del código.
+- Sin el push, el código nuevo (`vincular-referido`) no existe en
+  producción — los embajadores que traigan comercios nuevos por el link
+  siguen sin generar comisión hasta que esto se suba.
+
+**Avisame si querés que pushee esto ahora.**
 
 ## 8. 🟢 Cuando tengan Payway resuelto (Fabri)
 

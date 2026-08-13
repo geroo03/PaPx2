@@ -134,7 +134,8 @@ puertaapuerta-main/
 │       ├── migration-comercios-pausa-manual.sql        # comercios.pausado_manual/pausado_desde
 │       ├── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
 │       ├── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11
-│       └── migration-comercio-id-uuid.sql               # advertencias_comercio/chat_reportes.comercio_id a uuid — 2026-08-11
+│       ├── migration-comercio-id-uuid.sql               # advertencias_comercio/chat_reportes.comercio_id a uuid — 2026-08-11
+│       └── migration-backfill-patrocinios-referidos.sql # patrocinios faltantes de comercios traídos por link de embajador — 2026-08-13, corrida en Supabase
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -215,7 +216,7 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
 | GET | `/dashboard` | JWT | Billetera + comisiones + patrocinios + retiros en una llamada. |
-| POST | `/comercios` | JWT | Embajador registra comercio manualmente. |
+| POST | `/vincular-referido` | JWT (cualquier rol) | Llamado por la sesión del comercio recién creada, justo después de registrarse vía link de referido (`?ref=`) — crea la fila en `patrocinios` que la sesión del comercio no puede insertar directo por RLS. Ver §6. |
 | POST | `/solicitar-retiro` | JWT | Embajador solicita retiro de saldo. |
 | PATCH | `/retiro/:id/pagar` | JWT | Admin/Embajador confirma pago de retiro. |
 | PATCH | `/retiro/:id/rechazar` | JWT | Admin rechaza retiro. |
@@ -258,6 +259,54 @@ Mes 1–6:   5% del total_final del pedido
 Mes 7–12:  2% del total_final
 Mes 13+:   0% (sin comisión)
 ```
+Fuente de verdad real: `registrarComisionSiAplica()` (embajadorController.js),
+llamada desde `pedidoController.js` al pasar un pedido a `entregado`. Busca un
+`patrocinios` activo para `pedido.comercio_id` — **si no hay fila en
+`patrocinios`, no se acredita nada**, aunque `comercios.creado_por_embajador_id`
+esté seteado. (Hubo un trigger de base que calculaba esto directo desde
+`comercios.creado_por_embajador_id`, sin pasar por `patrocinios` — se sacó en
+`migration-fix-seguridad-y-comisiones.sql` 2026-07-16 por duplicar/contradecir
+esta lógica y escribir en una tabla que ningún dashboard lee.)
+
+### Cómo un comercio queda "patrocinado" por un embajador
+Dos caminos, ambos terminan poblando `comercios.creado_por_embajador_id`, pero
+**solo uno de los dos crea la fila en `patrocinios` que hace falta para que la
+comisión se acredite de verdad** — es la parte no obvia de todo este sistema:
+
+1. **Link de referidos** (`embajador.js` → `cargarLinkReferidos()` / `bindFormAlta()`,
+   ambos apuntan a `comercio/registro-comercio.html?ref=<embajador_id>[&nombre=&cat=&dir=&tel=&email=]`
+   — el link fijo genérico o uno personalizado con datos precargados, mismo
+   destino). El comercio completa el registro con su propia sesión nueva. Esa
+   sesión SÍ puede insertar en `comercios` con `creado_por_embajador_id` (dueño
+   insertando su propia fila), pero NO puede insertar en `patrocinios` — la
+   policy `patrocinios_embajador_insert` exige rol `embajador`. Por eso,
+   `registro-comercio.html` llama justo después a
+   `POST /api/embajadores/vincular-referido` (con la sesión recién creada del
+   comercio) para que el backend (service_role) cree esa fila, validando
+   server-side que el comercio realmente le pertenece a quien llama y que
+   realmente vino de ese embajador antes de insertar nada.
+2. **Alta manual por el admin** — si algún día hace falta, el único camino
+   soportado es que un admin cree el comercio con `creado_por_embajador_id` y
+   la fila en `patrocinios` a mano en Supabase. El viejo endpoint
+   `POST /api/embajadores/comercios` (`agregarComercio`) que dejaba al
+   embajador cargar el comercio desde su dashboard se sacó el 2026-08-13: creaba
+   la fila en `comercios` **sin `usuario_id`** — no generaba ningún login, y
+   nada en el resto del código lo vinculaba después a una cuenta real. El
+   comercio quedaba huérfano para siempre (visible en "Mis Comercios
+   Registrados" del embajador, pero inoperable). El dashboard del embajador
+   ahora arma un link personalizado (mismo mecanismo del punto 1) en vez de
+   crear el comercio directo.
+
+**Bug corregido 2026-08-13:** como el camino 1 (el que promueve el propio
+dashboard del embajador) nunca creó la fila en `patrocinios` hasta este fix,
+todos los comercios traídos por el link de referidos —desde que existe esa
+feature— nunca generaron comisión real para el embajador, aunque
+`creado_por_embajador_id` estuviera bien seteado y aparecieran listados en su
+dashboard. `supabase/migrations/migration-backfill-patrocinios-referidos.sql`
+(corrida en Supabase) creó las filas de `patrocinios` que faltaban para los
+comercios ya existentes — generan comisión desde su próximo pedido entregado
+en adelante. No recalculó comisión retroactiva de pedidos ya entregados en el
+pasado — sigue siendo una decisión de negocio aparte si se quiere pagar eso.
 
 ### Comisiones referidos cadete
 ```
@@ -350,11 +399,12 @@ acceso directo desde cliente/comercio/cadete): policy `FOR ALL USING
 - `cierres_especiales` — días puntuales en los que un comercio no abre (feriado, vacaciones), una fila por fecha. `comercio_id`, `fecha`, `motivo` opcional. `horariosScheduler.js` la consulta cada tick para forzar `abierto_ahora=false` el día que corresponda — ver §6.
 
 ### Migraciones — estado
-Todas las migraciones aplicadas, incluidas las del 2026-08-11
-(`migration-cierres-especiales.sql`, `migration-comercio-id-uuid.sql` —
-ver lista completa en §3). Todas siguen la convención `ADD COLUMN IF NOT
-EXISTS` / `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e
-idempotentes, seguras de re-correr.
+Todas las migraciones aplicadas, incluida `migration-backfill-patrocinios-referidos.sql`
+(2026-08-13, ver §6 — backfill de comisiones de embajador, corrida en
+Supabase) y las del 2026-08-11 (`migration-cierres-especiales.sql`,
+`migration-comercio-id-uuid.sql` — ver lista completa en §3). Todas siguen la
+convención `ADD COLUMN IF NOT EXISTS` / `DROP POLICY IF EXISTS` + `CREATE
+POLICY` — aditivas e idempotentes, seguras de re-correr.
 
 ---
 
@@ -544,6 +594,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
 | 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
 | 5 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
+| 6 | `frontend/admin/admin.html` (Carrusel de patrocinios, ~línea 660-724) sigue leyendo/escribiendo la tabla `patrocinios` con forma de banner (`titulo`, `imagen_url`, `link_oferta`...) — pero esa tabla se redefinió el 2026-08-11 (`fix-criticos-importantes.sql`) como la relación embajador-comercio (`embajador_id`, `comercio_id` NOT NULL) y los banners se migraron a una tabla nueva, `banners`. Encontrado de paso investigando el bug de comisiones de embajador (ver §6, resuelto 2026-08-13), no confirmado en producción si ya está roto o si hay algo que lo compensa — revisar antes de tocar el carrusel de banners del admin. | Panel admin, banners del home |
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
 
@@ -562,6 +613,16 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 ~~`saveCierre()` no persistía nada~~ — shippeado y resuelto 2026-08-11 (tabla `cierres_especiales` + wiring en `comercio.js`/`horariosScheduler.js`, migración corrida en Supabase, código pusheado), ver CHANGELOG v3.13.0.
 
 ~~`login-usuario.html` sin checkbox de TyC + bug de password en login~~ — shippeado 2026-08-11, ver CHANGELOG v3.13.0.
+
+~~Comercios traídos por el link de referidos no generaban comisión~~ — resuelto
+2026-08-13 (código + migración de backfill corrida en Supabase). Encontrado charlando sobre
+cómo simplificar el alta de comercios por parte del embajador: el link de
+referidos (el flujo que el propio dashboard promueve) nunca creó una fila en
+`patrocinios`, así que nunca generó comisión real, aunque el comercio quedara
+bien etiquetado y visible en el dashboard del embajador. De paso se sacó
+`agregarComercio` (`POST /api/embajadores/comercios`), el alta manual desde el
+dashboard del embajador — creaba el comercio sin `usuario_id`, sin ningún
+camino para que consiguiera login después. Ver §6 para el detalle completo.
 
 **Contexto de mercado (investigación 2026-07-31, ver memoria de sesión):** Uber Eats
 relanzó en Argentina en enero 2026 eligiendo **Córdoba** (una de las 3 ciudades de

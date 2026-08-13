@@ -72,69 +72,69 @@ export async function getDashboard(req, res) {
   }
 }
 
-// ─── agregarComercio ──────────────────────────────────────────────────────────
+// ─── vincularReferido ─────────────────────────────────────────────────────────
 
 /**
- * POST /api/embajadores/comercios
+ * POST /api/embajadores/vincular-referido
  *
- * El embajador registra un nuevo comercio.
- * Crea la fila en `comercios` y el patrocinio en `patrocinios`.
- * El comercio arranca con estado_registro='pendiente' hasta que admin lo aprueba.
+ * Se llama desde registro-comercio.html justo después de que un comercio se
+ * registra solo a través del link de referidos (?ref=<embajador_id>), con la
+ * sesión recién creada del propio comercio (no del embajador).
  *
- * Body: { nombre, telefono?, direccion, rubro, email?, lat?, lng? }
+ * `comercios.creado_por_embajador_id` ya quedó seteado en el INSERT del
+ * comercio (RLS lo permite porque lo hace el dueño con su propia sesión),
+ * pero la tabla `patrocinios` — fuente de verdad real de `registrarComisionSiAplica`
+ * para acreditar comisiones — solo se puede insertar con rol 'embajador'
+ * (policy `patrocinios_embajador_insert`), así que el comercio nunca puede
+ * crearla directamente. Sin este paso, el comercio queda funcional (tiene
+ * login) pero el embajador jamás cobra comisión por él. Este endpoint lo
+ * hace vía service_role, validando server-side que el comercio realmente
+ * fue creado por ese embajador (no confía en nada que mande el body).
+ *
+ * Body: { comercioId }
  */
-export async function agregarComercio(req, res) {
-  if (!await requireEmbajador(req, res)) return;
-
-  const { nombre, telefono, direccion, rubro, email, lat, lng } = req.body ?? {};
-
-  if (!nombre?.trim() || !direccion?.trim() || !rubro?.trim()) {
-    return res.status(400).json({ error: 'Campos requeridos: nombre, direccion, rubro.' });
+export async function vincularReferido(req, res) {
+  const comercioId = req.body?.comercioId;
+  if (!comercioId) {
+    return res.status(400).json({ error: 'comercioId requerido.' });
   }
 
   try {
-    // Insertar el comercio
     const { data: comercio, error: comErr } = await supabaseAdmin
       .from('comercios')
-      .insert({
-        nombre:                   nombre.trim(),
-        telefono:                 telefono?.trim()  || null,
-        direccion:                direccion.trim(),
-        categoria:                rubro.trim(),
-        email:                    email?.trim()     || null,
-        lat:                      lat               || null,
-        lng:                      lng               || null,
-        creado_por_embajador_id:  req.user.id,
-        estado_registro:          'pendiente',
-      })
-      .select('id, nombre')
-      .single();
+      .select('id, usuario_id, creado_por_embajador_id, created_at')
+      .eq('id', comercioId)
+      .maybeSingle();
 
-    if (comErr) {
-      console.error('[agregarComercio] Error insertando comercio:', comErr.message);
-      return res.status(500).json({ error: 'No se pudo crear el comercio.' });
+    if (comErr || !comercio) {
+      return res.status(404).json({ error: 'Comercio no encontrado.' });
+    }
+    if (comercio.usuario_id !== req.user.id) {
+      return res.status(403).json({ error: 'No podés vincular un comercio que no es tuyo.' });
+    }
+    if (!comercio.creado_por_embajador_id) {
+      return res.status(200).json({ ok: true, vinculado: false }); // No vino de un link de referido — nada que hacer
     }
 
-    // Crear el patrocinio (source of truth para comisiones)
     const { error: patErr } = await supabaseAdmin
       .from('patrocinios')
       .insert({
-        embajador_id: req.user.id,
+        embajador_id: comercio.creado_por_embajador_id,
         comercio_id:  comercio.id,
-        fecha_inicio: new Date().toISOString(),
+        fecha_inicio: comercio.created_at ?? new Date().toISOString(),
         activo:       true,
       });
 
-    if (patErr) {
-      console.error('[agregarComercio] Error insertando patrocinio:', patErr.message);
-      // No revertir el comercio — el admin puede crear el patrocinio manualmente
+    if (patErr && patErr.code !== '23505') { // 23505 = ya existía (idempotente, no es error)
+      console.error('[vincularReferido] Error insertando patrocinio:', patErr.message);
+      return res.status(500).json({ error: 'No se pudo vincular el comercio al embajador.' });
     }
 
-    console.log(`[Embajador] ${req.user.id} → comercio ${comercio.id} (${comercio.nombre})`);
-    return res.status(201).json({ ok: true, comercio });
+    console.log(`[Embajador] patrocinio vinculado: ${comercio.creado_por_embajador_id} → comercio ${comercio.id}`);
+    return res.status(201).json({ ok: true, vinculado: true });
 
   } catch (err) {
-    console.error('[agregarComercio] Excepción:', err?.message ?? err);
+    console.error('[vincularReferido] Excepción:', err?.message ?? err);
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 }
