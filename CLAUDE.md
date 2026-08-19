@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-11.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-15.
 
 ---
 
@@ -75,14 +75,16 @@ puertaapuerta-main/
 │   │       ├── main.js        # Init global: state, push, helpers
 │   │       ├── cliente.js     # Lógica completa del cliente (~990 líneas)
 │   │       ├── cadete.js      # Lógica completa del cadete (~1840 líneas)
-│   │       ├── comercio.js    # Lógica completa del comercio (~1354 líneas)
+│   │       ├── comercio.js    # Lógica completa del comercio (~1600 líneas) — incluye grupos de opcionales + importador CSV/Excel, ver §6
+│   │       ├── importadorMenu.js  # Módulo puro (sin DOM/Supabase): parseo/validación del CSV/Excel de productos — testeado desde backend/test/, ver §6
 │   │       ├── embajador.js   # Dashboard embajador + link de referidos
 │   │       ├── push.js        # Push: web (VAPID) + nativa (Capacitor FCM)
 │   │       ├── state.js       # Estado global (LocalStorage persistence)
 │   │       ├── ui.js          # sanitizeHTML, formatARS, navigateSeguro
 │   │       └── icons.js       # Objeto ICONS con emojis/SVG
 │   ├── logo-192.png           # Ícono PWA 192x192 (referenciado en manifest.json)
-│   └── logo-512.png           # Ícono PWA 512x512 (referenciado en manifest.json)
+│   ├── logo-512.png           # Ícono PWA 512x512 (referenciado en manifest.json)
+│   └── package.json           # Solo {"type":"module"} — permite que backend/test/ importe importadorMenu.js con import relativo cross-folder sin warnings de Node. No se buildea ni se ejecuta nada acá.
 │
 ├── backend/
 │   ├── src/
@@ -113,7 +115,7 @@ puertaapuerta-main/
 │   │       ├── matchingUtils.js      # haversineKm + rankearCandidatos(candidatos, config) — fairness/rotación
 │   │       ├── climaUtils.js         # esClimaAdverso(weatherCode) — clasificación pura, testeable
 │   │       └── climaService.js       # esClimaAdversoParaUbicacion(lat,lng) cache-first + refrescarCacheClima()
-│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils
+│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils, importadorMenu (importa frontend/assets/js/importadorMenu.js cross-folder)
 │   ├── scripts/qa-e2e.mjs            # Smoke test E2E contra producción real (sin service_role) — correr antes de cada release
 │   └── package.json                  # "type":"module", Express 5, Supabase JS, web-push
 │
@@ -135,7 +137,8 @@ puertaapuerta-main/
 │       ├── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
 │       ├── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11
 │       ├── migration-comercio-id-uuid.sql               # advertencias_comercio/chat_reportes.comercio_id a uuid — 2026-08-11
-│       └── migration-backfill-patrocinios-referidos.sql # patrocinios faltantes de comercios traídos por link de embajador — 2026-08-13, corrida en Supabase
+│       ├── migration-backfill-patrocinios-referidos.sql # patrocinios faltantes de comercios traídos por link de embajador — 2026-08-13, corrida en Supabase
+│       └── migration-grupos-opcionales-producto.sql     # grupos_opcionales.producto_id + RLS con es_dueno_de_comercio() — 2026-08-15, corrida en Supabase
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -350,6 +353,15 @@ WHERE id=? AND cadete_id IS NULL
 - Un comercio "cerrado" bloquea de verdad la creación de pedidos: policy RLS **restrictiva** en `pedidos` (`pedidos_bloquear_comercio_cerrado`) exige `comercios.abierto_ahora=true` (u admin) para el INSERT — antes solo era un bloqueo cosmético del botón en el cliente.
 - **Cierres especiales por fecha (2026-08-11):** el comercio puede cargar días puntuales (feriado, vacaciones) desde el panel (Horarios → "Agregar cierre especial"), tabla `cierres_especiales` (`comercio_id`, `fecha`, `motivo` opcional). `horariosScheduler.js` fuerza `abierto_ahora=false` cuando hay una fila con `fecha = hoy` para ese comercio — mismo alcance que `pausado_manual`: solo aplica a comercios con horario configurado, y se autolimpia solo (el chequeo es siempre contra la fecha de hoy, no queda ningún flag que revertir al otro día).
 
+### Grupos de opcionales + importador CSV/Excel de productos (2026-08-15)
+- **Grupos de opcionales, ahora reales:** el bloque "Grupos de opcionales" del modal de producto (`comercio.html`) era un placeholder visual sin funcionalidad — las tablas `grupos_opcionales`/`opciones_items` existían en el schema pero ningún código las tocaba. Ahora tienen CRUD real dentro del modal de "Agregar/Editar producto" en `comercio.js`: todo el armado de grupos/opciones vive en memoria (`mpGruposState`) mientras el modal está abierto y recién se escribe en la base (diff contra el snapshot original) cuando se confirma "Guardar producto" — así "Cancelar" nunca deja grupos huérfanos. Un grupo pertenece a un solo producto (`grupos_opcionales.producto_id`, agregado en `migration-grupos-opcionales-producto.sql`), no se comparten entre productos.
+- **Fuera de alcance a propósito:** exponerle estas opciones al cliente para elegirlas al armar un pedido (carrito, cálculo de precio con extras, snapshot en `pedidos.productos`) — es un feature separado y más grande, no construido todavía.
+- **Importador CSV/Excel:** botón "Importar CSV/Excel" junto a "Agregar Producto" (tab Menú). Parsea con SheetJS (CDN, `xlsx@0.18.5`, soporta `.csv`/`.xlsx`/`.xls` con el mismo parser) y valida con `frontend/assets/js/importadorMenu.js` — módulo puro (sin DOM/Supabase), testeado desde `backend/test/importadorMenu.test.js` vía import relativo cross-folder (por eso existe `frontend/package.json` con solo `{"type":"module"}`).
+- **Formato del archivo:** una sola tabla plana con columna discriminadora `tipo_fila` (`producto`/`opcion`) — un producto y sus grupos/opciones van en el mismo archivo, las filas de opción referencian su producto por `producto_nombre` (debe estar en el mismo archivo; no se pueden agregar opcionales a un producto de una importación anterior — limitación de v1). `precio_base` es siempre neto, sin el 20% de recargo (mismo criterio que el modal manual — el recargo lo aplica `cliente.js` al mostrar, nunca se persiste). `imagen_url` es una columna opcional de texto libre (no hay carga de archivo de imagen vía CSV).
+- **Dos carteles de alerta** (pedido explícito, no toasts que desaparecen): uno fijo al abrir el modal de importación (recuerda revisar el formato y que los precios van sin el 20%), y un banner de resultados persistente después de importar (cuántos productos/grupos/opciones se cargaron OK vs. cuántas filas fallaron y por qué) — el modal no se cierra solo, el comercio lo revisa y cierra a mano.
+- **Inserción secuencial, no batch:** categorías nuevas → productos → grupos → opciones, todo `await` uno por uno (no un solo insert de array) para que una fila mala no aborte el resto del archivo. Productos duplicados (mismo nombre ya en el catálogo, o repetido dentro del mismo archivo) quedan `omitido` — nunca se pisa un producto existente.
+- **`opciones_items.precio_adicional`, no `precio_extra`:** el schema documentado (`schema-definitivo-v2.sql`) estaba desactualizado para esta tabla — nunca se había verificado contra la base real porque ningún código la tocaba hasta ahora. Ver nota completa en §7. `precio_extra` sigue siendo el nombre de dominio usado en el CSV/UI/tests; `comercio.js` lo traduce a `precio_adicional` en los 3 puntos donde toca esta tabla.
+
 ---
 
 ## 7. Base de datos — convenciones críticas
@@ -398,13 +410,34 @@ acceso directo desde cliente/comercio/cadete): policy `FOR ALL USING
 ### Tabla nueva (2026-08-11)
 - `cierres_especiales` — días puntuales en los que un comercio no abre (feriado, vacaciones), una fila por fecha. `comercio_id`, `fecha`, `motivo` opcional. `horariosScheduler.js` la consulta cada tick para forzar `abierto_ahora=false` el día que corresponda — ver §6.
 
+### Columna nueva (2026-08-15)
+- `grupos_opcionales.producto_id` — liga por fin cada grupo de opciones a UN producto (antes existía la tabla pero sin este vínculo, era schema muerto). Ver §6 (grupos de opcionales + importador CSV/Excel) y §13.
+
+### `opciones_items` — el schema documentado estaba desactualizado (2026-08-15)
+Al escribir `migration-grupos-opcionales-producto.sql` apareció un desvío real
+entre `schema-definitivo-v2.sql` (documentaba `opciones_items.precio_extra`) y
+la tabla real en producción — nunca antes verificada porque ningún código la
+tocaba. La columna real es **`precio_adicional`**, y la tabla también tiene
+una columna **`disponible`** (bool, default true) que tampoco estaba
+documentada, sin usar todavía por ningún código (candidato a exponer en la UI
+de opcionales en el futuro, no hecho por ahora). `comercio.js` traduce
+`precio_extra` (nombre de dominio, usado en el CSV/UI/tests) ↔
+`precio_adicional` (columna real) en los 3 puntos donde lee/escribe esta
+tabla — ver comentarios en `cargarGruposOpcionales()`, `persistirGruposOpcionales()`
+y `confirmarImportacion()`. `schema-definitivo-v2.sql` **no** se corrigió
+(sigue reflejando el estado previo a esta migración, como el resto de
+migraciones incrementales del repo) — la fuente de verdad de esta tabla es
+`migration-grupos-opcionales-producto.sql` + este párrafo.
+
 ### Migraciones — estado
 Todas las migraciones aplicadas, incluida `migration-backfill-patrocinios-referidos.sql`
 (2026-08-13, ver §6 — backfill de comisiones de embajador, corrida en
-Supabase) y las del 2026-08-11 (`migration-cierres-especiales.sql`,
-`migration-comercio-id-uuid.sql` — ver lista completa en §3). Todas siguen la
-convención `ADD COLUMN IF NOT EXISTS` / `DROP POLICY IF EXISTS` + `CREATE
-POLICY` — aditivas e idempotentes, seguras de re-correr.
+Supabase), `migration-grupos-opcionales-producto.sql` (2026-08-15, corrida en
+Supabase — ver nota de `opciones_items` arriba) y las del 2026-08-11
+(`migration-cierres-especiales.sql`, `migration-comercio-id-uuid.sql` — ver
+lista completa en §3). Todas siguen la convención `ADD COLUMN IF NOT EXISTS`
+/ `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e idempotentes,
+seguras de re-correr.
 
 ---
 
@@ -589,7 +622,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 
 | # | Tarea | Impacto |
 |---|-------|---------|
-| 1 | Crear cuenta de desarrollador de Google Play Console ($25) — **todavía no existe**. Google exige a cuentas nuevas un track de Closed Testing (~20 testers, 14 días corridos) antes de habilitar Production — es el ítem de mayor lead time de todo el lanzamiento, arrancarlo antes que nada. | Distribución / fecha real de lanzamiento |
+| 1 | Cuenta de desarrollador de Google Play Console — **ya creada (2026-08-17), en proceso de verificación de Google, todavía no se usó para nada** (sin ficha de app creada, sin Data Safety form completado). Falta armar la ficha completa una vez que la verificación termine, incluido el track de Closed Testing (~20 testers, 14 días corridos) antes de habilitar Production — sigue siendo el ítem de mayor lead time del lanzamiento. Apple Developer Account: sin novedades, no mencionado. | Distribución / fecha real de lanzamiento |
 | 2 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). En curso 2026-08-11: probado en un celular real, aparecieron bugs de CSS pendientes de detalle. | App nativa |
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
 | 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
