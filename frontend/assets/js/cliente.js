@@ -8,12 +8,34 @@ let propinaSeleccionada=0;
 // ═══════════════════════════════════════════════════════════════════════════════
 let _trkMap=null,_trkCadeteMarker=null,_trkClienteMarker=null;
 
+// Estado de la animación del marcador del cadete — el GPS llega de a saltos
+// (cada 5-10s, ver actualizar-ubicacion en cadete.js) pero el marcador se
+// desliza suave entre punto y punto en vez de teletransportarse, como en
+// Rappi/Uber. _trkCadeteAnimId es el id de requestAnimationFrame en curso
+// (para poder cancelarlo si llega un ping nuevo a mitad de camino), y
+// _trkCadeteCurrentPos es la posición REAL mostrada en pantalla en este
+// instante (no la última recibida) — el punto de partida de la próxima animación.
+let _trkCadeteAnimId=null,_trkCadeteCurrentPos=null;
+const DURACION_ANIM_CADETE_MS=4000; // menor a la ventana típica entre pings (5-10s)
+const DIST_MIN_ROTACION_M=3; // por debajo de esto es ruido de GPS parado, no se rota el ícono
+
+// Último ángulo de rotación REALMENTE aplicado a la flecha (CSS transform), sin
+// normalizar a 0-360 — se deja acumular libremente (ej: 370°, -15°) para que
+// aplicarHeadingCadete() siempre pueda elegir el equivalente más cercano al
+// actual y la transición CSS gire por el camino corto. Sin esto, cruzar el
+// norte entre dos pings (ej: 350°→10°) hace que rotate() interpole el camino
+// largo (350°→...→10°, casi una vuelta completa) en vez de los 20° reales.
+let _trkCadeteHeadingActual=null;
+
 function initTrackingMap(cLat,cLng){
   const el=document.getElementById('map-tracking');
   if(!el||!window.L) return;
 
   // Destruir mapa anterior si existe (ej: vuelve a abrir tracking)
   if(_trkMap){try{_trkMap.remove();}catch{}_trkMap=null;_trkCadeteMarker=null;_trkClienteMarker=null;}
+  if(_trkCadeteAnimId){cancelAnimationFrame(_trkCadeteAnimId);_trkCadeteAnimId=null;}
+  _trkCadeteCurrentPos=null;
+  _trkCadeteHeadingActual=null;
 
   const center=(cLat&&cLng)?[cLat,cLng]:[-27.7951,-64.2615];
 
@@ -27,16 +49,69 @@ function initTrackingMap(cLat,cLng){
   }
 }
 
+/** Bearing (0-360°, 0=norte) desde (lat1,lng1) hacia (lat2,lng2). Fórmula estándar de navegación. */
+function calcularBearing(lat1,lng1,lat2,lng2){
+  const φ1=lat1*Math.PI/180,φ2=lat2*Math.PI/180,Δλ=(lng2-lng1)*Math.PI/180;
+  const y=Math.sin(Δλ)*Math.cos(φ2);
+  const x=Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+/** Rota la flecha de dirección del marcador del cadete (no el ícono de moto/bici en sí —
+ * es un dibujo de perfil, rotarlo de punta a punta se vería roto. La flecha es un
+ * indicador de rumbo aparte, como el "cono" de dirección de Google Maps). */
+function aplicarHeadingCadete(bearingDeg){
+  const marcadorEl=_trkCadeteMarker&&_trkCadeteMarker.getElement&&_trkCadeteMarker.getElement();
+  const flecha=marcadorEl&&marcadorEl.querySelector('.pap-heading-wrap');
+  if(!flecha) return;
+  // Elegir el equivalente de bearingDeg (mod 360) más cercano al ángulo ya
+  // aplicado, para que rotate() siempre gire por el camino corto (ver comentario
+  // de _trkCadeteHeadingActual más arriba).
+  let destino=bearingDeg;
+  if(_trkCadeteHeadingActual!=null){
+    const diff=((bearingDeg-_trkCadeteHeadingActual)%360+540)%360-180; // en (-180,180]
+    destino=_trkCadeteHeadingActual+diff;
+  }
+  _trkCadeteHeadingActual=destino;
+  flecha.style.opacity='1';
+  flecha.style.transform=`rotate(${destino}deg)`;
+}
+
+/** Desliza el marcador del cadete de `desde` a `hasta` en DURACION_ANIM_CADETE_MS,
+ * cancelando cualquier animación anterior todavía en curso (llega un ping nuevo
+ * antes de que termine la anterior, caso normal). */
+function animarMarcadorCadete(desde,hasta){
+  if(_trkCadeteAnimId){cancelAnimationFrame(_trkCadeteAnimId);_trkCadeteAnimId=null;}
+
+  const distM=_trkMap.distance(desde,hasta);
+  if(distM>DIST_MIN_ROTACION_M){
+    aplicarHeadingCadete(calcularBearing(desde[0],desde[1],hasta[0],hasta[1]));
+  }
+
+  const inicio=performance.now();
+  function paso(ahora){
+    const t=Math.min(1,(ahora-inicio)/DURACION_ANIM_CADETE_MS);
+    const lat=desde[0]+(hasta[0]-desde[0])*t;
+    const lng=desde[1]+(hasta[1]-desde[1])*t;
+    _trkCadeteCurrentPos=[lat,lng];
+    if(_trkCadeteMarker) _trkCadeteMarker.setLatLng(_trkCadeteCurrentPos);
+    _trkCadeteAnimId=(t<1)?requestAnimationFrame(paso):null;
+  }
+  _trkCadeteAnimId=requestAnimationFrame(paso);
+}
+
 function moverCadeteEnMapa(lat,lng){
   if(!_trkMap||!window.L) return;
   const pos=[Number(lat),Number(lng)];
 
   if(!_trkCadeteMarker){
     _trkCadeteMarker=L.marker(pos,{
-      icon:L.divIcon({className:'',html:'<div style="position:relative;width:28px;height:28px"><div class="pap-pulse-ring"></div><div style="position:relative;font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7.5 18h9M5 16l1-5h4l3 5M14 11l1.5-4H19l1 4"/></svg></div></div>',iconSize:[32,32],iconAnchor:[16,16]})
+      icon:L.divIcon({className:'',html:'<div style="position:relative;width:32px;height:32px"><div class="pap-pulse-ring"></div><div class="pap-heading-wrap" style="position:absolute;inset:0;opacity:0;transition:transform .4s linear,opacity .3s;transform:rotate(0deg)"><div style="position:absolute;top:-2px;left:50%;width:0;height:0;margin-left:-5px;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #FF6B35"></div></div><div style="position:relative;font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7.5 18h9M5 16l1-5h4l3 5M14 11l1.5-4H19l1 4"/></svg></div></div>',iconSize:[32,32],iconAnchor:[16,16]})
     }).addTo(_trkMap).bindTooltip('Tu cadete',{permanent:true,direction:'top',offset:[0,-14],className:'leaflet-tooltip-custom'});
+    _trkCadeteCurrentPos=pos; // primer punto: no hay de dónde animar, se planta directo
   }else{
-    _trkCadeteMarker.setLatLng(pos);
+    const desde=_trkCadeteCurrentPos||[_trkCadeteMarker.getLatLng().lat,_trkCadeteMarker.getLatLng().lng];
+    animarMarcadorCadete(desde,pos);
   }
 
   // Ajustar vista para que se vean ambos marcadores con 20% de margen
@@ -403,6 +478,7 @@ function iniciarTracking(){
   if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
   if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
   if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
+  if(_trkCadeteAnimId){cancelAnimationFrame(_trkCadeteAnimId);_trkCadeteAnimId=null;}
 
   const pedidoId=currentPedido?.id;
   const num=currentPedido?.numero||'—';
@@ -480,6 +556,7 @@ function iniciarTracking(){
       if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
       if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
       if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
+      if(_trkCadeteAnimId){cancelAnimationFrame(_trkCadeteAnimId);_trkCadeteAnimId=null;}
       // Limpiar pedido del localStorage para que no reaparezca en próxima carga
       if(window.state)window.state.setPedido(null);
       // Toast y rating solo una vez por sesión
@@ -496,6 +573,7 @@ function iniciarTracking(){
       if(window._trackPedidoCh){try{sb.removeChannel(window._trackPedidoCh);}catch{}window._trackPedidoCh=null;}
       if(window._trackGpsCh){try{sb.removeChannel(window._trackGpsCh);}catch{}window._trackGpsCh=null;}
       if(window._trackPollId){clearInterval(window._trackPollId);window._trackPollId=null;}
+      if(_trkCadeteAnimId){cancelAnimationFrame(_trkCadeteAnimId);_trkCadeteAnimId=null;}
       if(window.state)window.state.setPedido(null);
       if(!_entregadoYaVisto){
         _entregadoYaVisto=true;
