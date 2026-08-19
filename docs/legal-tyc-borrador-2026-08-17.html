@@ -191,9 +191,14 @@
   </div>
 
   <h2 class="sec">Resumen ejecutivo</h2>
-  <p>Se proponen <strong>4 cláusulas nuevas</strong> que hoy no existen (indemnización, licencia sobre contenido subido, fuerza mayor, cesión), <strong>2 cláusulas reforzadas</strong> (responsabilidad, suspensión de cuentas) y <strong>1 alerta de riesgo</strong> sobre la cláusula de jurisdicción actual, que podría no ser válida tal como está escrita para clientes en La Plata o Córdoba.</p>
+  <p>Se proponen <strong>4 cláusulas nuevas</strong> que hoy no existen (indemnización, licencia sobre contenido subido, fuerza mayor, cesión), <strong>3 cláusulas reforzadas</strong> (propiedad intelectual, responsabilidad, suspensión de cuentas) y <strong>1 alerta de riesgo</strong> sobre la cláusula de jurisdicción actual, que podría no ser válida tal como está escrita para clientes en La Plata o Córdoba.</p>
 
   <div class="summary-grid">
+    <div class="sum-card">
+      <span class="badge badge-changed">Reforzado</span>
+      <h4>Propiedad intelectual</h4>
+      <p>Prohíbe expresamente ingeniería inversa, scraping y clonar la funcionalidad/modelo de negocio — la cláusula actual no menciona ninguna de las tres.</p>
+    </div>
     <div class="sum-card">
       <span class="badge badge-new">Nuevo</span>
       <h4>Indemnización</h4>
@@ -260,6 +265,20 @@
   </div>
   <div class="why"><b>Por qué:</b> hoy la suspensión está atada a probar la causal antes de actuar. Rappi puede suspender "sin estar obligado a comunicar o exponer las razones" y "con efectos inmediatos" — la frase agregada da a PaP X margen para actuar rápido ante fraude sin exponerse a un reclamo por "suspensión injustificada" mientras se investiga.
   <span class="src">Fuente: Rappi Argentina, cláusula 12.2.</span></div>
+
+  <h3 class="sub">9.1 Propiedad de PaP X <span class="badge badge-changed">Reforzado</span></h3>
+  <div class="clause is-changed">
+    <p>El nombre "Puerta a Puerta X", el logotipo, el diseño de la aplicación, el código fuente, la base de datos, los flujos de uso, y todo el contenido original de la Plataforma son propiedad exclusiva de PaP X y están protegidos por la Ley 11.723 de Propiedad Intelectual y demás normativa aplicable. Queda prohibido, sin autorización previa y por escrito de PaP X:</p>
+    <ul>
+      <li>Reproducir, copiar, distribuir o crear obras derivadas de la Plataforma, su código, diseño o base de datos.</li>
+      <li>Descompilar, realizar ingeniería inversa, o intentar extraer el código fuente de la Plataforma, salvo en la medida en que la ley lo autorice expresamente y de forma irrenunciable.</li>
+      <li>Utilizar bots, scrapers, crawlers u otras herramientas automatizadas para extraer datos, precios, catálogos o contenido de la Plataforma a gran escala.</li>
+      <li>Replicar o clonar la funcionalidad, el flujo de uso o el modelo de negocio de la Plataforma con el fin de operar un servicio competidor.</li>
+    </ul>
+    <p>El incumplimiento de esta sección habilita a PaP X a suspender o cancelar la cuenta del infractor de forma inmediata (ver sección 3.3), sin perjuicio de las acciones legales, civiles y/o penales que correspondan.</p>
+  </div>
+  <div class="why"><b>Por qué:</b> la cláusula actual protege la marca y el código "en general" pero no dice una palabra sobre ingeniería inversa, scraping, ni sobre clonar la funcionalidad/modelo de negocio — que es, en la práctica, el tipo de "robo de código" más realista para una plataforma como esta (un competidor viendo el código fuente servido al navegador —es JS vanilla sin build, se ve tal cual— y replicando el flujo). Ninguna cláusula puede impedir técnicamente que alguien mire el código (es HTML/CSS/JS plano, corre en el navegador de cualquiera) — lo que sí hace esta cláusula es dejar constancia contractual y legal de que copiarlo está prohibido, que es lo que te da pie para actuar (reclamo, DMCA-style takedown si corresponde, demanda) si alguien lo hace. La protección técnica real (credenciales, RLS, rate limiting) es un tema aparte, no de este documento.
+  <span class="src">Base: Ley 11.723 de Propiedad Intelectual (Argentina) — incluye expresamente "los programas de computación fuente y objeto" como obra protegida (art. 1). Patrón de cláusula de "uso prohibido" comparado con Rappi Argentina, cláusula 10.2.</span></div>
 
   <h3 class="sub">9.2 Contenido que subís a la Plataforma <span class="badge badge-new">Nuevo</span></h3>
   <div class="clause is-new">
