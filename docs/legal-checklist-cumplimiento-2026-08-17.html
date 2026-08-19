@@ -1,0 +1,300 @@
+<title>Auditoría de Cumplimiento PaP X</title>
+<style>
+  :root{
+    --ink:        #1a1d1a;
+    --ink-soft:   #4b524c;
+    --paper:      #ffffff;
+    --paper-tint: #f2f4f0;
+    --paper-line: #dfe3dd;
+    --accent:     #1f6f53;
+    --accent-soft:#e3f1ea;
+    --new:        #b5602b;
+    --new-soft:   #f8e9dd;
+    --changed:    #35529a;
+    --changed-soft:#e6ebf7;
+    --risk:       #a3312a;
+    --risk-soft:  #f7e6e4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+      --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a;
+      --changed:#8ca3e8; --changed-soft:#1c243d; --risk:#e2857e; --risk-soft:#3a201f;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+    --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a;
+    --changed:#8ca3e8; --changed-soft:#1c243d; --risk:#e2857e; --risk-soft:#3a201f;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    line-height:1.65; font-size:16px;
+  }
+  .sans{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  a{ color:var(--accent); }
+  code{ background:var(--paper-tint); padding:1px 5px; border-radius:4px; font-size:.92em; }
+
+  .wrap{ max-width:800px; margin:0 auto; padding: 0 24px 96px; }
+
+  .masthead{ border-bottom:3px double var(--paper-line); padding: 48px 0 28px; margin-bottom: 32px; }
+  .eyebrow{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:12px; color:var(--accent); font-weight:700; margin:0 0 10px; }
+  h1.title{ font-size: clamp(28px,4.2vw,40px); margin:0 0 10px; letter-spacing:-.01em; text-wrap:balance; font-weight:700; }
+  .subtitle{ color:var(--ink-soft); font-size:16px; margin:0 0 18px; max-width:62ch; }
+  .notice{ margin-top:22px; padding:14px 16px; border-radius:8px; background:var(--risk-soft); border:1px solid color-mix(in srgb, var(--risk) 35%, var(--paper-line)); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13.5px; }
+  .notice b{ color:var(--risk); }
+
+  h2.sec{ font-size:22px; margin:52px 0 6px; padding-bottom:10px; border-bottom:1px solid var(--paper-line); text-wrap:balance; }
+  h3.sub{ font-size:16px; margin:24px 0 8px; }
+  h4.role{ font-size:14px; margin:20px 0 6px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); }
+  p{ margin:0 0 12px; }
+  ul,ol{ padding-left:22px; margin:0 0 14px; }
+  li{ margin-bottom:5px; }
+  strong{ color:var(--ink); }
+
+  .badge{ display:inline-flex; align-items:center; gap:5px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:4px 11px; border-radius:999px; white-space:nowrap; }
+  .badge-ok{ background:var(--accent-soft); color:var(--accent); }
+  .badge-missing{ background:var(--risk-soft); color:var(--risk); }
+  .badge-partial{ background:var(--new-soft); color:var(--new); }
+
+  .point{ border:1px solid var(--paper-line); border-radius:12px; padding:22px 24px; margin:20px 0 40px; background:var(--paper); }
+  .point-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .point-head h3{ margin:0; font-size:19px; }
+
+  .kv{ margin:16px 0; }
+  .kv dt{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); margin-bottom:4px; }
+  .kv dd{ margin:0 0 16px; }
+
+  .fix-box{ background:var(--paper-tint); border:1px solid var(--paper-line); border-radius:10px; padding:16px 18px; margin:10px 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13.5px; }
+  .fix-box.copy{ font-family: Georgia, serif; font-size:14px; background:var(--changed-soft); border-color: color-mix(in srgb, var(--changed) 30%, var(--paper-line)); }
+  .fix-box.copy::before{ content:"Texto listo para copiar"; display:block; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--changed); font-weight:700; margin-bottom:8px; }
+
+  .links{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13px; }
+  .links li{ margin-bottom:6px; }
+
+  .summary-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin: 20px 0; }
+  .sum-card{ background:var(--paper-tint); border:1px solid var(--paper-line); border-radius:10px; padding:14px 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .sum-card p{ margin:0; font-size:12.5px; color:var(--ink-soft); }
+
+  ol.priority{ counter-reset: pri; list-style:none; padding-left:0; }
+  ol.priority li{ counter-increment: pri; position:relative; padding:12px 0 12px 44px; border-bottom:1px solid var(--paper-line); }
+  ol.priority li:last-child{ border-bottom:none; }
+  ol.priority li::before{ content: counter(pri); position:absolute; left:0; top:10px; width:28px; height:28px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  ol.priority li.hot::before{ background:var(--risk-soft); color:var(--risk); }
+
+  footer{ margin-top:60px; padding-top:22px; border-top:1px solid var(--paper-line); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:12.5px; color:var(--ink-soft); }
+  footer a{ color:var(--ink-soft); }
+
+  @media (max-width:520px){ .wrap{ padding:0 16px 72px; } .point{ padding:18px 16px; } }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">Fase 4 · Checklist de cumplimiento</p>
+    <h1 class="title">Auditoría de cumplimiento — 4 puntos críticos</h1>
+    <p class="subtitle">IA, arbitraje, privacy labels de las stores y DMCA. Evaluado en base a tus respuestas y al código real del repo.</p>
+    <div class="notice">
+      <b>No es asesoramiento legal.</b> Esto lo armó una IA (no un abogado) comparando tu código, tus respuestas y fuentes públicas. Antes de publicar o escalar, hacé que un abogado matriculado en Argentina confirme los puntos marcados como riesgo real — en particular el de cadetes (punto 2).
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="sum-card"><span class="badge badge-partial">Incompleto</span><p style="margin-top:8px">1. Declaración de uso de IA — funcionalidad existe, ninguna declaración todavía.</p></div>
+    <div class="sum-card"><span class="badge badge-missing">Depende del rol</span><p style="margin-top:8px">2. Arbitraje — mala idea para clientes/cadetes, viable para comercios.</p></div>
+    <div class="sum-card"><span class="badge badge-partial">Incompleto</span><p style="margin-top:8px">3. Privacy label — política sólida, formulario de las stores sin completar.</p></div>
+    <div class="sum-card"><span class="badge badge-missing">Me falta</span><p style="margin-top:8px">4. DMCA/takedown — sin cláusula, elegiste la vía liviana (sin registro formal).</p></div>
+  </div>
+
+  <!-- ═══════════════ PUNTO 1 ═══════════════ -->
+  <h2 class="sec">1. Declaración de uso de inteligencia artificial</h2>
+  <div class="point">
+    <div class="point-head"><h3>Asistente de chat (Edge Function <code>asistente</code>)</h3><span class="badge badge-partial">Incompleto</span></div>
+
+    <dl class="kv">
+      <dt>Estado actual</dt>
+      <dd>El asistente está en producción (<code>cliente.js</code>/<code>cadete.js</code> lo llaman) pero no vive en este repo — su prompt/modelo solo existe en el Dashboard de Supabase, así que ni vos ni yo sabemos hoy qué tan lejos llega en lo que dice. <strong>legal.html</strong> no lo menciona en ningún lado, y no encontré ningún disclaimer visible en la propia pantalla de chat.</dd>
+
+      <dt>Riesgo concreto</dt>
+      <dd>Si el bot le da a un usuario un dato incorrecto (un tiempo de entrega, una recomendación) y no queda claro que es una respuesta generada por IA — no un dato garantizado por PaP X — el usuario puede reclamarlo como información oficial. Encaja en el deber de información de la Ley 24.240 y en Lealtad Comercial (Ley 22.802): no aclarar la naturaleza de la interacción es el tipo de omisión que esas normas buscan evitar.</dd>
+
+      <dt>Cómo lo soluciono</dt>
+      <dd>
+        Como no sabemos el alcance real, el disclaimer tiene que ser lo bastante amplio como para cubrir cualquier escenario (FAQ simple o recomendaciones personalizadas) sin tener que reescribirlo después. Dos lugares:
+        <div class="fix-box copy">
+          <strong>En la pantalla del chat</strong> (primer mensaje del bot o footer fijo):<br>
+          "Este asistente usa inteligencia artificial y puede cometer errores. Sus respuestas son orientativas, no reemplazan la información oficial de tu pedido ni constituyen un compromiso de PaP X."
+        </div>
+        <div class="fix-box copy">
+          <strong>Nueva sección 6.4 en legal.html</strong> (dentro de "Proceso de Entrega"):<br>
+          "6.4 Asistente Virtual — PaP X puede ofrecer un asistente de chat basado en inteligencia artificial para responder consultas frecuentes. Las respuestas del asistente son generadas automáticamente, pueden contener errores o imprecisiones, y tienen carácter orientativo — no reemplazan la información oficial del pedido visible en la Plataforma ni constituyen asesoramiento ni un compromiso contractual de PaP X. Ante cualquier duda relevante sobre tu pedido, contactate por los canales oficiales de soporte."
+        </div>
+        <strong>Tarea aparte, no puedo hacerla yo:</strong> alguien con acceso al Dashboard de Supabase debería revisar el prompt real de <code>asistente</code> para confirmar que no promete cosas que la plataforma no puede garantizar, y agregarle instrucción para que se identifique como IA si el usuario pregunta directamente.
+      </dd>
+    </dl>
+
+    <ul class="links">
+      <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/638/texact.htm" target="_blank" rel="noopener">Ley 24.240 (Defensa del Consumidor), texto completo — Infoleg</a></li>
+      <li><a href="https://www.ftc.gov/business-guidance/blog/2023/02/keep-your-ai-claims-check" target="_blank" rel="noopener">FTC (EE.UU.) — guía sobre claims de IA y prácticas engañosas</a> (referencia de buena práctica internacional, no aplica legalmente en Argentina)</li>
+      <li><a href="https://artificialintelligenceact.eu/" target="_blank" rel="noopener">EU AI Act — obligaciones de transparencia con sistemas conversacionales</a> (referencia de hacia dónde va la regulación global)</li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════ PUNTO 2 ═══════════════ -->
+  <h2 class="sec">2. Cláusula de arbitraje</h2>
+  <p>Dijiste que te preocupan los tres frentes (clientes, cadetes, comercios) — la respuesta correcta es distinta para cada uno, así que van separadas. El resumen corto: <strong>arbitraje NO para clientes ni cadetes</strong> (en el segundo caso, ninguna cláusula resuelve el riesgo real), <strong>arbitraje SÍ es viable para comercios.</strong></p>
+
+  <div class="point">
+    <h4 class="role">Clientes (consumidores)</h4>
+    <div class="point-head"><h3>Riesgo si agregás arbitraje acá</h3><span class="badge badge-missing">Contraproducente</span></div>
+    <dl class="kv">
+      <dt>Estado / riesgo concreto</dt>
+      <dd>En términos generales, la Ley 24.240 (cláusulas abusivas, y competencia territorial en su art. 36 para operaciones de crédito, aplicado por analogía a relaciones de consumo) y el Código Civil y Comercial tratan como <strong>abusivas y nulas</strong> las cláusulas que le exigen a un consumidor renunciar a la vía judicial en un contrato de adhesión. Agregar arbitraje acá no reduce el riesgo de demanda — lo aumenta: le da a cualquier abogado un argumento extra de nulidad, y una cláusula nula debilita la credibilidad del resto del contrato frente a un juez.</dd>
+      <dt>Cómo lo soluciono</dt>
+      <dd>No agregar arbitraje para clientes. Es lo que ya hacen Rappi y PedidosYa en Argentina (confirmado en la Fase 3 — ninguna de las dos usa arbitraje con consumidores). El mitigante real acá no es procesal: es cumplir lo que prometés, tener un canal de reclamos que resuelva rápido, y la cláusula de límite de responsabilidad ya reforzada en el borrador de la Fase 3.</dd>
+    </dl>
+  </div>
+
+  <div class="point">
+    <h4 class="role">Cadetes — relación laboral encubierta</h4>
+    <div class="point-head"><h3>El riesgo más serio de los cuatro puntos</h3><span class="badge badge-missing">Ninguna cláusula lo resuelve</span></div>
+    <dl class="kv">
+      <dt>Riesgo concreto</dt>
+      <dd>Bajo el art. 12 de la Ley de Contrato de Trabajo, los derechos laborales son <strong>irrenunciables</strong> — un cadete no puede "renunciar" contractualmente a reclamar que en los hechos es un empleado, si la relación real tiene las características de una relación de dependencia. La Justicia Laboral aplica el principio de "primacía de la realidad": no importa lo que diga el contrato si la práctica dice otra cosa. Una cláusula de arbitraje <strong>no bloquea</strong> el acceso a la Justicia del Trabajo, que tiene competencia exclusiva e irrenunciable.</dd>
+      <dt>Cómo lo soluciono</dt>
+      <dd>
+        Esto no se arregla con una cláusula, se arregla con cómo funciona la relación en la práctica. Señales que un juez laboral suele mirar (no es lista cerrada, y no es consejo legal — llevala a un abogado laboralista antes de cambiar nada operativo):
+        <ul>
+          <li>¿El cadete puede rechazar pedidos libremente, sin sanción?</li>
+          <li>¿Tiene libertad real de horario, o hay turnos fijos obligatorios?</li>
+          <li>¿Puede trabajar para otras apps de delivery al mismo tiempo?</li>
+          <li>¿Existen sanciones disciplinarias más allá de dar de baja la cuenta por incumplir Términos (ej: "amonestaciones")?</li>
+        </ul>
+        Cuantas más de estas apunten a "control tipo empleador", más riesgo. El Acuerdo de Cadete Independiente que ya mencionás en <code>legal.html §7.3</code> es un paso correcto, pero es un piso, no una garantía. Como referencia positiva: el diseño de <code>matchingUtils.js</code> (le <em>ofrece</em> un pedido al cadete, que puede rechazarlo, en vez de asignárselo de forma obligatoria) es exactamente el tipo de señal que favorece la independencia real — vale la pena mantenerlo y reforzarlo a propósito, no por accidente de diseño.
+      </dd>
+    </dl>
+    <ul class="links">
+      <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm" target="_blank" rel="noopener">Ley 20.744 (Contrato de Trabajo), art. 12 — Infoleg</a></li>
+    </ul>
+  </div>
+
+  <div class="point">
+    <h4 class="role">Comercios</h4>
+    <div class="point-head"><h3>Acá sí es viable</h3><span class="badge badge-ok">Recomendado agregar</span></div>
+    <dl class="kv">
+      <dt>Riesgo concreto si no agregás nada</dt>
+      <dd>En una disputa comercial (una suspensión de cuenta que el comercio disputa, una deuda impaga que vos reclamás) terminás en la Justicia Comercial ordinaria — más lento y más público que un arbitraje privado.</dd>
+      <dt>Cómo lo soluciono</dt>
+      <dd>Es una relación entre partes comerciales, no de consumo ni laboral — el Código Civil y Comercial (título del contrato de arbitraje, arts. 1649 y siguientes) permite pactarlo con bastante libertad acá.
+      <div class="fix-box copy">
+        <strong>Nueva sección 8.2 en legal.html</strong> (dentro de "Comercios"):<br>
+        "8.2 Resolución de Conflictos con Comercios — Toda controversia que derive de la relación entre PaP X y un Comercio, que no pueda resolverse de forma directa dentro de los 30 días de notificada, se resolverá mediante arbitraje de derecho ante [Tribunal Arbitral a definir], con sede en Santiago del Estero, conforme su reglamento vigente. El laudo será definitivo e inapelable."
+      </div>
+      Dejé el tribunal arbitral entre corchetes a propósito — hay que elegir uno concreto (ej: la cámara de comercio local), y eso te lo confirma mejor un abogado de Santiago del Estero que yo.</dd>
+    </dl>
+    <ul class="links">
+      <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/235000-239999/235975/norma.htm" target="_blank" rel="noopener">Código Civil y Comercial — texto completo (título de arbitraje, arts. 1649+)</a></li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════ PUNTO 3 ═══════════════ -->
+  <h2 class="sec">3. Privacy label / declaración de datos recolectados</h2>
+  <div class="point">
+    <div class="point-head"><h3>Google Play Data Safety / Apple Privacy Nutrition Label</h3><span class="badge badge-partial">Incompleto</span></div>
+    <dl class="kv">
+      <dt>Estado actual</dt>
+      <dd>Tu Política de Privacidad (Ley 25.326) está completa y bien armada. Lo que falta es distinto: cada store exige completar <strong>su propio formulario estructurado</strong> dentro de la consola — no alcanza con linkear la política. Con la cuenta de Play Console ya creada (en verificación) esto pasa de "no aplica todavía" a "hay que hacerlo pronto", apenas puedas crear la ficha de la app.</dd>
+
+      <dt>Riesgo concreto</dt>
+      <dd>Google y Apple no dejan publicar la ficha sin ese formulario completo. Si además no coincide con lo que la app hace de verdad (ej: decís "no recolectamos ubicación" pero <code>cadete.js</code> sí manda GPS), lo tratan como violación grave de sus políticas — puede terminar en el cierre de la cuenta de desarrollador entera, no solo de esa app.</dd>
+
+      <dt>Cómo lo soluciono</dt>
+      <dd>
+        Cuando termine la verificación y crees la ficha en Play Console, vas a completar el Data Safety form ahí mismo (es guiado, no un documento que se sube aparte). Según lo que vi en el código, esto es lo que deberías declarar — confirmalo con quien tenga acceso al Dashboard, por si hay algo que el código no me muestra:
+        <div class="table-wrap" style="overflow-x:auto;margin:12px 0;border:1px solid var(--paper-line);border-radius:10px">
+          <table style="width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;font-size:13px">
+            <thead><tr style="background:var(--paper-tint)"><th style="padding:8px 12px;text-align:left">Tipo de dato</th><th style="padding:8px 12px;text-align:left">¿Se recolecta?</th><th style="padding:8px 12px;text-align:left">Con qué fin</th></tr></thead>
+            <tbody>
+              <tr><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Ubicación (GPS)</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Sí — solo cadetes, con disponibilidad activa</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Asignación de pedidos, tracking</td></tr>
+              <tr><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Contacto (email, teléfono, dirección)</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Sí</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Cuenta, funcionalidad de la app</td></tr>
+              <tr><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Financieros (CBU/CUIT)</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Sí — comercios y cadetes</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Pagos</td></tr>
+              <tr><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Identificadores (DNI, foto)</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Sí — solo cadetes</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Verificación de identidad</td></tr>
+              <tr><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Datos de uso/dispositivo</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Declarado en tu Política de Privacidad — sin SDK de analytics visible en el código, hay que confirmar si se recolecta de verdad (¿logs de Railway/Supabase?) antes de marcarlo</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">—</td></tr>
+              <tr><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Fotos/imágenes</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Sí — comercios suben fotos de producto</td><td style="padding:8px 12px;border-top:1px solid var(--paper-line)">Funcionalidad de la app</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <strong>Importante:</strong> no marques "no recolectamos datos" solo porque no hay un pixel de terceros en el código — el GPS, el DNI, el CBU y las fotos son datos personales igual, aunque no pasen por Google Analytics ni Meta Pixel. Ausencia de SDK de terceros no es lo mismo que ausencia de recolección de datos.
+        <p style="margin-top:10px">Sobre Apple: no vi indicios de ningún submission todavía — según CLAUDE.md, iOS ni siquiera compila sin una Mac. Este punto queda para cuando estén más cerca de esa etapa; aplica la misma tabla al App Privacy Details de Apple.</p>
+      </dd>
+    </dl>
+    <ul class="links">
+      <li><a href="https://support.google.com/googleplay/android-developer/answer/10787469" target="_blank" rel="noopener">Google Play Console — Data Safety, guía oficial</a></li>
+      <li><a href="https://developer.apple.com/app-store/app-privacy-details/" target="_blank" rel="noopener">Apple — App Privacy Details, documentación oficial</a></li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════ PUNTO 4 ═══════════════ -->
+  <h2 class="sec">4. Agente DMCA / cláusula de takedown</h2>
+  <div class="point">
+    <div class="point-head"><h3>Contenido subido por comercios (fotos de producto)</h3><span class="badge badge-missing">Me falta</span></div>
+    <dl class="kv">
+      <dt>Estado actual</dt>
+      <dd>No hay cláusula de takedown ni agente designado. El contenido relevante acá es la foto de producto que sube el comercio (pública). El DNI/carnet del cadete es privado y no aplica a DMCA — es un tema de privacidad, ya cubierto en tu Política de Privacidad, no de copyright.</dd>
+      <dt>Riesgo concreto</dt>
+      <dd>Si un comercio sube una foto que sacó de internet sin permiso, el titular real podría reclamarle a PaP X directamente por alojar contenido infractor. Sin cláusula de takedown ni traslado de responsabilidad, PaP X no tiene ni el mecanismo contractual para bajarlo rápido, ni la base para decir "el que la subió es responsable, no nosotros".</dd>
+      <dt>Cómo lo soluciono</dt>
+      <dd>
+        Elegiste la vía liviana (cláusula contractual, sin registro formal en el Copyright Office por ahora) — razonable para una app enfocada en Argentina. Esta cláusula se apoya en la sección 9.2 ("Contenido que subís a la Plataforma") que ya quedó redactada en el borrador de la Fase 3; acá le agrego el mecanismo de denuncia/baja que le faltaba.
+        <div class="fix-box copy">
+          <strong>Nueva sección 9.3 en legal.html</strong> (después de 9.2):<br>
+          "9.3 Denuncias de Contenido — Si considerás que un contenido publicado en la Plataforma (por ejemplo, la foto de un producto) infringe tus derechos de propiedad intelectual, podés notificarlo a puertaapuertax@gmail.com indicando: (a) el contenido específico y dónde se encuentra, (b) tu titularidad sobre el derecho que consideras infringido, y (c) tus datos de contacto. PaP X evaluará la denuncia y podrá remover el contenido reportado sin necesidad de aviso previo al usuario que lo subió, sin que esto implique reconocimiento de responsabilidad de PaP X. El usuario que subió el contenido es el único responsable ante reclamos de terceros por su publicación (ver sección 10.2, Indemnización)."
+        </div>
+        Si más adelante la app crece hacia usuarios o inversores con exposición real a EE.UU., ahí sí conviene revisar el registro formal del agente — no hace falta decidirlo ahora, y no perdés nada de lo de hoy si lo agregás después.
+      </dd>
+    </dl>
+    <ul class="links">
+      <li><a href="https://www.copyright.gov/dmca-directory/" target="_blank" rel="noopener">U.S. Copyright Office — DMCA Designated Agent Directory</a> (si más adelante decidís registrar)</li>
+      <li><a href="https://www.copyright.gov/dmca-directory/faq.html" target="_blank" rel="noopener">Preguntas frecuentes del registro DMCA</a> — fee actual: USD 6 por designación</li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════ RESUMEN ═══════════════ -->
+  <h2 class="sec">Resumen</h2>
+  <h3 class="sub">Lo que ya está bien</h3>
+  <ul>
+    <li>Política de Privacidad completa bajo Ley 25.326, con base legal, derechos ARCO y transferencia internacional bien explicados.</li>
+    <li>Sección de seguridad técnica (HTTPS, JWT, RLS, CSPRNG) es más detallada de lo que suelen mostrar las apps comparadas.</li>
+    <li>El tope de responsabilidad en pesos (monto del último pedido) es una protección concreta que ni Rappi ni PedidosYa exponen públicamente.</li>
+    <li>MercadoPago maneja los pagos — PaP X no almacena datos de tarjeta, eso ya reduce superficie de riesgo de PCI/privacidad.</li>
+    <li>El diseño técnico del matching de cadetes (ofrece, no asigna) juega a favor del punto 2 sin que lo hayas pedido a propósito.</li>
+  </ul>
+
+  <h3 class="sub">Lista priorizada — antes de publicar o escalar</h3>
+  <ol class="priority">
+    <li class="hot"><strong>Consultar a un abogado laboralista</strong> sobre la estructura operativa de cadetes — es el único de los 4 puntos que ninguna cláusula resuelve, y el de mayor riesgo real.</li>
+    <li class="hot"><strong>Completar el Data Safety form de Google Play</strong> apenas termine la verificación de la cuenta — bloquea la publicación de la ficha.</li>
+    <li>Aprobar y pegar en <code>legal.html</code> las cláusulas del borrador de la Fase 3 (indemnización, contenido subido, fuerza mayor, cesión, suspensión reforzada).</li>
+    <li>Agregar el disclaimer de IA (chat + sección 6.4) — costo bajo, buena práctica.</li>
+    <li>Agregar la sección 9.3 de denuncias de contenido (este documento).</li>
+    <li>Resolver la cláusula de jurisdicción de clientes (riesgo de nulidad, ver Fase 3) antes de crecer más en La Plata/Córdoba.</li>
+    <li>Opcional: agregar la 8.2 de arbitraje solo para comercios, una vez que definan qué tribunal arbitral usar.</li>
+  </ol>
+
+  <h3 class="sub">Links más importantes</h3>
+  <ul class="links">
+    <li><a href="https://www.copyright.gov/dmca-directory/" target="_blank" rel="noopener">copyright.gov — DMCA Designated Agent Directory</a></li>
+    <li><a href="https://support.google.com/googleplay/android-developer/answer/10787469" target="_blank" rel="noopener">Google Play — Data Safety</a></li>
+    <li><a href="https://developer.apple.com/app-store/app-privacy-details/" target="_blank" rel="noopener">Apple — App Privacy Details</a></li>
+    <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/638/texact.htm" target="_blank" rel="noopener">Ley 24.240 — Defensa del Consumidor</a></li>
+    <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm" target="_blank" rel="noopener">Ley 20.744 — Contrato de Trabajo (art. 12, irrenunciabilidad)</a></li>
+  </ul>
+
+  <footer>
+    <p>Fase 4 del plan aprobado el 15/08/2026. Complementa el borrador de Términos de la Fase 3 — las cláusulas de indemnización, contenido subido y fuerza mayor que se citan acá ya están redactadas ahí.</p>
+  </footer>
+
+</div>

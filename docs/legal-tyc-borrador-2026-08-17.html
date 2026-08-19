@@ -1,0 +1,329 @@
+<title>Blindaje Legal PaP X</title>
+<style>
+  :root{
+    --ink:        #1a1d1a;
+    --ink-soft:   #4b524c;
+    --paper:      #ffffff;
+    --paper-tint: #f2f4f0;
+    --paper-line: #dfe3dd;
+    --accent:     #1f6f53;
+    --accent-soft:#e3f1ea;
+    --new:        #b5602b;
+    --new-soft:   #f8e9dd;
+    --changed:    #35529a;
+    --changed-soft:#e6ebf7;
+    --risk:       #a3312a;
+    --risk-soft:  #f7e6e4;
+    --shadow: 0 1px 2px rgba(20,24,20,.04), 0 8px 24px rgba(20,24,20,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:        #eef1ec;
+      --ink-soft:   #aab3ab;
+      --paper:      #141815;
+      --paper-tint: #1b201c;
+      --paper-line: #2b312c;
+      --accent:     #4fae8a;
+      --accent-soft:#173028;
+      --new:        #e08a4f;
+      --new-soft:   #33241a;
+      --changed:    #8ca3e8;
+      --changed-soft:#1c243d;
+      --risk:       #e2857e;
+      --risk-soft:  #3a201f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:        #eef1ec;
+    --ink-soft:   #aab3ab;
+    --paper:      #141815;
+    --paper-tint: #1b201c;
+    --paper-line: #2b312c;
+    --accent:     #4fae8a;
+    --accent-soft:#173028;
+    --new:        #e08a4f;
+    --new-soft:   #33241a;
+    --changed:    #8ca3e8;
+    --changed-soft:#1c243d;
+    --risk:       #e2857e;
+    --risk-soft:  #3a201f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.4);
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    line-height:1.65; font-size:16px;
+  }
+  .sans{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+  a{ color:var(--accent); }
+  ::selection{ background:var(--accent-soft); }
+
+  .wrap{ max-width:800px; margin:0 auto; padding: 0 24px 96px; }
+
+  /* ── Masthead ─────────────────────────────────────────── */
+  .masthead{
+    border-bottom:3px double var(--paper-line);
+    padding: 48px 0 28px;
+    margin-bottom: 32px;
+  }
+  .eyebrow{
+    font-family: inherit;
+    text-transform:uppercase; letter-spacing:.12em; font-size:12px;
+    color:var(--accent); font-weight:700; margin:0 0 10px;
+  }
+  .eyebrow.sans{ font-family: inherit; }
+  h1.title{
+    font-size: clamp(30px,4.4vw,42px); margin:0 0 10px; letter-spacing:-.01em;
+    text-wrap:balance; font-weight:700;
+  }
+  .subtitle{ color:var(--ink-soft); font-size:16px; margin:0 0 18px; max-width:60ch; }
+  .meta-row{
+    display:flex; flex-wrap:wrap; gap:10px 22px; font-size:12.5px; color:var(--ink-soft);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .meta-row b{ color:var(--ink); }
+
+  .notice{
+    margin-top:22px; padding:14px 16px; border-radius:8px;
+    background:var(--risk-soft); border:1px solid color-mix(in srgb, var(--risk) 35%, var(--paper-line));
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size:13.5px; color:var(--ink);
+  }
+  .notice b{ color:var(--risk); }
+
+  /* ── Section scaffolding ──────────────────────────────── */
+  h2.sec{
+    font-size:22px; margin:52px 0 6px; padding-bottom:10px;
+    border-bottom:1px solid var(--paper-line);
+    display:flex; align-items:baseline; gap:10px; text-wrap:balance;
+  }
+  h2.sec .num{ color:var(--accent); font-variant-numeric:tabular-nums; }
+  h3.sub{ font-size:16px; margin:26px 0 8px; color:var(--ink); }
+  p{ margin:0 0 12px; }
+  ul,ol{ padding-left:22px; margin:0 0 14px; }
+  li{ margin-bottom:5px; }
+  strong{ color:var(--ink); }
+
+  /* ── Badges ───────────────────────────────────────────── */
+  .badge{
+    display:inline-flex; align-items:center; gap:5px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; white-space:nowrap; vertical-align:middle;
+  }
+  .badge-new{ background:var(--new-soft); color:var(--new); }
+  .badge-changed{ background:var(--changed-soft); color:var(--changed); }
+  .badge-risk{ background:var(--risk-soft); color:var(--risk); }
+
+  .clause{ position:relative; padding-left:18px; margin-bottom:8px; }
+  .clause.is-new,.clause.is-changed{ border-left:3px solid var(--new); }
+  .clause.is-changed{ border-left-color:var(--changed); }
+
+  .why{
+    margin: 10px 0 22px; padding:14px 16px; border-radius:8px;
+    background:var(--paper-tint); border:1px solid var(--paper-line);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size:13px; color:var(--ink-soft); line-height:1.55;
+  }
+  .why b{ color:var(--ink); }
+  .why .src{ display:block; margin-top:6px; font-size:12px; color:var(--ink-soft); }
+
+  /* ── Executive summary grid ───────────────────────────── */
+  .summary-grid{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
+    gap:12px; margin: 28px 0 8px;
+  }
+  .sum-card{
+    background:var(--paper-tint); border:1px solid var(--paper-line); border-radius:10px;
+    padding:14px 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .sum-card h4{ margin:6px 0 4px; font-size:14px; color:var(--ink); }
+  .sum-card p{ margin:0; font-size:12.5px; color:var(--ink-soft); }
+
+  /* ── Comparison table ─────────────────────────────────── */
+  .table-wrap{ overflow-x:auto; margin: 18px 0 8px; border:1px solid var(--paper-line); border-radius:10px; }
+  table.cmp{ width:100%; border-collapse:collapse; min-width:560px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13px; }
+  table.cmp th, table.cmp td{ padding:10px 14px; text-align:left; border-bottom:1px solid var(--paper-line); vertical-align:top; }
+  table.cmp thead th{ background:var(--paper-tint); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); }
+  table.cmp tbody tr:last-child td{ border-bottom:none; }
+  table.cmp td.pt{ font-weight:700; color:var(--ink); }
+  .yes{ color:var(--accent); font-weight:700; }
+  .no{ color:var(--ink-soft); }
+
+  .contact-box{
+    background:var(--paper-tint); border-radius:12px; padding:16px 18px; margin:18px 0;
+    border:1px solid var(--paper-line); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13.5px;
+  }
+
+  footer{
+    margin-top:60px; padding-top:22px; border-top:1px solid var(--paper-line);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size:12.5px; color:var(--ink-soft);
+  }
+  footer a{ color:var(--ink-soft); }
+  footer li{ margin-bottom:4px; }
+
+  @media (max-width:520px){
+    .wrap{ padding:0 16px 72px; }
+    .masthead{ padding:32px 0 22px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow sans">Fase 3 · Borrador para revisión — no publicado</p>
+    <h1 class="title">Blindaje legal de los Términos y Condiciones</h1>
+    <p class="subtitle">Comparación contra Rappi, PedidosYa y Uber Eats Argentina, y propuesta de cláusulas nuevas/reforzadas para <strong>frontend/legal.html</strong>. Este documento no reemplaza nada en producción por sí solo.</p>
+    <div class="meta-row">
+      <span><b>Estado:</b> borrador, no publicado</span>
+      <span><b>Documento base:</b> frontend/legal.html (última versión: 25 jun 2026)</span>
+      <span><b>Alcance:</b> pestaña Términos y Condiciones</span>
+    </div>
+    <div class="notice">
+      <b>No es asesoramiento legal.</b> Este documento lo redactó una IA comparando textos públicos de competidores y aplicando criterio general — no reemplaza la revisión de un abogado matriculado en Argentina, especialmente antes de publicar cualquier cambio que afecte a consumidores (Ley 24.240).
+    </div>
+  </div>
+
+  <h2 class="sec">Resumen ejecutivo</h2>
+  <p>Se proponen <strong>4 cláusulas nuevas</strong> que hoy no existen (indemnización, licencia sobre contenido subido, fuerza mayor, cesión), <strong>2 cláusulas reforzadas</strong> (responsabilidad, suspensión de cuentas) y <strong>1 alerta de riesgo</strong> sobre la cláusula de jurisdicción actual, que podría no ser válida tal como está escrita para clientes en La Plata o Córdoba.</p>
+
+  <div class="summary-grid">
+    <div class="sum-card">
+      <span class="badge badge-new">Nuevo</span>
+      <h4>Indemnización</h4>
+      <p>El usuario responde ante PaP X por reclamos que su propio incumplimiento genere. Hoy no existe esta cláusula.</p>
+    </div>
+    <div class="sum-card">
+      <span class="badge badge-new">Nuevo</span>
+      <h4>Contenido subido</h4>
+      <p>Licencia sobre fotos de producto y reseñas + derecho a remover contenido infractor. Sienta base para el punto DMCA de la Fase 4.</p>
+    </div>
+    <div class="sum-card">
+      <span class="badge badge-new">Nuevo</span>
+      <h4>Fuerza mayor</h4>
+      <p>Exime a PaP X por fallas de terceros (Supabase, MercadoPago, Railway, Vercel) fuera de su control.</p>
+    </div>
+    <div class="sum-card">
+      <span class="badge badge-new">Nuevo</span>
+      <h4>Cesión</h4>
+      <p>PaP X puede transferir el contrato a una sucesora (venta, fusión, inversión) sin pedir permiso a cada usuario.</p>
+    </div>
+    <div class="sum-card">
+      <span class="badge badge-changed">Reforzado</span>
+      <h4>Responsabilidad</h4>
+      <p>Se suma exclusión explícita de daños indirectos, lucro cesante y punitorios — hoy solo hay un tope en pesos.</p>
+    </div>
+    <div class="sum-card">
+      <span class="badge badge-changed">Reforzado</span>
+      <h4>Suspensión de cuentas</h4>
+      <p>PaP X puede actuar con efecto inmediato y sin exponer motivos ante sospecha fundada, como ya hace Rappi.</p>
+    </div>
+    <div class="sum-card">
+      <span class="badge badge-risk">Riesgo a revisar</span>
+      <h4>Jurisdicción fija</h4>
+      <p>Hoy fuerza todo a Santiago del Estero. Con 3 ciudades activas, un juez podría anularla para consumidores. Ver sección 11.</p>
+    </div>
+  </div>
+
+  <h2 class="sec">Lo que hacen Rappi, PedidosYa y Uber Eats</h2>
+  <p>Investigación sobre los términos públicos vigentes de cada plataforma en Argentina (fuentes al pie). Uber Eats corre bajo los Términos Generales de Uber B.V. (Países Bajos), una plantilla global — Rappi y PedidosYa sí tienen entidades y textos propios argentinos, y son la comparación más directa para PaP X.</p>
+
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead>
+        <tr><th>Cláusula</th><th>Rappi AR</th><th>PedidosYa AR</th><th>Uber (global)</th><th>PaP X hoy</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="pt">Indemnización del usuario</td><td class="yes">Sí</td><td class="yes">Sí</td><td class="yes">Sí</td><td class="no">No tiene</td></tr>
+        <tr><td class="pt">Licencia sobre contenido subido</td><td class="no">No cubre</td><td class="yes">Sí (reclama propiedad)</td><td>Remite a política aparte</td><td class="no">No tiene</td></tr>
+        <tr><td class="pt">Fuerza mayor explícita</td><td class="yes">Sí</td><td class="no">No tiene</td><td>Parcial</td><td class="no">No tiene</td></tr>
+        <tr><td class="pt">Cesión del contrato por la empresa</td><td class="yes">Sí</td><td class="no">No tiene</td><td class="yes">Sí</td><td class="no">No tiene</td></tr>
+        <tr><td class="pt">Resolución de conflictos</td><td>Justicia ordinaria (usuario elige sede)</td><td>Justicia ordinaria (usuario elige sede)</td><td class="yes">Arbitraje en Ámsterdam</td><td>Justicia ordinaria, <em>fija</em> en Sgo. del Estero</td></tr>
+        <tr><td class="pt">Tope de responsabilidad en $</td><td>No visible</td><td>No visible</td><td>No visible</td><td class="yes">Sí — monto del último pedido</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:13px;color:var(--ink-soft)">El tope de responsabilidad de PaP X (último pedido) es una protección concreta que ninguno de los tres competidores expone públicamente — vale la pena mantenerlo tal cual, no es un punto débil.</p>
+
+  <h2 class="sec"><span class="num">§</span> Cláusulas propuestas</h2>
+  <p>Texto listo para reemplazar las secciones equivalentes de <code>frontend/legal.html</code> una vez aprobado. Las secciones sin marcar quedan exactamente como están hoy — no se repite su texto acá para no duplicar el documento completo.</p>
+
+  <h3 class="sub">3.3 Suspensión y cancelación <span class="badge badge-changed">Reforzado</span></h3>
+  <div class="clause is-changed">
+    <p>PaP X se reserva el derecho de advertir, suspender o cancelar cualquier cuenta que viole estos Términos, proporcione información falsa, realice un uso abusivo o fraudulento de la Plataforma, o acumule calificaciones negativas reiteradas. <strong>PaP X puede tomar estas medidas a su sola discreción, sin obligación de exponer previamente sus motivos, y con efecto inmediato, cuando existan indicios razonables de riesgo, fraude o incumplimiento.</strong></p>
+  </div>
+  <div class="why"><b>Por qué:</b> hoy la suspensión está atada a probar la causal antes de actuar. Rappi puede suspender "sin estar obligado a comunicar o exponer las razones" y "con efectos inmediatos" — la frase agregada da a PaP X margen para actuar rápido ante fraude sin exponerse a un reclamo por "suspensión injustificada" mientras se investiga.
+  <span class="src">Fuente: Rappi Argentina, cláusula 12.2.</span></div>
+
+  <h3 class="sub">9.2 Contenido que subís a la Plataforma <span class="badge badge-new">Nuevo</span></h3>
+  <div class="clause is-new">
+    <p>Si subís contenido a la Plataforma (fotos de productos, descripciones, comentarios, reseñas, calificaciones u otro material), declarás que sos titular de los derechos necesarios sobre ese contenido o que contás con autorización para publicarlo. Nos otorgás una licencia no exclusiva, mundial, gratuita y transferible para usar, reproducir, adaptar, publicar, traducir y mostrar ese contenido dentro de la Plataforma y en materiales de promoción de PaP X, mientras mantengas tu cuenta activa o el contenido publicado.</p>
+    <p>Sos el único responsable del contenido que subís. PaP X puede remover, sin necesidad de aviso previo, cualquier contenido que viole estos Términos, infrinja derechos de terceros o la ley aplicable.</p>
+  </div>
+  <div class="why"><b>Por qué:</b> hoy la sección 9 solo protege la marca y el código de PaP X — nada dice sobre las fotos que suben los comercios o las reseñas de los clientes. Sin esto, PaP X no tiene base contractual para remover una foto robada de otro lado, ni licencia para reusarla en marketing. PedidosYa directamente reclama propiedad sobre los comentarios; acá se propone una versión más moderada (licencia, no propiedad) porque es más defendible y de todos modos alcanza para lo que PaP X necesita. Esta cláusula también sienta la base contractual para el punto de DMCA/takedown de la Fase 4.
+  <span class="src">Fuente: PedidosYa Argentina, art. 8; Rappi Argentina, cláusula 10 (protege solo IP propia, no de terceros — el mismo vacío que tiene PaP X hoy).</span></div>
+
+  <h3 class="sub">10.1 Límites de responsabilidad <span class="badge badge-changed">Reforzado</span></h3>
+  <div class="clause is-changed">
+    <p>PaP X actúa como intermediario tecnológico. No garantiza la disponibilidad ininterrumpida del servicio, la calidad de los productos de los comercios, los tiempos exactos de entrega, ni la conducta de cadetes o comercios fuera de la Plataforma. <strong>En ningún caso PaP X será responsable por daños indirectos, incidentales, especiales, punitorios o consecuentes, incluido lucro cesante o pérdida de oportunidades de negocio, aun cuando se le hubiera advertido de la posibilidad de tales daños.</strong> La responsabilidad total de PaP X frente a un usuario, por cualquier causa, no excederá el monto del último pedido realizado por ese usuario.</p>
+  </div>
+  <div class="why"><b>Por qué:</b> el tope en pesos ya existía y es una protección fuerte (ver tabla comparativa). Lo que faltaba es la exclusión explícita de categorías de daño — sin esto, alguien podría reclamar lucro cesante ("perdí ventas por la demora") como una categoría separada del tope. Rappi y Uber excluyen esto explícitamente.
+  <span class="src">Fuente: Rappi Argentina, cláusulas 8.4 y 8.10; Uber, términos generales AR.</span></div>
+
+  <h3 class="sub">10.2 Indemnización <span class="badge badge-new">Nuevo</span></h3>
+  <div class="clause is-new">
+    <p>Aceptás mantener indemne a PaP X, sus socios, empleados y colaboradores frente a cualquier reclamo, demanda, daño, pérdida o gasto —incluidos honorarios razonables de abogados— que surja de: (a) tu incumplimiento de estos Términos; (b) tu uso indebido de la Plataforma; (c) la violación de derechos de terceros a través de contenido que subas; o (d) tu incumplimiento de la legislación aplicable. Esta obligación sobrevive a la baja de tu cuenta.</p>
+  </div>
+  <div class="why"><b>Por qué:</b> este es el vacío más grande que encontramos. Las tres plataformas comparadas tienen esta cláusula; PaP X no tiene ninguna. Sin ella, si un comercio sube una foto con copyright ajeno o un cliente hace algo que genera un reclamo de un tercero, PaP X no tiene forma contractual de trasladarle el costo a quien lo causó.
+  <span class="src">Fuente: Rappi Argentina, cláusula 9.4; PedidosYa Argentina, art. 8; Uber, términos generales AR.</span></div>
+
+  <h3 class="sub">10.3 Caso fortuito y fuerza mayor <span class="badge badge-new">Nuevo</span></h3>
+  <div class="clause is-new">
+    <p>PaP X no será responsable por incumplimientos o demoras causados, directa o indirectamente, por circunstancias fuera de su control razonable, incluyendo —sin limitarse a— fallas de proveedores externos (Supabase, MercadoPago, Vercel, Railway, servicios de información climática), cortes de conectividad a internet, medidas gubernamentales, huelgas, desastres naturales, pandemias o cualquier otro caso fortuito o de fuerza mayor.</p>
+  </div>
+  <div class="why"><b>Por qué:</b> PaP X depende en cadena de varios proveedores externos (documentado en CLAUDE.md §9) — si Supabase o Railway caen, hoy no hay ninguna cláusula que separe eso de una falla propia de PaP X. Rappi sí la tiene.
+  <span class="src">Fuente: Rappi Argentina, cláusula 9.5.</span></div>
+
+  <h2 class="sec"><span class="num">§</span> 11. Reportes y resolución de conflictos <span class="badge badge-risk">Riesgo a revisar</span></h2>
+  <div class="notice">
+    <b>Esto es una alerta, no un cambio ya redactado.</b> La cláusula actual dice: <em>"para conflictos no resueltos, será competente la justicia ordinaria de Santiago del Estero"</em> — sin darle al usuario opción de litigar en su propio domicilio.
+  </div>
+  <p>Para un cliente que compra en Santiago del Estero esto es razonable. El problema es que PaP X ya opera en <strong>La Plata y Córdoba</strong> — para un cliente cordobés, una cláusula que lo obliga a litigar en Santiago del Estero es exactamente el tipo de cláusula que la Ley de Defensa del Consumidor (24.240, art. 36) y el Código Civil y Comercial tratan como <strong>abusiva en contratos de adhesión con consumidores</strong>, con riesgo real de que un juez la declare nula — y una cláusula nula no protege a nadie, es peor que no tener ninguna.</p>
+  <p>Ni Rappi ni PedidosYa —ambas con entidad y operación real en Argentina— fuerzan una sede única: las dos le dan al usuario la opción de litigar en el domicilio de la empresa <em>o</em> en el suyo propio. Uber sí usa arbitraje, pero es la plantilla global de una empresa holandesa, no un patrón pensado para consumidores argentinos — y ese punto se retoma en detalle en el checklist de cumplimiento (Fase 4).</p>
+  <table class="cmp" style="margin:14px 0"><tbody>
+    <tr><td class="pt" style="width:40%">Opción A — recomendada</td><td>"Será competente, a elección del Usuario, la justicia ordinaria del domicilio de PaP X (Santiago del Estero) o la del domicilio del Usuario." Mismo patrón que Rappi/PedidosYa — legalmente más sólida, y en la práctica la enorme mayoría de los reclamos de consumo son de bajo monto y no llegan a litigarse igual.</td></tr>
+    <tr><td class="pt">Opción B — diferenciada</td><td>Mantener Santiago del Estero fijo <em>solo</em> para comercios/cadetes/embajadores (vínculo comercial, no de consumo — más margen legal para pactar sede fija) y usar la Opción A para clientes.</td></tr>
+  </tbody></table>
+  <p style="font-size:13px;color:var(--ink-soft)">Esta es la única sección donde no dejamos un texto único "listo para pegar" — depende de si preferís simplicidad (Opción A para todos) o de si querés diferenciar por tipo de usuario (Opción B). Bien vale confirmarlo con un abogado antes de decidir, dado que toca directamente el riesgo de nulidad.</p>
+
+  <h3 class="sub">12.2 Cesión <span class="badge badge-new">Nuevo</span></h3>
+  <div class="clause is-new">
+    <p>PaP X podrá ceder, transferir o delegar sus derechos y obligaciones bajo estos Términos, total o parcialmente, a una sociedad vinculada, sucesora o adquirente de su negocio, sin necesidad de tu consentimiento previo. Vos no podés ceder tus derechos u obligaciones bajo estos Términos sin autorización previa y por escrito de PaP X.</p>
+  </div>
+  <div class="why"><b>Por qué:</b> si en algún momento hay una venta, fusión o ronda de inversión que implique transferir el negocio, sin esta cláusula técnicamente haría falta el consentimiento individual de cada usuario para mover el contrato a la nueva entidad. Es una cláusula estándar de bajo costo y alto valor a futuro.
+  <span class="src">Fuente: Rappi Argentina, cláusula 16.1; Uber, términos generales AR.</span></div>
+
+  <h2 class="sec">Lo que no se tocó (a propósito)</h2>
+  <ul>
+    <li><strong>§12.1 Modificaciones</strong> — la redacción actual ("el uso continuado implica la aceptación") ya es el patrón más favorable a la empresa que existe entre los tres competidores (Uber usa el mismo criterio; PedidosYa pide reconsentimiento explícito, lo cual es más débil para la empresa). No hace falta tocarla.</li>
+    <li><strong>§7 Cadetes</strong> — la desvinculación laboral y el traslado del seguro al cadete ya están bien cubiertos y en línea con el resto de la industria.</li>
+    <li><strong>Política de Privacidad</strong> — quedó fuera del alcance de esta revisión (es un tema de cumplimiento regulatorio, no de "a favor de la empresa" en un litigio). Se retoma junto con el resto del checklist en la Fase 4.</li>
+  </ul>
+
+  <footer>
+    <p><strong>Fuentes consultadas (17 de agosto de 2026):</strong></p>
+    <ul>
+      <li><a href="https://legal.rappi.com.co/argentina/terminos-y-condiciones-rappi-2/" target="_blank" rel="noopener">Rappi Argentina — Términos y Condiciones</a></li>
+      <li><a href="https://terms.pystatic.com/about/generales/tyc_generales_argentina.html" target="_blank" rel="noopener">PedidosYa Argentina — Términos y Condiciones Generales</a></li>
+      <li><a href="https://www.uber.com/legal/en/document/?country=argentina&lang=es&name=general-terms-of-use" target="_blank" rel="noopener">Uber — Términos y Condiciones Generales de Uso (AR)</a></li>
+    </ul>
+    <p style="margin-top:14px">Nota aparte, sin relación con lo legal: <code>frontend/legal.html</code> tiene tildes y la <code>ñ</code> sistemáticamente sacadas en todo el texto actual (ej. "anos" en vez de "años"). No se corrigió acá para no mezclarlo con los cambios de fondo, pero vale la pena una pasada de corrección ortográfica aparte.</p>
+  </footer>
+
+</div>
