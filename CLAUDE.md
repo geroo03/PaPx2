@@ -138,7 +138,8 @@ puertaapuerta-main/
 │       ├── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11
 │       ├── migration-comercio-id-uuid.sql               # advertencias_comercio/chat_reportes.comercio_id a uuid — 2026-08-11
 │       ├── migration-backfill-patrocinios-referidos.sql # patrocinios faltantes de comercios traídos por link de embajador — 2026-08-13, corrida en Supabase
-│       └── migration-grupos-opcionales-producto.sql     # grupos_opcionales.producto_id + RLS con es_dueno_de_comercio() — 2026-08-15, corrida en Supabase
+│       ├── migration-grupos-opcionales-producto.sql     # grupos_opcionales.producto_id + RLS con es_dueno_de_comercio() — 2026-08-15, corrida en Supabase
+│       └── migration-storage-productos-solo-dueno.sql   # bucket 'productos': INSERT/UPDATE/DELETE restringido al dueño del comercio — 2026-08-17, ver §7
 │
 ├── docs/
 │   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
@@ -398,6 +399,21 @@ Para tablas `configuracion_zonas`/`clima_cache` (solo backend/admin, ningún
 acceso directo desde cliente/comercio/cadete): policy `FOR ALL USING
 (rol_actual() = 'admin')`.
 
+### Storage bucket `productos` — INSERT sin chequeo de dueño (2026-08-17)
+Encontrado en una auditoría de seguridad: la policy de `INSERT` original del
+bucket `productos` (`schema-definitivo-v2.sql`, sección G) solo exigía
+`auth.role() = 'authenticated'` — cualquier usuario logueado (cliente,
+cadete, otro comercio, embajador) podía subir un archivo a la carpeta de
+CUALQUIER otro comercio dentro de este bucket público de lectura, sin
+ningún chequeo de pertenencia (a diferencia de `cadetes-antecedentes`, que
+sí valida el path contra `auth.uid()`). Tampoco existían policies de
+`UPDATE`/`DELETE` para este bucket. Corregido en
+`migration-storage-productos-solo-dueno.sql` — mismo patrón que
+`cadetes-antecedentes`, pero comparando el primer segmento del path
+(`comercio_id`) contra `public.es_dueno_de_comercio()` en vez de
+`auth.uid()` directo, porque acá el path no es el uid del usuario sino el
+id del comercio.
+
 ### Tablas con Realtime habilitado en Supabase Dashboard
 - `ofertas_cadetes` — cadete recibe nuevas ofertas en tiempo real
 - `ubicacion_cadetes` — cliente ve el mapa del cadete en tiempo real
@@ -435,9 +451,12 @@ Todas las migraciones aplicadas, incluida `migration-backfill-patrocinios-referi
 Supabase), `migration-grupos-opcionales-producto.sql` (2026-08-15, corrida en
 Supabase — ver nota de `opciones_items` arriba) y las del 2026-08-11
 (`migration-cierres-especiales.sql`, `migration-comercio-id-uuid.sql` — ver
-lista completa en §3). Todas siguen la convención `ADD COLUMN IF NOT EXISTS`
-/ `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e idempotentes,
-seguras de re-correr.
+lista completa en §3), **salvo `migration-storage-productos-solo-dueno.sql`
+(2026-08-17), todavía PENDIENTE de correr en Supabase** — el bucket
+`productos` sigue con la policy de INSERT vieja (sin chequeo de dueño, ver
+nota arriba) hasta que se corra. Todas siguen la convención `ADD COLUMN IF
+NOT EXISTS` / `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e
+idempotentes, seguras de re-correr.
 
 ---
 
@@ -627,6 +646,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
 | 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
 | 5 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
+| 6 | Restringir en Google Cloud Console (HTTP referrer + API scope, mismo tratamiento que `GMAPS_KEY`) la API key de Firebase (`AIzaSyAdRnQQ-ZlZnZLEqbH0rNc5CExwWxMkVdE`) encontrada en el historial de git — quedó de un snippet de FCM comentado y ya eliminado (commits `c25bfe9`/`44e218c`), no está en el código actual. Las API keys de Firebase están pensadas por diseño para exponerse en el cliente (seguridad real vía Firebase Security Rules, no vía secreto de la key), así que el riesgo es bajo — retomar cuando se encare Firebase/FCM para push nativo (ver §11), no antes. | Seguridad, baja prioridad |
 | 6 | `frontend/admin/admin.html` (Carrusel de patrocinios, ~línea 660-724) sigue leyendo/escribiendo la tabla `patrocinios` con forma de banner (`titulo`, `imagen_url`, `link_oferta`...) — pero esa tabla se redefinió el 2026-08-11 (`fix-criticos-importantes.sql`) como la relación embajador-comercio (`embajador_id`, `comercio_id` NOT NULL) y los banners se migraron a una tabla nueva, `banners`. Encontrado de paso investigando el bug de comisiones de embajador (ver §6, resuelto 2026-08-13), no confirmado en producción si ya está roto o si hay algo que lo compensa — revisar antes de tocar el carrusel de banners del admin. | Panel admin, banners del home |
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** Firebase/FCM para push nativo, GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Los tres quedan para una fase 2 posterior al lanzamiento.
