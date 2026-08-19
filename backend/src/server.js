@@ -22,6 +22,7 @@ import rateLimit     from 'express-rate-limit';
 import pedidoRoutes   from './routes/pedidoRoutes.js';
 import authRoutes     from './routes/authRoutes.js';
 import mpRoutes       from './routes/mpRoutes.js';
+import paywayRoutes   from './routes/paywayRoutes.js';
 import cadeteRoutes   from './routes/cadeteRoutes.js';
 import embajadorRoutes from './routes/embajadorRoutes.js';
 import { iniciarSchedulerMatching } from './jobs/matchingScheduler.js';
@@ -129,6 +130,12 @@ function createApp() {
 
   // MercadoPago: /api/mp/crear-preferencia, /api/mp/webhook
   app.use('/api/mp', mpRoutes);
+
+  // Payway: /api/payway/crear-pago, /api/payway/estado/:id — ⚠️ WIP, sin
+  // credenciales reales, sin ningún HTML/JS de producción que lo llame
+  // todavía. Sin PAYWAY_PRIVATE_KEY configurada devuelve 501 siempre — ver
+  // docs/PAYWAY-INTEGRACION.md.
+  app.use('/api/payway', paywayRoutes);
 
   // Cadete GPS: /api/cadete/actualizar-ubicacion
   app.use('/api/cadete', cadeteRoutes);

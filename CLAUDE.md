@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-11.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-18.
 
 ---
 
@@ -46,6 +46,7 @@ puertaapuerta-main/
 │   ├── env.js.template        # Plantilla para clonar el repo
 │   ├── manifest.json          # PWA manifest (icons: logo-192.png, logo-512.png)
 │   ├── sw.js                  # Service Worker: recibe y muestra push notifications
+│   ├── payway-test.html       # ⚠️ WIP, no linkeada desde ningún menú/login — ver §5 y docs/PAYWAY-INTEGRACION.md
 │   ├── cliente/
 │   │   ├── index.html         # App del cliente (SPA inline, guard de sesión embebido)
 │   │   ├── login-usuario.html
@@ -78,6 +79,7 @@ puertaapuerta-main/
 │   │       ├── comercio.js    # Lógica completa del comercio (~1354 líneas)
 │   │       ├── embajador.js   # Dashboard embajador + link de referidos
 │   │       ├── push.js        # Push: web (VAPID) + nativa (Capacitor FCM)
+│   │       ├── payway.js      # ⚠️ WIP — tokenización de tarjeta, solo usado por payway-test.html, no en el flujo real
 │   │       ├── state.js       # Estado global (LocalStorage persistence)
 │   │       ├── ui.js          # sanitizeHTML, formatARS, navigateSeguro
 │   │       └── icons.js       # Objeto ICONS con emojis/SVG
@@ -92,14 +94,16 @@ puertaapuerta-main/
 │   │   │   ├── pedidoRoutes.js
 │   │   │   ├── cadeteRoutes.js
 │   │   │   ├── embajadorRoutes.js
-│   │   │   └── mpRoutes.js
+│   │   │   ├── mpRoutes.js
+│   │   │   └── paywayRoutes.js       # ⚠️ WIP, sin credenciales — ver §5 y docs/PAYWAY-INTEGRACION.md
 │   │   ├── controllers/
 │   │   │   ├── authController.js
 │   │   │   ├── pedidoController.js   # Pricing, ejecutarDifusion/difundir, aceptar, aceptar-comercio, rechazar-oferta, cambiar-estado
 │   │   │   ├── cadeteController.js   # GPS, efectivo, liquidaciones
 │   │   │   ├── embajadorController.js # Dashboard, comercios, retiros, comisiones
 │   │   │   ├── mpController.js       # MercadoPago preferencias + webhook
-│   │   │   └── pushController.js     # Web Push VAPID
+│   │   │   ├── pushController.js     # Web Push VAPID
+│   │   │   └── paywayController.js   # ⚠️ WIP — devuelve 501 sin PAYWAY_PRIVATE_KEY, no llamado por ningún frontend real
 │   │   ├── jobs/
 │   │   │   ├── matchingScheduler.js  # setInterval 15s: despacho diferido + re-difusión automática + expira ofertas + refresco de clima (15min)
 │   │   │   └── horariosScheduler.js  # setInterval 60s: abierto_ahora automático según horario configurado
@@ -112,8 +116,10 @@ puertaapuerta-main/
 │   │       ├── tarifaUtils.js        # calcularTarifa(vehiculo, distanciaKm, climaAplicado) → ganancia
 │   │       ├── matchingUtils.js      # haversineKm + rankearCandidatos(candidatos, config) — fairness/rotación
 │   │       ├── climaUtils.js         # esClimaAdverso(weatherCode) — clasificación pura, testeable
-│   │       └── climaService.js       # esClimaAdversoParaUbicacion(lat,lng) cache-first + refrescarCacheClima()
-│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils
+│   │       ├── climaService.js       # esClimaAdversoParaUbicacion(lat,lng) cache-first + refrescarCacheClima()
+│   │       ├── paywayUtils.js        # ⚠️ WIP — conversión de montos + mapeo de estados, puro y testeado (ver test/)
+│   │       └── paywayClient.js       # ⚠️ WIP — REST client, endpoints NO verificados contra la API real — ver docs/PAYWAY-INTEGRACION.md
+│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils, paywayUtils
 │   ├── scripts/qa-e2e.mjs            # Smoke test E2E contra producción real (sin service_role) — correr antes de cada release
 │   └── package.json                  # "type":"module", Express 5, Supabase JS, web-push
 │
@@ -135,10 +141,12 @@ puertaapuerta-main/
 │       ├── migration-pedidos-bloquear-comercio-cerrado.sql  # RLS restrictiva: no se puede pedir a un comercio cerrado
 │       ├── migration-cierres-especiales.sql            # tabla cierres_especiales (saveCierre) — 2026-08-11
 │       ├── migration-comercio-id-uuid.sql               # advertencias_comercio/chat_reportes.comercio_id a uuid — 2026-08-11
-│       └── migration-backfill-patrocinios-referidos.sql # patrocinios faltantes de comercios traídos por link de embajador — 2026-08-13, corrida en Supabase
+│       ├── migration-backfill-patrocinios-referidos.sql # patrocinios faltantes de comercios traídos por link de embajador — 2026-08-13, corrida en Supabase
+│       └── migration-payway-wip.sql  # ⚠️ NO corrida — pedidos.payway_payment_id, ver docs/PAYWAY-INTEGRACION.md
 │
 ├── docs/
-│   └── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
+│   ├── ANDROID-BUILD.md       # Guía paso a paso para el builder con Android Studio
+│   └── PAYWAY-INTEGRACION.md  # ⚠️ WIP — checklist + arquitectura de la integración Payway, no activa. Ver §5 y pendiente #4 en §13
 ├── package.json               # Raíz: dependencias Capacitor 7
 ├── capacitor.config.json      # appId: com.puertaapuertax.app, webDir: frontend
 ├── CHANGELOG.md               # Historial de cambios por versión
@@ -156,6 +164,9 @@ SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Nunca al frontend
 MP_ACCESS_TOKEN=APP_USR-...        # MercadoPago producción
 MP_WEBHOOK_SECRET=...              # Firma HMAC del webhook
+PAYWAY_PRIVATE_KEY=                 # ⚠️ WIP, vacía hoy — sin esto paywayController.js devuelve 501. Ver docs/PAYWAY-INTEGRACION.md
+PAYWAY_ENV=sandbox                  # 'sandbox' | 'production' — opcional, default sandbox
+PAYWAY_API_BASE=                    # opcional, override manual — ver paywayClient.js
 FRONTEND_URL=https://tu-dominio.com,https://otro-dominio.com
 SERVER_URL=https://tu-backend.railway.app
 VAPID_PUBLIC_KEY=...                # Configurado en Railway (2026-08-11)
@@ -171,6 +182,9 @@ window.SUPABASE_URL      = '...'
 window.SUPABASE_ANON_KEY = '...'   // Solo ANON key. Nunca SERVICE_ROLE.
 window.BACKEND_URL       = 'https://tu-backend.railway.app'
 window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
+window.PAYWAY_PUBLIC_KEY = ''      // ⚠️ WIP, vacía hoy. Ver docs/PAYWAY-INTEGRACION.md
+window.PAYWAY_JS_SDK_URL = ''      // ⚠️ WIP, URL del SDK sin confirmar todavía
+window.PAYWAY_ENV        = 'sandbox'
 ```
 
 ---
@@ -230,6 +244,26 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 > ⚠️ **Alerta para IA:** MercadoPago es la pasarela de pago actual e integrada, pero se está **evaluando migrar a Payway** (pasarela de pagos argentina) como alternativa. Todavía no es una decisión firme. No asumir que MercadoPago es definitivo, no proponer ni empezar una migración de pasarela por cuenta propia — confirmar con el usuario primero si el trabajo pedido toca esta área.
 >
 > También hay una Edge Function `supabase/functions/mp-webhook/index.ts` en el repo que **no parece estar en uso**: `mpController.js` configura `notification_url` apuntando al propio backend (`/api/mp/webhook`), no a la Edge Function, y esta no fue tocada desde la modularización inicial. Antes de tocarla o borrarla, confirmar con el usuario si sigue siendo necesaria (podría ser un remanente de un diseño anterior).
+
+### Payway `/api/payway` — ⚠️ WIP, no activo
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/crear-pago` | JWT | Cobra un token de tarjeta ya generado en el frontend y, si Payway aprueba, crea/confirma el pedido — todo en una respuesta (Payway confirma sincrónicamente, no hay webhook). Devuelve 501 si `PAYWAY_PRIVATE_KEY` no está configurada. |
+| GET | `/estado/:paymentId` | JWT | Reconsulta un pago por id — reconciliación/debug. |
+
+Esqueleto preparado en la branch `work/2026-08-18-payway-integracion` (2026-08-18)
+a pedido explícito del usuario, para no arrancar de cero el día que la
+decisión de negocio (pendiente #4, §13) avance. **Ningún HTML/JS de
+producción llama a estos endpoints** — `cliente.js`/`pago.html` siguen
+usando exclusivamente MercadoPago. Sin `PAYWAY_PRIVATE_KEY` configurada
+(no lo está, no hay cuenta comercial de Payway todavía) ambos endpoints
+devuelven `501`. El cliente REST (`paywayClient.js`) y el módulo de
+tokenización del frontend (`payway.js`) están armados por parentesco
+técnico con Decidir (mismo SDK que usa Payway, `\Decidir\Connector`) pero
+**sus endpoints/URLs no están verificados contra la API real** — ver
+`docs/PAYWAY-INTEGRACION.md` para el checklist completo antes de tocar
+esto en serio.
 
 ### Diagnóstico
 | Método | Ruta | Auth | Descripción |
@@ -592,7 +626,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 | 1 | Crear cuenta de desarrollador de Google Play Console ($25) — **todavía no existe**. Google exige a cuentas nuevas un track de Closed Testing (~20 testers, 14 días corridos) antes de habilitar Production — es el ítem de mayor lead time de todo el lanzamiento, arrancarlo antes que nada. | Distribución / fecha real de lanzamiento |
 | 2 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). En curso 2026-08-11: probado en un celular real, aparecieron bugs de CSS pendientes de detalle. | App nativa |
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
-| 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
+| 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance. Hay un esqueleto de código preparado (2026-08-18, branch `work/2026-08-18-payway-integracion`, sin credenciales, no mergeado ni activo) a pedido explícito del usuario — ver `docs/PAYWAY-INTEGRACION.md` y §5. No confundir "hay código preparado" con "está decidido": sigue siendo de Fabri decidir si se sigue adelante. | Pagos |
 | 5 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
 | 6 | `frontend/admin/admin.html` (Carrusel de patrocinios, ~línea 660-724) sigue leyendo/escribiendo la tabla `patrocinios` con forma de banner (`titulo`, `imagen_url`, `link_oferta`...) — pero esa tabla se redefinió el 2026-08-11 (`fix-criticos-importantes.sql`) como la relación embajador-comercio (`embajador_id`, `comercio_id` NOT NULL) y los banners se migraron a una tabla nueva, `banners`. Encontrado de paso investigando el bug de comisiones de embajador (ver §6, resuelto 2026-08-13), no confirmado en producción si ya está roto o si hay algo que lo compensa — revisar antes de tocar el carrusel de banners del admin. | Panel admin, banners del home |
 

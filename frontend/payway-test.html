@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Payway — Página de prueba (WIP, no producción)</title>
+<link rel="stylesheet" href="assets/css/safe-area.css">
+<script src="/env.js"></script>
+<style>
+  body { min-height: 100vh; min-height: 100dvh; font-family: system-ui, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; padding-top: calc(20px + var(--safe-top)); }
+  .warn { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; max-width: 420px; margin: 0 auto 16px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  input { width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+  button { width: 100%; font-size: 16px; padding: 12px; border: none; border-radius: 6px; background: #FF6B35; color: #fff; font-weight: 700; margin-top: 16px; cursor: pointer; }
+  pre { background: #111; color: #0f0; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-width: 420px; margin: 16px auto; }
+</style>
+</head>
+<body>
+
+<div class="warn" style="max-width:420px;margin:0 auto 20px;">
+  ⚠️ Página de prueba manual, WIP. No está linkeada desde ningún login/menú
+  de la app. No usar con tarjetas reales — solo con tarjetas de prueba de
+  Payway una vez que haya credenciales de sandbox configuradas
+  (window.PAYWAY_PUBLIC_KEY / window.PAYWAY_JS_SDK_URL en env.js). Ver
+  <code>docs/PAYWAY-INTEGRACION.md</code>.
+</div>
+
+<div class="card">
+  <label>Número de tarjeta</label>
+  <input id="numero" inputmode="numeric" placeholder="4509 7901 1268 4851">
+  <label>Vencimiento (MM / AA)</label>
+  <input id="mes" inputmode="numeric" placeholder="MM" style="width:48%;display:inline-block;">
+  <input id="anio" inputmode="numeric" placeholder="AA" style="width:48%;display:inline-block;float:right;">
+  <div style="clear:both;"></div>
+  <label>Código de seguridad</label>
+  <input id="cvv" inputmode="numeric" placeholder="123">
+  <label>Titular</label>
+  <input id="titular" placeholder="Nombre como figura en la tarjeta">
+  <label>DNI titular</label>
+  <input id="dni" inputmode="numeric" placeholder="29123456">
+  <button id="btn-tokenizar">Tokenizar (paso 1)</button>
+  <button id="btn-cobrar" disabled style="background:#999;">Cobrar vía backend (paso 2)</button>
+</div>
+
+<pre id="log">Esperando...</pre>
+
+<script type="module">
+  import { tokenizarTarjeta } from './assets/js/payway.js';
+
+  const log = (msg, obj) => {
+    document.getElementById('log').textContent =
+      msg + (obj !== undefined ? '\n' + JSON.stringify(obj, null, 2) : '');
+  };
+
+  let ultimoToken = null;
+
+  document.getElementById('btn-tokenizar').addEventListener('click', async () => {
+    try {
+      log('Tokenizando...');
+      const resultado = await tokenizarTarjeta({
+        numero:           document.getElementById('numero').value,
+        mesExpiracion:    document.getElementById('mes').value,
+        anioExpiracion:   document.getElementById('anio').value,
+        codigoSeguridad:  document.getElementById('cvv').value,
+        titular:          document.getElementById('titular').value,
+        dniTipo:          'dni',
+        dniNumero:        document.getElementById('dni').value,
+      });
+      ultimoToken = resultado;
+      log('Token generado OK:', resultado);
+      document.getElementById('btn-cobrar').disabled = false;
+      document.getElementById('btn-cobrar').style.background = '#FF6B35';
+    } catch (e) {
+      log('Error tokenizando: ' + e.message);
+    }
+  });
+
+  document.getElementById('btn-cobrar').addEventListener('click', async () => {
+    if (!ultimoToken) return;
+    try {
+      log('Llamando al backend /api/payway/crear-pago...');
+      const BACKEND_URL = window.BACKEND_URL || 'http://localhost:3000';
+
+      // Requiere sesión activa (el endpoint usa requireAuth) — este harness
+      // no maneja login, asumí que ya hay un access_token en localStorage
+      // (ej. abriendo esta página después de loguearte en otra pestaña de
+      // la misma app, mismo localStorage).
+      const authToken = localStorage.getItem('access_token') || '';
+
+      const resp = await fetch(`${BACKEND_URL}/api/payway/crear-pago`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          token:             ultimoToken.token,
+          bin:               ultimoToken.bin,
+          payment_method_id: 1,
+          items:             [{ nombre: 'Producto de prueba', qty: 1, precio: 100 }],
+          total:             100,
+          comercio_id:       null,
+          direccion_entrega: 'Dirección de prueba',
+        }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      log(`Respuesta HTTP ${resp.status}:`, data);
+    } catch (e) {
+      log('Error llamando al backend: ' + e.message);
+    }
+  });
+</script>
+</body>
+</html>
