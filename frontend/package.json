@@ -1,0 +1,6 @@
+{
+  "name": "puertaapuertax-frontend",
+  "private": true,
+  "type": "module",
+  "description": "Marca frontend/ como ESM para que Node resuelva bien los imports cross-folder de backend/test/ hacia frontend/assets/js/*.js (módulos puros, ej. importadorMenu.js). No se ejecuta ni se buildea nada acá — el frontend sigue siendo HTML/CSS/JS estático servido por Vercel, y Capacitor solo copia webDir."
+}

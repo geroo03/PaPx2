@@ -24,6 +24,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { procesarFilasImportacion } from '../../frontend/assets/js/importadorMenu.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot   = path.resolve(__dirname, '..', '..');
@@ -605,6 +606,65 @@ async function main() {
       await new Promise(r => setTimeout(r, 5000));
     }
     throw new Error('El horariosScheduler no reabrió el comercio dentro de 90s tras reanudar');
+  });
+
+  // ── Importador CSV/Excel de productos (mismas funciones puras que usa el
+  //    frontend, mismo camino de escritura client→Supabase que saveProducto()) ──
+  let importadorResultado, categoriaImport, productoImport, grupoImport;
+
+  await step('Importador: procesar filas crudas (producto + grupo de 2 opciones)', async () => {
+    const filasCrudas = [
+      { tipo_fila: 'producto', producto_nombre: `QA Import ${RUN_ID}`, descripcion: 'd',
+        categoria: 'QA Import Cat', precio_base: '2500', imagen_url: '', grupo_nombre: '',
+        grupo_min: '', grupo_max: '', opcion_nombre: '', precio_extra: '' },
+      { tipo_fila: 'opcion', producto_nombre: `QA Import ${RUN_ID}`, descripcion: '', categoria: '',
+        precio_base: '', imagen_url: '', grupo_nombre: 'Tamaño', grupo_min: '1', grupo_max: '1',
+        opcion_nombre: 'Chica', precio_extra: '0' },
+      { tipo_fila: 'opcion', producto_nombre: `QA Import ${RUN_ID}`, descripcion: '', categoria: '',
+        precio_base: '', imagen_url: '', grupo_nombre: 'Tamaño', grupo_min: '1', grupo_max: '1',
+        opcion_nombre: 'Grande', precio_extra: '600' },
+    ];
+    importadorResultado = procesarFilasImportacion(filasCrudas, { productosExistentes: [], categoriasExistentes: [] });
+    assert(importadorResultado.productos.length === 1, `esperaba 1 producto, obtuve ${importadorResultado.productos.length}`);
+    assert(importadorResultado.productos[0].grupos[0]?.opciones.length === 2, 'no se asociaron las 2 opciones al grupo');
+  });
+
+  await step('Importador: insertar categoría nueva (REST directo, mismo camino que el frontend)', () =>
+    sbInsert('categorias_producto', { nombre: 'QA Import Cat', comercio_id: comercioRow.id, orden: 1 }, jwtComercio)
+      .then(row => { categoriaImport = row; }));
+
+  await step('Importador: insertar el producto resultante — precio_base queda neto (sin el 20%)', async () => {
+    const p = importadorResultado.productos[0];
+    productoImport = await sbInsert('productos', {
+      nombre: p.nombre, descripcion: p.descripcion, precio_base: p.precio_base,
+      categoria_id: categoriaImport.id, comercio_id: comercioRow.id, disponible: true,
+    }, jwtComercio);
+    assert(Number(productoImport.precio_base) === 2500, `precio_base=${productoImport.precio_base}, esperaba 2500 neto`);
+  });
+
+  await step('Importador: insertar grupo + sus 2 opciones', async () => {
+    const gr = importadorResultado.productos[0].grupos[0];
+    grupoImport = await sbInsert('grupos_opcionales', {
+      producto_id: productoImport.id, comercio_id: comercioRow.id,
+      nombre: gr.nombre, min_opciones: gr.min_opciones, max_opciones: gr.max_opciones,
+    }, jwtComercio);
+    for (const o of gr.opciones) {
+      // Columna real: precio_adicional (no precio_extra — el schema
+      // documentado estaba desactualizado, ver migration-grupos-opcionales-producto.sql).
+      await sbInsert('opciones_items', { grupo_opcional_id: grupoImport.id, nombre: o.nombre, precio_adicional: o.precio_extra }, jwtComercio);
+    }
+  });
+
+  await step('Importador: las 2 opciones quedaron en la DB, ligadas al grupo correcto', async () => {
+    const rows = await sbSelect('opciones_items', `grupo_opcional_id=eq.${grupoImport.id}&select=nombre,precio_adicional`, jwtComercio);
+    assert(rows.length === 2, `esperaba 2 opciones, encontré ${rows.length}`);
+  });
+
+  await step('Importador: re-procesar el mismo lote (simula correr el CSV dos veces) → producto queda omitido', async () => {
+    const filasCrudas = [{ tipo_fila: 'producto', producto_nombre: `QA Import ${RUN_ID}`, descripcion: 'd',
+      categoria: 'QA Import Cat', precio_base: '2500', imagen_url: '', grupo_nombre: '', grupo_min: '', grupo_max: '', opcion_nombre: '', precio_extra: '' }];
+    const r2 = procesarFilasImportacion(filasCrudas, { productosExistentes: [productoImport.nombre], categoriasExistentes: ['QA Import Cat'] });
+    assert(r2.filas[0].estado === 'omitido', `esperaba 'omitido' en el reintento, obtuve '${r2.filas[0].estado}'`);
   });
 
   log(`\n=== Resumen: ${results.filter(r => r.ok).length}/${results.length} pasos OK ===`);

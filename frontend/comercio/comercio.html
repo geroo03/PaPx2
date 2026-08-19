@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="../assets/css/portal-layout.css">
   <link rel="stylesheet" href="../assets/css/portal-components.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="/env.js"></script>
   <script src="../assets/js/bootstrap-supabase.js"></script>
 </head>
@@ -324,6 +325,10 @@
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input class="search-input" id="search-producto" type="text" placeholder="Buscar producto..." style="min-width:140px">
                   </div>
+                  <button class="btn btn-outline btn-sm" data-action="open-modal-importar">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Importar CSV/Excel
+                  </button>
                   <button class="btn btn-primary btn-sm" data-action="open-modal-producto">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Agregar Producto
@@ -871,15 +876,68 @@
       </div>
 
       <div style="padding:var(--sp-4);background:var(--surface-page);border-radius:var(--r-md);margin-top:var(--sp-2)">
-        <div style="font-weight:var(--w-semibold);margin-bottom:var(--sp-2)">Grupos de opcionales</div>
-        <div style="font-size:var(--text-sm);color:var(--text-secondary)">
-          Ningún opcional agregado — Agregar un opcional a este producto permitirá a los consumidores personalizar sus órdenes.
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-2)">
+          <div style="font-weight:var(--w-semibold)">Grupos de opcionales</div>
+          <button type="button" class="btn btn-outline btn-sm" data-action="agregar-grupo-opcional">+ Agregar grupo</button>
         </div>
+        <div id="mp-grupos-list"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" data-action="close-modal">Cancelar</button>
       <button class="btn btn-primary" id="mp-save" data-action="save-producto">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: IMPORTAR PRODUCTOS DESDE CSV/EXCEL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-overlay-importar">
+  <div class="modal-sheet" style="max-width:760px">
+    <div class="modal-header">
+      <h2 class="modal-title">Importar productos desde CSV/Excel</h2>
+      <button class="modal-close" data-action="close-modal-importar" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-alert-box">
+        <strong>Antes de importar:</strong> revisá que las columnas del archivo coincidan
+        con la plantilla y que los precios estén <strong>sin</strong> el 20% de recargo
+        de la plataforma — se aplica solo, automáticamente, al mostrarle el precio al
+        cliente, nunca se guarda en la base. Después de importar, revisá el menú para
+        confirmar que todo se haya cargado bien.
+        <a href="#" data-action="descargar-plantilla-csv">Descargar plantilla de ejemplo (.csv)</a>
+      </div>
+
+      <div class="upload-zone" id="upload-zone-importar">
+        <div id="import-placeholder">
+          <div class="upload-zone-icon"></div>
+          <div class="upload-zone-text">Arrastrá tu archivo .csv o .xlsx acá, o hacé clic para elegirlo</div>
+          <div class="upload-zone-hint">CSV, XLSX o XLS &nbsp;•&nbsp; Productos y sus grupos de opcionales en un solo archivo</div>
+          <button type="button" class="upload-zone-btn" onclick="event.stopPropagation(); document.getElementById('input-archivo-importar').click();">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Elegir archivo
+          </button>
+        </div>
+        <div id="import-archivo-nombre" class="hidden" style="font-size:var(--text-sm);font-weight:var(--w-semibold)"></div>
+        <input type="file" id="input-archivo-importar" accept=".csv,.xlsx,.xls" style="display:none">
+      </div>
+
+      <div id="import-preview-wrap" class="hidden" style="margin-top:var(--sp-4)">
+        <div id="import-preview-resumen" style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--sp-2)"></div>
+        <div class="table-wrap" style="max-height:280px;overflow-y:auto">
+          <table class="pap-table">
+            <thead><tr><th>#</th><th>Tipo</th><th>Nombre</th><th>Estado</th><th>Motivo</th></tr></thead>
+            <tbody id="import-preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="import-resultado-banner" class="import-resultado-banner hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-action="close-modal-importar">Cerrar</button>
+      <button class="btn btn-primary" id="import-btn-confirmar" data-action="confirmar-importacion" disabled>Confirmar importación</button>
     </div>
   </div>
 </div>

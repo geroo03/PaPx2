@@ -5,6 +5,7 @@
 
 import { supabase as sb } from './config.js';
 import { sanitizeHTML as esc } from './ui.js';
+import { procesarFilasImportacion, generarPlantillaCSV, normalizarNombre as normImport } from './importadorMenu.js';
 
 // ─── CONSTANTES FINANCIERAS ───────────────────────────────────────────────────
 // El 20% se SUMA al precio que pone el comercio para el cliente.
@@ -130,6 +131,19 @@ function bindAllEvents() {
       ? `El cliente verá: ARS $${formatNum(Math.round(base * RECARGO_DIV))} (+20% PaP X)`
       : '';
   });
+  // Edición de campos de grupos/opciones: actualiza el estado en memoria SIN
+  // re-renderizar el DOM (si se re-renderiza en cada tecla se pierde el foco).
+  g('mp-grupos-list')?.addEventListener('input', e => {
+    const t = e.target.closest('[data-field]'); if (!t) return;
+    const grupo = mpGruposState.find(gr => gr._key === t.dataset.grupoKey); if (!grupo) return;
+    const field = t.dataset.field;
+    if (t.dataset.opcionKey) {
+      const opcion = grupo.opciones.find(op => op._key === t.dataset.opcionKey); if (!opcion) return;
+      opcion[field] = field === 'precio_extra' ? (parseFloat(t.value)||0) : t.value;
+    } else {
+      grupo[field] = (field === 'min_opciones' || field === 'max_opciones') ? (parseInt(t.value,10)||0) : t.value;
+    }
+  });
   const zone      = g('upload-zone');
   const fileInput = g('input-imagen');
   if (zone) {
@@ -149,6 +163,25 @@ function bindAllEvents() {
   }
   fileInput?.addEventListener('change', e => {
     const file = e.target.files[0]; if (file) setUploadFile(file);
+  });
+
+  const zoneImportar      = g('upload-zone-importar');
+  const fileInputImportar = g('input-archivo-importar');
+  if (zoneImportar) {
+    zoneImportar.addEventListener('dragover',  e => { e.preventDefault(); zoneImportar.classList.add('dragover'); });
+    zoneImportar.addEventListener('dragleave', () => zoneImportar.classList.remove('dragover'));
+    zoneImportar.addEventListener('drop', e => {
+      e.preventDefault(); zoneImportar.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) onArchivoSeleccionado(file);
+    });
+    zoneImportar.addEventListener('click', e => {
+      if (e.target === fileInputImportar) return;
+      fileInputImportar?.click();
+    });
+  }
+  fileInputImportar?.addEventListener('change', e => {
+    const file = e.target.files[0]; if (file) onArchivoSeleccionado(file);
   });
 }
 
@@ -184,6 +217,14 @@ function dispatchAction(t, originalEvent) {
     case 'menu-subtab':          switchMenuSubTab(t.dataset.tab); break;
     case 'edit-producto':        openModalProducto(id); break;
     case 'eliminar-producto':    eliminarProducto(id); break;
+    case 'agregar-grupo-opcional':  agregarGrupoOpcional(); break;
+    case 'eliminar-grupo-opcional': eliminarGrupoOpcional(t.dataset.grupoKey); break;
+    case 'agregar-opcion':          agregarOpcion(t.dataset.grupoKey); break;
+    case 'eliminar-opcion':         eliminarOpcion(t.dataset.grupoKey, t.dataset.opcionKey); break;
+    case 'open-modal-importar':     openModalImportar(); break;
+    case 'close-modal-importar':    closeModalImportar(); break;
+    case 'descargar-plantilla-csv': descargarPlantillaCSV(); break;
+    case 'confirmar-importacion':   confirmarImportacion(); break;
     case 'agregar-seccion':      openModalCategoria(); break;
     case 'save-categoria':       saveCategoria(); break;
     case 'close-modal-categoria':closeModalCategoria(); break;
@@ -872,8 +913,186 @@ function switchMenuSubTab(tab) {
     t.classList.toggle('active', t.dataset.tab === tab));
 }
 
+// ─── GRUPOS DE OPCIONALES (dentro del modal de producto) ──────────────────────
+// Todo el CRUD vive en memoria mientras el modal está abierto; recién se
+// escribe en la base cuando el comercio confirma "Guardar producto" (ver
+// persistirGruposOpcionales(), llamada desde saveProducto()). Obligatorio
+// para un producto nuevo (todavía no tiene id) y se mantiene igual en modo
+// edición por consistencia: "Cancelar" queda 100% seguro, sin dejar grupos
+// huérfanos en la base.
+let mpGruposState     = [];
+let mpGruposOriginal  = [];
+let mpGrupoKeyCounter = 0;
+
+function nuevaKeyOpcional() { return `tmp-${++mpGrupoKeyCounter}`; }
+
+function resetGruposOpcionalesState() {
+  mpGruposState = [];
+  mpGruposOriginal = [];
+}
+
+async function cargarGruposOpcionales(prodId) {
+  // La columna real en opciones_items es `precio_adicional` (no `precio_extra`
+  // — el schema documentado estaba desactualizado, confirmado por
+  // introspección directa el 2026-08-15). `precio_extra` es el nombre de
+  // dominio que usa el resto de este módulo y el importador CSV; se traduce
+  // acá y en persistirGruposOpcionales()/confirmarImportacion().
+  const { data, error } = await sb.from('grupos_opcionales')
+    .select('id,nombre,min_opciones,max_opciones,opciones_items(id,nombre,precio_adicional)')
+    .eq('producto_id', prodId)
+    .order('created_at');
+  if (error) {
+    console.error('Error cargando opcionales:', error.message);
+    mpGruposState = []; mpGruposOriginal = [];
+    return;
+  }
+  const normalizado = (data||[]).map(gr => ({
+    _key: gr.id, id: gr.id, nombre: gr.nombre,
+    min_opciones: gr.min_opciones, max_opciones: gr.max_opciones,
+    opciones: (gr.opciones_items||[]).map(o => ({
+      _key: o.id, id: o.id, nombre: o.nombre, precio_extra: Number(o.precio_adicional)||0,
+    })),
+  }));
+  mpGruposState    = JSON.parse(JSON.stringify(normalizado));
+  mpGruposOriginal = JSON.parse(JSON.stringify(normalizado));
+}
+
+function renderGruposOpcionales() {
+  const cont = g('mp-grupos-list'); if (!cont) return;
+  if (!mpGruposState.length) {
+    cont.innerHTML = '<div class="opcional-empty">Ningún opcional agregado — Agregar un opcional a este producto permitirá a los consumidores personalizar sus órdenes.</div>';
+    return;
+  }
+  cont.innerHTML = mpGruposState.map(grupo => `
+    <div class="opcional-grupo-card" data-grupo-key="${grupo._key}">
+      <div class="opcional-grupo-head">
+        <input class="pap-input" type="text" placeholder="Nombre del grupo (ej: Tamaño)"
+          value="${esc(grupo.nombre||'')}" data-field="nombre" data-grupo-key="${grupo._key}">
+        <div class="opcional-minmax">
+          <input class="pap-input" type="number" min="0" step="1" value="${grupo.min_opciones}" title="Mínimo" data-field="min_opciones" data-grupo-key="${grupo._key}">
+          <input class="pap-input" type="number" min="1" step="1" value="${grupo.max_opciones}" title="Máximo" data-field="max_opciones" data-grupo-key="${grupo._key}">
+        </div>
+        <button type="button" class="btn-ghost btn-sm" data-action="eliminar-grupo-opcional" data-grupo-key="${grupo._key}">Eliminar</button>
+      </div>
+      ${grupo.opciones.map(op => `
+        <div class="opcional-item-row" data-grupo-key="${grupo._key}" data-opcion-key="${op._key}">
+          <input class="pap-input" type="text" placeholder="Nombre de la opción" value="${esc(op.nombre||'')}"
+            data-field="nombre" data-grupo-key="${grupo._key}" data-opcion-key="${op._key}">
+          <input class="pap-input" type="number" min="0" step="1" value="${op.precio_extra}"
+            data-field="precio_extra" data-grupo-key="${grupo._key}" data-opcion-key="${op._key}">
+          <button type="button" class="btn-ghost btn-sm" data-action="eliminar-opcion" data-grupo-key="${grupo._key}" data-opcion-key="${op._key}">×</button>
+        </div>
+      `).join('')}
+      <button type="button" class="btn-link" data-action="agregar-opcion" data-grupo-key="${grupo._key}">+ Agregar opción</button>
+    </div>
+  `).join('');
+}
+
+function agregarGrupoOpcional() {
+  mpGruposState.push({ _key: nuevaKeyOpcional(), id: null, nombre: '', min_opciones: 0, max_opciones: 1, opciones: [] });
+  renderGruposOpcionales();
+  const cards = document.querySelectorAll('#mp-grupos-list .opcional-grupo-card');
+  cards[cards.length-1]?.querySelector('input[data-field="nombre"]')?.focus();
+}
+
+function eliminarGrupoOpcional(grupoKey) {
+  if (!confirm('¿Eliminar este grupo de opcionales y todas sus opciones?')) return;
+  mpGruposState = mpGruposState.filter(gr => gr._key !== grupoKey);
+  renderGruposOpcionales();
+}
+
+function agregarOpcion(grupoKey) {
+  const grupo = mpGruposState.find(gr => gr._key === grupoKey); if (!grupo) return;
+  grupo.opciones.push({ _key: nuevaKeyOpcional(), id: null, nombre: '', precio_extra: 0 });
+  renderGruposOpcionales();
+}
+
+function eliminarOpcion(grupoKey, opcionKey) {
+  const grupo = mpGruposState.find(gr => gr._key === grupoKey); if (!grupo) return;
+  grupo.opciones = grupo.opciones.filter(op => op._key !== opcionKey);
+  renderGruposOpcionales();
+}
+
+function validarGruposOpcionales() {
+  for (const grupo of mpGruposState) {
+    if (!grupo.nombre.trim()) return { ok:false, error:'Todos los grupos de opcionales necesitan un nombre' };
+    if (!(grupo.min_opciones >= 0 && grupo.max_opciones >= 1 && grupo.min_opciones <= grupo.max_opciones))
+      return { ok:false, error:`El grupo "${grupo.nombre}" tiene un mínimo/máximo inválido` };
+    if (!grupo.opciones.length) return { ok:false, error:`El grupo "${grupo.nombre}" necesita al menos una opción` };
+    for (const op of grupo.opciones) {
+      if (!op.nombre.trim()) return { ok:false, error:`Una opción del grupo "${grupo.nombre}" no tiene nombre` };
+      if (!(Number(op.precio_extra) >= 0)) return { ok:false, error:`El precio extra de "${op.nombre}" no puede ser negativo` };
+    }
+  }
+  return { ok:true };
+}
+
+// Diff contra mpGruposOriginal: borra lo quitado, crea lo nuevo, actualiza
+// lo que cambió. Se llama después de que el producto ya tiene id (nuevo o
+// editado) — si esto falla, el producto ya quedó guardado (ver saveProducto).
+async function persistirGruposOpcionales(productoId) {
+  const originalById = new Map(mpGruposOriginal.filter(gr => gr.id).map(gr => [gr.id, gr]));
+  const idsActuales   = new Set(mpGruposState.filter(gr => gr.id).map(gr => gr.id));
+
+  const aBorrar = mpGruposOriginal.filter(gr => gr.id && !idsActuales.has(gr.id)).map(gr => gr.id);
+  if (aBorrar.length) {
+    const { error } = await sb.from('grupos_opcionales').delete().in('id', aBorrar);
+    if (error) throw new Error('No se pudieron eliminar algunos grupos: ' + error.message);
+    // opciones_items de esos grupos se borran solas por ON DELETE CASCADE
+  }
+
+  for (const grupo of mpGruposState) {
+    let grupoId = grupo.id;
+    if (!grupoId) {
+      const { data, error } = await sb.from('grupos_opcionales')
+        .insert({ producto_id: productoId, comercio_id: S.cid, nombre: grupo.nombre.trim(),
+                   min_opciones: grupo.min_opciones, max_opciones: grupo.max_opciones })
+        .select('id').single();
+      if (error) throw new Error(`No se pudo crear el grupo "${grupo.nombre}": ` + error.message);
+      grupoId = data.id;
+    } else {
+      const original = originalById.get(grupoId);
+      const cambio = !original || original.nombre !== grupo.nombre
+        || original.min_opciones !== grupo.min_opciones || original.max_opciones !== grupo.max_opciones;
+      if (cambio) {
+        const { error } = await sb.from('grupos_opcionales').update({
+          nombre: grupo.nombre.trim(), min_opciones: grupo.min_opciones, max_opciones: grupo.max_opciones,
+        }).eq('id', grupoId);
+        if (error) throw new Error(`No se pudo actualizar el grupo "${grupo.nombre}": ` + error.message);
+      }
+    }
+
+    const original       = originalById.get(grupo.id);
+    const opcOriginales   = original?.opciones || [];
+    const opcOrigById     = new Map(opcOriginales.filter(o => o.id).map(o => [o.id, o]));
+    const opcIdsActuales  = new Set(grupo.opciones.filter(o => o.id).map(o => o.id));
+    const opcABorrar      = opcOriginales.filter(o => o.id && !opcIdsActuales.has(o.id)).map(o => o.id);
+    if (opcABorrar.length) {
+      const { error } = await sb.from('opciones_items').delete().in('id', opcABorrar);
+      if (error) throw new Error('No se pudieron eliminar algunas opciones: ' + error.message);
+    }
+    for (const opcion of grupo.opciones) {
+      if (!opcion.id) {
+        const { error } = await sb.from('opciones_items').insert({
+          grupo_opcional_id: grupoId, nombre: opcion.nombre.trim(), precio_adicional: opcion.precio_extra,
+        });
+        if (error) throw new Error(`No se pudo crear la opción "${opcion.nombre}": ` + error.message);
+      } else {
+        const orig = opcOrigById.get(opcion.id);
+        const cambio = !orig || orig.nombre !== opcion.nombre || orig.precio_extra !== opcion.precio_extra;
+        if (cambio) {
+          const { error } = await sb.from('opciones_items').update({
+            nombre: opcion.nombre.trim(), precio_adicional: opcion.precio_extra,
+          }).eq('id', opcion.id);
+          if (error) throw new Error(`No se pudo actualizar la opción "${opcion.nombre}": ` + error.message);
+        }
+      }
+    }
+  }
+}
+
 // ─── MODAL PRODUCTO ───────────────────────────────────────────────────────────
-function openModalProducto(prodId = null) {
+async function openModalProducto(prodId = null) {
   clearModalProducto();
   const sel = g('mp-categoria');
   if (sel) sel.innerHTML = '<option value="">Seleccionar categoría...</option>' +
@@ -889,6 +1108,8 @@ function openModalProducto(prodId = null) {
   } else { setText('modal-producto-title', 'Agregar producto'); }
   g('modal-overlay-producto')?.classList.remove('hidden');
   g('mp-nombre')?.focus();
+  if (prodId) { await cargarGruposOpcionales(prodId); }
+  renderGruposOpcionales();
 }
 
 function clearModalProducto() {
@@ -898,6 +1119,8 @@ function clearModalProducto() {
   g('upload-preview-wrap')?.classList.add('hidden');
   g('upload-placeholder')?.classList.remove('hidden');
   const inp = g('input-imagen'); if (inp) inp.value = '';
+  resetGruposOpcionalesState();
+  renderGruposOpcionales();
 }
 
 function closeAllModals() {
@@ -914,6 +1137,8 @@ async function saveProducto() {
   if (!nombre)    { showToast('El nombre es obligatorio',  'warning'); return; }
   if (!precioRaw) { showToast('Ingresá un precio válido',  'warning'); return; }
   if (!catId)     { showToast('Seleccioná una categoría',  'warning'); return; }
+  const vGrupos = validarGruposOpcionales();
+  if (!vGrupos.ok) { showToast(vGrupos.error, 'warning'); return; }
 
   // Subir imagen a Supabase Storage si el usuario seleccionó una
   let imagen_url = null;
@@ -938,10 +1163,21 @@ async function saveProducto() {
     categoria_id: catId, comercio_id: S.cid, disponible: true,
     ...(imagen_url ? { imagen_url } : {}),
   };
-  const { error } = editId
-    ? await sb.from('productos').update(payload).eq('id', editId)
-    : await sb.from('productos').insert(payload);
+  const { data, error } = editId
+    ? await sb.from('productos').update(payload).eq('id', editId).select('id').single()
+    : await sb.from('productos').insert(payload).select('id').single();
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
+
+  const productoId = editId || data.id;
+  try {
+    await persistirGruposOpcionales(productoId);
+  } catch (e) {
+    // El producto ya quedó guardado — solo fallaron los opcionales. Se avisa
+    // para que el comercio los revise a mano reabriendo "Editar".
+    showToast('Producto guardado, pero hubo un error con los opcionales: ' + e.message, 'warning');
+    closeAllModals(); await loadMenu(); return;
+  }
+
   showToast(editId ? 'Producto actualizado ✓' : 'Producto agregado ✓');
   closeAllModals(); await loadMenu();
 }
@@ -972,6 +1208,176 @@ async function saveCategoria() {
   const { error } = await sb.from('categorias_producto').insert({ nombre, comercio_id: S.cid, orden: S.categorias.length });
   if (error) { showToast('Error: ' + error.message, 'error'); return; }
   showToast('Sección creada ✓'); closeModalCategoria(); await loadMenu();
+}
+
+// ─── IMPORTADOR CSV/EXCEL DE PRODUCTOS ─────────────────────────────────────────
+// El parseo/validación puros viven en importadorMenu.js (testeados con
+// node:test). Acá solo entra el archivo, se llama a esa función, y se
+// escribe en Supabase — mismo patrón client→Supabase directo que el resto
+// del CRUD de menú (sin backend Express de por medio).
+let importState = { resultado: null };
+
+async function openModalImportar() {
+  await loadMenu(); // refresca S.productos/S.categorias antes de detectar duplicados
+  importState = { resultado: null };
+  g('import-preview-wrap')?.classList.add('hidden');
+  g('import-resultado-banner')?.classList.add('hidden');
+  g('import-resultado-banner') && (g('import-resultado-banner').innerHTML = '');
+  g('import-archivo-nombre')?.classList.add('hidden');
+  g('import-placeholder')?.classList.remove('hidden');
+  const fileInput = g('input-archivo-importar'); if (fileInput) fileInput.value = '';
+  const btn = g('import-btn-confirmar'); if (btn) btn.disabled = true;
+  g('modal-overlay-importar')?.classList.remove('hidden');
+}
+
+function closeModalImportar() {
+  g('modal-overlay-importar')?.classList.add('hidden');
+}
+
+function descargarPlantillaCSV() {
+  const csv  = generarPlantillaCSV();
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'plantilla-importar-productos.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function onArchivoSeleccionado(file) {
+  if (!/\.(csv|xlsx|xls)$/i.test(file.name)) {
+    showToast('Formato no soportado — usá .csv, .xlsx o .xls', 'warning');
+    return;
+  }
+  const nombreEl = g('import-archivo-nombre');
+  if (nombreEl) { nombreEl.textContent = file.name; nombreEl.classList.remove('hidden'); }
+  g('import-placeholder')?.classList.add('hidden');
+
+  let filasCrudas;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, { type: 'array' });
+    filasCrudas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+  } catch (e) {
+    showToast('No se pudo leer el archivo: ' + e.message, 'error');
+    return;
+  }
+
+  const resultado = procesarFilasImportacion(filasCrudas, {
+    productosExistentes: S.productos.map(p => p.nombre),
+    categoriasExistentes: S.categorias.map(c => c.nombre),
+  });
+  importState.resultado = resultado;
+  renderPreviewImportacion(resultado);
+}
+
+function renderPreviewImportacion(resultado) {
+  const wrap = g('import-preview-wrap'); const tbody = g('import-preview-tbody'); const resumenEl = g('import-preview-resumen');
+  if (!wrap || !tbody) return;
+  wrap.classList.remove('hidden');
+  const r = resultado.resumen;
+  if (resumenEl) resumenEl.textContent =
+    `${r.productosOk} producto(s) listos para importar, ${r.opcionesOk} opción(es), ${r.productosOmitidos} omitido(s), ${r.filasConError} fila(s) con error — de un total de ${r.totalFilas} fila(s).`;
+  // Todo dato acá viene de un archivo externo no confiable: pasa por esc()
+  // antes de ir a innerHTML, igual que cualquier otro dato de usuario.
+  tbody.innerHTML = resultado.filas.map(f => {
+    const nombreFila = f.tipo === 'producto' ? (f.datos.producto_nombre || '') : (f.datos.opcion_nombre || f.datos.grupo_nombre || '');
+    const badgeClass = f.estado === 'ok' ? 'badge-import-ok' : f.estado === 'omitido' ? 'badge-import-omitido' : 'badge-import-error';
+    return `<tr>
+      <td>${f.numeroFila}</td>
+      <td>${esc(f.tipo)}</td>
+      <td>${esc(nombreFila)}</td>
+      <td><span class="${badgeClass}">${esc(f.estado)}</span></td>
+      <td>${esc(f.motivo || '—')}</td>
+    </tr>`;
+  }).join('');
+  const btn = g('import-btn-confirmar');
+  if (btn) btn.disabled = resultado.productos.length === 0;
+}
+
+async function confirmarImportacion() {
+  const resultado = importState.resultado;
+  if (!resultado || !resultado.productos.length) return;
+  const btn = g('import-btn-confirmar'); if (btn) btn.disabled = true;
+  showToast('Importando...', 'info');
+
+  // 1) Categorías nuevas primero — secuencial, no batch, para poder mapear
+  //    nombre→id antes de insertar los productos que las necesitan.
+  const catIdPorNombre = new Map(S.categorias.map(c => [normImport(c.nombre), c.id]));
+  for (const nombreCat of resultado.categoriasNuevas) {
+    const key = normImport(nombreCat);
+    if (catIdPorNombre.has(key)) continue;
+    const { data, error } = await sb.from('categorias_producto')
+      .insert({ nombre: nombreCat, comercio_id: S.cid, orden: S.categorias.length })
+      .select('id').single();
+    if (!error && data) catIdPorNombre.set(key, data.id);
+  }
+
+  // 2) Productos → sus grupos → sus opciones. Secuencial (no un insert batch):
+  //    así una fila/producto que falle no aborta el resto del archivo. Si un
+  //    grupo/opción falla DESPUÉS de que su producto ya se insertó, el
+  //    producto queda parcialmente configurado — recuperable a mano desde el
+  //    modal de "Editar producto" (sección A), no se revierte el producto.
+  let productosOk = 0, productosError = 0, gruposOk = 0, opcionesOk = 0;
+  const errores = [];
+  for (const prod of resultado.productos) {
+    const catId = catIdPorNombre.get(normImport(prod.categoria));
+    if (!catId) {
+      productosError++;
+      errores.push({ fila: prod.numeroFilaOrigen, motivo: `No se pudo resolver la categoría "${prod.categoria}"` });
+      continue;
+    }
+    const { data: prodData, error: prodErr } = await sb.from('productos').insert({
+      nombre: prod.nombre, descripcion: prod.descripcion, precio_base: prod.precio_base,
+      categoria_id: catId, comercio_id: S.cid, disponible: true,
+      ...(prod.imagen_url ? { imagen_url: prod.imagen_url } : {}),
+    }).select('id').single();
+    if (prodErr) {
+      productosError++;
+      errores.push({ fila: prod.numeroFilaOrigen, motivo: `"${prod.nombre}": ${prodErr.message}` });
+      continue;
+    }
+    productosOk++;
+    for (const grupo of prod.grupos) {
+      const { data: grupoData, error: grupoErr } = await sb.from('grupos_opcionales').insert({
+        producto_id: prodData.id, comercio_id: S.cid, nombre: grupo.nombre,
+        min_opciones: grupo.min_opciones, max_opciones: grupo.max_opciones,
+      }).select('id').single();
+      if (grupoErr) {
+        errores.push({ fila: prod.numeroFilaOrigen, motivo: `Grupo "${grupo.nombre}" de "${prod.nombre}": ${grupoErr.message}` });
+        continue;
+      }
+      gruposOk++;
+      for (const op of grupo.opciones) {
+        // Columna real: precio_adicional (ver nota en cargarGruposOpcionales()).
+        const { error: opErr } = await sb.from('opciones_items').insert({
+          grupo_opcional_id: grupoData.id, nombre: op.nombre, precio_adicional: op.precio_extra,
+        });
+        if (opErr) errores.push({ fila: prod.numeroFilaOrigen, motivo: `Opción "${op.nombre}" (grupo "${grupo.nombre}"): ${opErr.message}` });
+        else opcionesOk++;
+      }
+    }
+  }
+
+  renderResultadoImportacion({ productosOk, productosError, gruposOk, opcionesOk, errores });
+  await loadMenu();
+}
+
+function renderResultadoImportacion({ productosOk, productosError, gruposOk, opcionesOk, errores }) {
+  const banner = g('import-resultado-banner'); if (!banner) return;
+  banner.classList.remove('hidden');
+  banner.classList.toggle('has-errors', errores.length > 0 || productosError > 0);
+  banner.innerHTML = `
+    <div class="import-resultado-stats">
+      <div class="import-resultado-stat"><strong>${productosOk}</strong>productos importados</div>
+      <div class="import-resultado-stat"><strong>${gruposOk}</strong>grupos de opcionales</div>
+      <div class="import-resultado-stat"><strong>${opcionesOk}</strong>opciones</div>
+      <div class="import-resultado-stat"><strong>${productosError}</strong>productos con error</div>
+    </div>
+    ${errores.length ? `<div class="import-resultado-errores">${errores.map(e => `Fila ${e.fila}: ${esc(e.motivo)}`).join('<br>')}</div>` : ''}
+    <div style="margin-top:var(--sp-2);font-size:var(--text-sm)">Revisá el menú (sección Productos) para confirmar que todo se haya cargado bien.</div>
+  `;
+  showToast(productosError ? 'Importación terminada con errores — revisá el detalle' : 'Importación completa ✓', productosError ? 'warning' : 'success');
 }
 
 // ─── VIEW: FINANZAS ───────────────────────────────────────────────────────────
