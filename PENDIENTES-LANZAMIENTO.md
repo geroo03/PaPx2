@@ -7,24 +7,60 @@
 
 ---
 
-## 1. 🔴 Crear la cuenta de Google Play Console — HACELO YA
+## 1. 🟡 Play Console — app creada, completando el checklist (en curso)
 
-Es lo más urgente de toda la lista, aunque no parezca "técnico". Google exige
-a las cuentas de desarrollador **nuevas** pasar un track de **Closed Testing**
-(mínimo ~20 testers que acepten, 14 días corridos) antes de habilitar
-Production. Como todavía no existe la cuenta, esos 14 días ni arrancaron —
-es lo que más atrasa la fecha real en que la app puede estar pública en Play
-Store, más que cualquier otra cosa de esta lista.
+Buen avance: la cuenta ya pasó la verificación de Google, y el 2026-08-19 se
+creó la app **"Puerta a Puerta X"** (`com.puertaapuertax.app`). Ahora toca
+terminar el checklist de "Contenido de la app" antes de poder abrir el track
+de Closed Testing — es lo que sigue destrabando todo lo demás.
 
-- Entrá a [play.google.com/console](https://play.google.com/console) y creá
-  la cuenta ($25, pago único).
-- Elegí cuenta **Personal** (no Organización — esa pide D-U-N-S y tarda
-  semanas), salvo que ya tengan una entidad legal registrada para esto.
-- La verificación de identidad de Google puede tardar de horas a días.
-- Apenas esté creada, avisame — ahí arranca el resto del workstream de Play
-  Store (ficha, capturas, Data Safety, etc.), y hay varias cosas que puedo
-  redactar por vos (descripción de la ficha, texto del formulario de Data
-  Safety) en cuanto me confirmes que existe la cuenta.
+**Ya declarado (guardado en Play Console):**
+- Anuncios → No
+- Apps gubernamentales → No
+- Funciones financieras → "Mi app no ofrece ninguna función financiera"
+  (confirmado revisando el código: no hay ningún préstamo/crédito oculto,
+  ni activo ni deshabilitado — lo único deshabilitado a propósito hoy es
+  "Crear Promociones", "Administración de Usuarios", "Permiso
+  procesamiento de pedidos" y "Foto de portada", ninguna financiera)
+- Apps de salud → No
+
+**Faltan estas declaraciones (formularios cortos, no necesitan el `.aab`):**
+- ID de publicidad → contestar "No"
+- Público objetivo y contenido → marcar solo "18 y mayores" (tus propios
+  Términos y Condiciones exigen ser mayor de 18)
+- Clasificación del contenido (cuestionario IARC) → mayormente "No", salvo
+  marcar que sí hay interacción/comunicación entre usuarios (el chat en
+  tiempo real de `mensajes_pedido`)
+- Seguridad de los datos (Data Safety) → traducir la sección "Datos que
+  recopilamos" de `frontend/legal.html` al formulario (ubicación GPS,
+  datos personales, CBU/CUIT, foto de DNI)
+- Detalles de acceso → hace falta armar una **cuenta de prueba real**
+  (usuario + contraseña que funcionen) para que el revisor de Google pueda
+  loguearse y ver el contenido de la app — todavía no está creada, avisame
+  cuando quieras que la armemos
+
+**Política de Privacidad — a propósito sin declarar todavía:** la URL lista
+es `https://pa-px2.vercel.app/legal.html` (ya en producción), pero hay un
+borrador más nuevo con la cláusula de Propiedad Intelectual reforzada
+(`docs/legal-tyc-borrador-2026-08-17.html`) que todavía no se volcó a esa
+página en vivo. Se dejó en duda a propósito hasta decidir si se actualiza
+antes — avisame cuando quieras retomarlo.
+
+**Ficha de Play Store:** descripción corta, descripción completa, categoría
+("Comida y bebida") y datos de contacto ya redactados, listos para pegar en
+el formulario real. Faltan el **feature graphic 1024×500** (ítem 7 de esta
+lista) y las **capturas de pantalla** (necesitan el `.aab` corriendo, ver
+ítem 6).
+
+**Corrección importante sobre los testers:** el mínimo real que exige Play
+Console para Closed Testing es **12 testers que acepten activamente la
+invitación** (no ~20 como decía antes esta lista) — y "agregarlos" no
+alcanza, tienen que clickear "aceptar" de verdad (la consola muestra "0
+verificadores aceptaron participar" hasta que lo hagan). Conviene ir
+pensando ya en esas 12 personas (amigos, familia, algún comercio/cadete
+piloto), porque conseguir que acepten y usen la app 14 días corridos es, en
+la práctica, lo que más tiempo de calendario real va a consumir de todo el
+lanzamiento.
 
 ## 2. 🔴 Confirmar el backup del keystore de firma
 
@@ -199,6 +235,27 @@ comisiones) mezclado con el uso actual. Ya aplicado
 con datos de prueba: 3 comercios (uno por ciudad de lanzamiento) + 12
 productos + el switch admin↔cliente para poder comprar con la misma
 cuenta.
+
+## 14. 🟡 Firebase/FCM para push nativo — reabierto hoy (2026-08-19)
+
+Esto estaba explícitamente en pausa (fase 2, post-lanzamiento) hasta que lo
+retomaste vos hoy. Antes de escribir código hay una duda a resolver: **no
+sabés si ya existe un proyecto de Firebase** de un intento anterior — hay un
+indicio real (una API key de Firebase huérfana encontrada en el historial de
+git, de un snippet de FCM que se comentó y se borró — ver `CLAUDE.md` §13,
+ítem 6).
+
+- Entrá a [console.firebase.google.com](https://console.firebase.google.com)
+  con la cuenta de Google del proyecto y fijate si ya hay un proyecto
+  creado para esto.
+- Si existe: sacamos el `google-services.json` de ahí.
+- Si no existe: lo creamos desde cero, vinculado al mismo proyecto de
+  Google Cloud "Puerta a Puerta X" que ya usás para Maps.
+
+Decisión ya tomada: **esto queda pausado hasta terminar el checklist de
+Play Console del ítem 1** — son dos tareas de tipo distinto (formularios
+vs. código + rebuild de Android) y conviene cerrar la más rápida primero.
+Avisame cuando quieras retomarlo.
 
 ---
 

@@ -7,21 +7,18 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 
 ---
 
-## 🔴 IMPORTANTE — Qué falta para poder lanzar
+## 🟡 IMPORTANTE — Qué falta para poder lanzar
 
-> Checklist completo y en detalle en [`PENDIENTES-LANZAMIENTO.md`](PENDIENTES-LANZAMIENTO.md). Resumen acá porque es lo más importante del repo en este momento.
+> Checklist completo y en detalle en [`PENDIENTES-LANZAMIENTO.md`](PENDIENTES-LANZAMIENTO.md). Resumen acá porque es lo más importante del repo en este momento. Actualizado 2026-08-19.
 
-1. **Cuenta de Google Play Console — no existe todavía.** Es lo más urgente: Google exige un track de Closed Testing (~20 testers, 14 días corridos) a cuentas nuevas antes de habilitar Production, y esos 14 días ni arrancaron. Es el ítem de mayor lead-time de todo el lanzamiento.
+1. **Google Play Console — cuenta verificada, app ya creada, completando el checklist.** El track de Closed Testing exige un mínimo de **12 testers que acepten activamente la invitación** (no ~20 como se pensaba antes de tener la cuenta real), corridos 14 días antes de poder pedir Production — sigue siendo el ítem de mayor lead-time de todo el lanzamiento. Detalle línea por línea de qué está declarado y qué falta en `PENDIENTES-LANZAMIENTO.md` ítem 1.
 2. **Backup del keystore de firma Android sin confirmar** fuera de esta máquina. Si se pierde, no hay forma de recuperarlo ni de que Google lo resetee — significaría no poder actualizar nunca más la misma ficha de Play Store.
-3. **Claves VAPID sin cargar en Railway** (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_EMAIL`) — sin esto, el push web (avisos de pedido/oferta) no funciona en producción.
-4. **APK sin probar en un dispositivo real** — login con Google (deep link nativo), flujo de pedido completo, permisos de GPS/cámara. `qa-e2e.mjs` prueba el backend, pero no el shell nativo.
-5. **Feature graphic de Play Store (1024×500 px)** — único gráfico que falta para la ficha.
-6. **Payway** — a cargo de Fabri, no tocar sin que él avance.
-7. **`saveCierre()` (panel comercio, cierre especial por fecha) no persiste nada** — hoy solo muestra un toast. No hay columna/tabla en el schema para esto; arreglarlo de verdad requiere una migración nueva, no un simple fix de código. Detectado en la auditoría de código muerto del 2026-08-07 (ver CHANGELOG).
-8. **Duplicación de lógica sin unificar** (login reimplementado 3 veces, toggle de mostrar-contraseña 3 veces, sanitización HTML 4 veces, init del cliente Supabase 5 veces) — funciona, pero es deuda técnica. Detectado en la misma auditoría, dejado para una tarea aparte a propósito.
-9. **`cliente/login-usuario.html` sin checkbox de Términos y Condiciones** — única vía de registro del sitio sin uno (`/login.html`, `registro-comercio.html` y `registro-cadete.html` sí lo tienen). Detectado en una auditoría del login del 2026-08-07, todavía sin arreglar.
-10. **Bug real en la misma página**: el chequeo de "contraseña mínimo 8 caracteres" se aplica también al iniciar sesión, no solo al registrarse — bloquearía a cualquier cuenta real con contraseña más corta (creada antes de esta regla, o de alta directo en el dashboard de Supabase). Todavía sin arreglar.
-11. **El panel admin nunca pudo guardar el carrusel de ofertas** ("Guardar Slot" en la pestaña Carrusel) — la tabla `patrocinios` en producción no tenía las columnas que ese botón necesita, y tenía `embajador_id`/`comercio_id` como `NOT NULL` sin que nada los completara. Ya arreglado (`migration-fix-patrocinios-columnas-carrusel.sql`, aplicada 2026-08-07).
+3. **APK probado una vez en un dispositivo real (2026-08-11)**, aparecieron bugs de CSS — ya diagnosticados y arreglados en el código (edge-to-edge de Android 15 sin `safe-area-inset`). Falta reinstalar el build actualizado y reconfirmar que desaparecieron, más el resto del flujo: login con Google (deep link nativo), pedido de punta a punta, permisos de GPS/cámara. `qa-e2e.mjs` prueba el backend, pero no el shell nativo.
+4. **Feature graphic de Play Store (1024×500 px)** — único gráfico que falta para la ficha.
+5. **Payway** — a cargo de Fabri, no tocar sin que él avance.
+6. **Firebase/FCM para push nativo — reabierto el 2026-08-19**, pospuesto a propósito hasta cerrar el checklist de Play Console (ítem 1). No está confirmado si ya existe un proyecto de Firebase de un intento anterior (hay un indicio real: una API key de Firebase huérfana en el historial de git). Ver `PENDIENTES-LANZAMIENTO.md` ítem 14.
+7. **Cuenta de prueba para el revisor de Google Play** ("Detalles de acceso" del checklist de Play Console) — todavía no armada.
+8. **Política de Privacidad — declaración en Play Console en pausa a propósito.** Hay un borrador con la cláusula de Propiedad Intelectual reforzada (`docs/legal-tyc-borrador-2026-08-17.html`) sin volcar todavía a la página en vivo (`frontend/legal.html`, ya en producción en `pa-px2.vercel.app/legal.html`).
 
 ---
 
