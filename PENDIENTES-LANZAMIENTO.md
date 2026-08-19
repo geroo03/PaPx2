@@ -113,7 +113,7 @@ Es el único gráfico que falta para la ficha — el ícono de 512×512 ya exist
 Si querés, te ayudo con el texto/concepto, pero el diseño en sí (imagen)
 no lo puedo generar yo.
 
-## 8b. 🟡 Fix de comisiones de embajador — listo, esperando que confirmes el push
+## 8b. ✅ Fix de comisiones de embajador — pusheado a `main`
 
 Surgió el 13 de agosto charlando de cómo simplificar el alta de comercios
 por parte de un embajador. Se encontró un bug real, no solo de UX: el link
@@ -122,18 +122,13 @@ comisión — la sesión del comercio no puede crear la fila en `patrocinios`
 que hace falta para que se acredite algo. Detalle completo en `CLAUDE.md`
 §6/§13 y `CHANGELOG.md` v3.17.0.
 
-- Código ya escrito, testeado (`backend/test` 40/40) y verificado —
-  **todavía sin commitear ni pushear**, a propósito: toca el sistema de
-  comisiones (plata real de embajadores) y hasta ahora no dijiste que
-  pusheara.
+- Código testeado (`backend/test` 40/40) y **pusheado a `main`**
+  (`bd89017`, 13 de agosto) — Railway/Vercel lo despliegan solos.
 - La migración de backfill (`migration-backfill-patrocinios-referidos.sql`)
-  **ya la corriste en Supabase** — eso ya está aplicado, no depende del
-  push del código.
-- Sin el push, el código nuevo (`vincular-referido`) no existe en
-  producción — los embajadores que traigan comercios nuevos por el link
-  siguen sin generar comisión hasta que esto se suba.
-
-**Avisame si querés que pushee esto ahora.**
+  ya estaba corrida en Supabase de antes.
+- El APK debug del ítem 6 (compilado antes de este push) **no** incluye
+  todavía este fix — si vas a probar el flujo de embajador desde la app
+  nativa, avisame y recompilo.
 
 ## 8. 🟢 Cuando tengan Payway resuelto (Fabri)
 
