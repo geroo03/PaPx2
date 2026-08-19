@@ -1,0 +1,241 @@
+<title>Radar Competitivo PaP X</title>
+<style>
+  :root{
+    --ink:        #1a1d1a;
+    --ink-soft:   #4b524c;
+    --paper:      #ffffff;
+    --paper-tint: #f2f4f0;
+    --paper-line: #dfe3dd;
+    --accent:     #1f6f53;
+    --accent-soft:#e3f1ea;
+    --new:        #b5602b;
+    --new-soft:   #f8e9dd;
+    --changed:    #35529a;
+    --changed-soft:#e6ebf7;
+    --risk:       #a3312a;
+    --risk-soft:  #f7e6e4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+      --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a;
+      --changed:#8ca3e8; --changed-soft:#1c243d; --risk:#e2857e; --risk-soft:#3a201f;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+    --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a;
+    --changed:#8ca3e8; --changed-soft:#1c243d; --risk:#e2857e; --risk-soft:#3a201f;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    line-height:1.65; font-size:16px;
+  }
+  .sans{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  a{ color:var(--accent); }
+  code{ background:var(--paper-tint); padding:1px 5px; border-radius:4px; font-size:.92em; }
+  ::selection{ background:var(--accent-soft); }
+
+  .wrap{ max-width:900px; margin:0 auto; padding: 0 24px 96px; }
+
+  .masthead{ border-bottom:3px double var(--paper-line); padding: 48px 0 28px; margin-bottom: 32px; }
+  .eyebrow{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:12px; color:var(--accent); font-weight:700; margin:0 0 10px; }
+  h1.title{ font-size: clamp(28px,4.4vw,42px); margin:0 0 10px; letter-spacing:-.01em; text-wrap:balance; font-weight:700; }
+  .subtitle{ color:var(--ink-soft); font-size:16px; margin:0 0 18px; max-width:66ch; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:10px 22px; font-size:12.5px; color:var(--ink-soft); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .meta-row b{ color:var(--ink); }
+  .notice{ margin-top:22px; padding:14px 16px; border-radius:8px; background:var(--risk-soft); border:1px solid color-mix(in srgb, var(--risk) 35%, var(--paper-line)); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13.5px; }
+  .notice b{ color:var(--risk); }
+
+  h2.sec{ font-size:23px; margin:56px 0 8px; padding-bottom:10px; border-bottom:1px solid var(--paper-line); text-wrap:balance; }
+  h3.sub{ font-size:17px; margin:30px 0 8px; }
+  h4.role{ font-size:13px; margin:20px 0 6px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); }
+  p{ margin:0 0 12px; }
+  ul,ol{ padding-left:22px; margin:0 0 14px; }
+  li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+
+  /* ── Bombshell cards ─────────────────────────────────── */
+  .bomb-grid{ display:grid; gap:14px; margin:20px 0 8px; }
+  .bomb{ border:1px solid var(--risk); background:var(--risk-soft); border-radius:12px; padding:18px 20px; }
+  .bomb h4{ margin:0 0 6px; font-size:16px; color:var(--risk); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .bomb p{ margin:0 0 6px; font-size:14.5px; }
+  .bomb .src{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:11.5px; color:var(--ink-soft); }
+
+  .badge{ display:inline-flex; align-items:center; gap:5px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:999px; white-space:nowrap; vertical-align:middle; }
+  .badge-ok{ background:var(--accent-soft); color:var(--accent); }
+  .badge-gap{ background:var(--risk-soft); color:var(--risk); }
+  .badge-shared{ background:var(--new-soft); color:var(--new); }
+  .badge-mixed{ background:var(--changed-soft); color:var(--changed); }
+
+  .why{ margin: 10px 0 22px; padding:14px 16px; border-radius:8px; background:var(--paper-tint); border:1px solid var(--paper-line); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13px; color:var(--ink-soft); line-height:1.55; }
+  .why b{ color:var(--ink); }
+  .why .src{ display:block; margin-top:6px; font-size:11.5px; color:var(--ink-soft); }
+
+  .table-wrap{ overflow-x:auto; margin: 16px 0; border:1px solid var(--paper-line); border-radius:10px; }
+  table.cmp{ width:100%; border-collapse:collapse; min-width:640px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:12.8px; }
+  table.cmp th, table.cmp td{ padding:9px 12px; text-align:left; border-bottom:1px solid var(--paper-line); vertical-align:top; }
+  table.cmp thead th{ background:var(--paper-tint); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); }
+  table.cmp tbody tr:last-child td{ border-bottom:none; }
+  table.cmp td.pt{ font-weight:700; color:var(--ink); font-family: Georgia, serif; font-size:13.5px; }
+  .yes{ color:var(--accent); font-weight:700; }
+  .no{ color:var(--risk); }
+  .partial{ color:var(--new); }
+
+  .summary-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(210px,1fr)); gap:12px; margin: 20px 0 8px; }
+  .sum-card{ background:var(--paper-tint); border:1px solid var(--paper-line); border-radius:10px; padding:14px 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .sum-card h4{ margin:6px 0 4px; font-size:13.5px; color:var(--ink); }
+  .sum-card p{ margin:0; font-size:12px; color:var(--ink-soft); }
+
+  ol.priority{ counter-reset: pri; list-style:none; padding-left:0; }
+  ol.priority li{ counter-increment: pri; position:relative; padding:12px 0 12px 44px; border-bottom:1px solid var(--paper-line); font-size:14.5px; }
+  ol.priority li:last-child{ border-bottom:none; }
+  ol.priority li::before{ content: counter(pri); position:absolute; left:0; top:10px; width:28px; height:28px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  ol.priority li.hot::before{ background:var(--risk-soft); color:var(--risk); }
+
+  footer{ margin-top:60px; padding-top:22px; border-top:1px solid var(--paper-line); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:12.5px; color:var(--ink-soft); }
+  footer a{ color:var(--ink-soft); }
+  footer li{ margin-bottom:4px; }
+
+  @media (max-width:520px){ .wrap{ padding:0 16px 72px; } .masthead{ padding:32px 0 22px; } }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">Fase 5 · Investigación exhaustiva — legal + producto/negocio</p>
+    <h1 class="title">Radar competitivo: PaP X vs. Rappi, PedidosYa y Uber Eats</h1>
+    <p class="subtitle">Comparación completa (no solo las 7 cláusulas de la Fase 3) más un análisis de producto y modelo de negocio, para entender en qué condición está PaP X y qué se le está escapando.</p>
+    <div class="meta-row">
+      <span><b>Investigado:</b> 18 de agosto de 2026</span>
+      <span><b>Complementa:</b> Blindaje Legal PaP X (Fase 3) y Auditoría de Cumplimiento (Fase 4)</span>
+      <span><b>Método:</b> 3 investigaciones independientes en paralelo, una por competidor</span>
+    </div>
+    <div class="notice">
+      <b>No es asesoramiento legal ni financiero.</b> Esto lo armó una IA investigando fuentes públicas — no reemplaza la revisión de un abogado ni de un asesor de negocio. Donde no se encontró un dato oficial, se marca explícitamente como estimación o como no disponible, sin inventar cifras.
+    </div>
+  </div>
+
+  <h2 class="sec">Lo más urgente — 3 hallazgos que cambian el panorama</h2>
+  <p>Ninguno de estos tres estaba en el radar antes de esta investigación. Van primero porque importan más que cualquier comparación cláusula por cláusula.</p>
+
+  <div class="bomb-grid">
+    <div class="bomb">
+      <h4>🏛️ Ley 27.802 — nueva ley laboral, vigente desde el 1° de junio de 2026, puede aplicarle a PaP X directamente</h4>
+      <p>Crea la figura de <strong>"prestador independiente de plataformas tecnológicas"</strong>, aplicable según la prensa a "Rappi, PedidosYa, Uber y Cabify, <strong>entre otros</strong>" — sin que ninguna fuente confirme un piso de tamaño de empresa que excluya a plataformas chicas como PaP X. Obliga a garantizar <strong>seguro de accidentes personales</strong> (muerte, incapacidad, gastos médicos, sepelio) para los repartidores, aunque un artículo aclara que "la responsabilidad de la provisión de este seguro será objeto de libre acuerdo entre las partes" — deja ambigüedad sobre quién paga. La sección 7.3 de <code>legal.html</code> hoy dice explícitamente "sin seguro provisto por la empresa" — vale la pena que un abogado laboral confirme si eso sigue siendo sostenible bajo la ley nueva.</p>
+      <span class="src">Fuentes: Boletín Oficial (boletinoficial.gob.ar/detalleAviso/primera/339128/20260306), Infobae (20/2 y 28/2/2026), La Nación (12/2/2026).</span>
+    </div>
+    <div class="bomb">
+      <h4>⚖️ La Justicia bonaerense ya falló contra Rappi por el mismo tipo de cláusula que usa PaP X</h4>
+      <p>El 14/04/2026 la Suprema Corte de Buenos Aires <strong>dejó firme un fallo que reconoce relación de dependencia laboral</strong> de un repartidor de Rappi, con una multa de más de <strong>$16 millones</strong> ya firme. El tribunal aplicó la presunción del art. 23 de la Ley de Contrato de Trabajo y sostuvo que <strong>"la denominación formal que las partes asignan a un vínculo no resulta determinante"</strong> — es decir, no importa que el contrato diga "prestador independiente" si en los hechos hay subordinación. El T&C de Rappi que perdió ese juicio usa casi el mismo lenguaje que la sección 7 de <code>legal.html</code> de PaP X hoy. El fallo es de la Provincia de Buenos Aires (no nacional), pero el razonamiento es aplicable a cualquier plataforma con el mismo modelo contractual — sin importar el tamaño.</p>
+      <span class="src">Fuentes: Infobae (14/04/2026), La Nación (14/04/2026), análisis doctrinario en aldiaargentina.microjuris.com (08/05/2026).</span>
+    </div>
+    <div class="bomb">
+      <h4>💰 Uber compró Delivery Hero (dueña de PedidosYa) por US$14.800 millones</h4>
+      <p>Anunciado el 16/07/2026, incluye las operaciones de Delivery Hero en 50 mercados, entre ellos Argentina (PedidosYa). Cierre estimado: segunda mitad de 2027, sujeto a aprobación regulatoria. Uber sumó otros US$500 millones de inversión adicional en Argentina apenas horas después del anuncio (van ~US$1.000 millones comprometidos en el país entre esto y el relanzamiento de Uber Eats). En el corto plazo "la aplicación continuará operando con normalidad", pero de cara a 2027+ es esperable que PedidosYa y Uber Eats terminen bajo un mismo dueño — más capital, posible consolidación de marca, presión competitiva mayor justo en Córdoba, una de las 3 ciudades de PaP X.</p>
+      <span class="src">Fuentes: La Nación (16/07/2026), Infobae (16/07/2026), Perfil, iProfesional (negocios/460184).</span>
+    </div>
+  </div>
+
+  <h3 class="sub">Corrección a una premisa que veníamos usando</h3>
+  <p>La investigación previa (Fase 3) asumía que Santiago del Estero era "la plaza con menos presencia de los grandes players". Esto se confirma <strong>parcialmente</strong>, no del todo: Rappi y PedidosYa <strong>ya están activos en las 3 ciudades</strong> de PaP X. Rappi tiene 82 restaurantes listados en Santiago del Estero (vs. 1.008 en La Plata — la diferencia de escala es real) y presencia consolidada en Córdoba desde 2018. Uber Eats es el único que, a la fecha, <strong>no</strong> tiene presencia confirmada en La Plata ni Santiago del Estero — su rollout público llega hasta Córdoba → Mendoza → Rosario → Buenos Aires.</p>
+
+  <!-- ═══════════════ BLOQUE A: LEGAL ═══════════════ -->
+  <h2 class="sec">Bloque A — Legal, exhaustivo</h2>
+  <p>La Fase 3 comparó 7 cláusulas puntuales con fragmentos de texto. Acá se investigó el documento completo de cada competidor (Términos + Privacidad, y donde existe, términos de comercios/repartidores aparte) y se revisaron las 26 secciones de <code>legal.html</code> una por una.</p>
+
+  <h3 class="sub">Tabla comparativa por cláusula</h3>
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead><tr><th>Cláusula</th><th>PaP X</th><th>Rappi</th><th>PedidosYa</th><th>Uber Eats</th></tr></thead>
+      <tbody>
+        <tr><td class="pt">Indemnización del usuario</td><td class="no">No tiene</td><td class="yes">Sí, amplia</td><td class="partial">Sí, acotada (solo error de dirección)</td><td class="yes">Sí, amplia</td></tr>
+        <tr><td class="pt">Fuerza mayor</td><td class="no">No tiene</td><td class="yes">Sí</td><td class="no">No tiene</td><td class="yes">Sí</td></tr>
+        <tr><td class="pt">Cesión del contrato (empresa puede ceder)</td><td class="no">No tiene</td><td class="yes">Sí</td><td class="partial">Solo prohíbe ceder al usuario, no habla de la empresa</td><td class="yes">Sí</td></tr>
+        <tr><td class="pt">Reembolsos/cancelaciones</td><td class="no">No tiene</td><td class="yes">Sí, detallado</td><td class="yes">Sí (revocación 10 días)</td><td class="yes">Sí, detallado</td></tr>
+        <tr><td class="pt">Ingeniería inversa / scraping prohibidos</td><td class="partial">Reforzado en el borrador Fase 3</td><td class="yes">Sí, explícito</td><td class="partial">Prohíbe copiar el HTML, no menciona bots/scraping moderno</td><td class="yes">Sí, explícito (incluye "mirroring/framing")</td></tr>
+        <tr><td class="pt">Tope numérico de responsabilidad</td><td class="yes">Sí — monto del último pedido</td><td class="no">No tiene (exclusión abierta, sin cifra)</td><td class="no">No tiene</td><td class="no">No tiene</td></tr>
+        <tr><td class="pt">Resolución de disputas</td><td class="no">Jurisdicción fija en Santiago del Estero, sin opción</td><td class="partial">Judicial, con opción de foro (BA o domicilio del usuario)</td><td class="partial">Judicial, con opción de foro (CABA o domicilio del usuario)</td><td class="yes">Arbitraje internacional obligatorio (CCI, Ámsterdam)</td></tr>
+        <tr><td class="pt">Preaviso de cambios en los términos</td><td class="no">Sin plazo, uso continuado = aceptación</td><td class="yes">10 días corridos, con derecho a rechazo</td><td class="partial">Pide "consentimiento" para seguir usando</td><td class="no">Sin plazo, uso continuado = aceptación</td></tr>
+        <tr><td class="pt">DMCA / takedown de contenido de terceros</td><td class="partial">Cláusula 9.3 agregada en el borrador Fase 3</td><td class="no">Solo cláusula genérica, sin proceso formal</td><td class="no">No tiene</td><td class="yes">Sí, proceso formal notice-and-counter-notice (confirmado para México, no verificado puntualmente para AR)</td></tr>
+        <tr><td class="pt">Disclaimer de asistente de IA</td><td class="partial">Agregado en el borrador Fase 3</td><td class="no">No, pese a tener un asistente de IA en producción (WhatsApp, regional)</td><td class="no">No mencionado</td><td class="no">No, pese a tener "Cart Assistant" de IA en producción</td></tr>
+        <tr><td class="pt">Transparencia de proveedores/subprocesadores</td><td class="yes">Nombra Supabase/MercadoPago/Vercel/Railway</td><td class="no">Solo nombra "Amplitude"</td><td class="no">Categorías genéricas, sin nombres</td><td class="partial">Nombra ad-tech (Criteo/Google/TripleLift) pero no infra core</td></tr>
+        <tr><td class="pt">Cookies/tracking publicitario de terceros</td><td class="yes">Declara que no usa</td><td class="no">Sí usa (ad-targeting, cookies de identificación)</td><td class="no">Sí usa (Google Analytics nombrado)</td><td class="no">Sí usa, extenso (Criteo, Google, TripleLift, Meta, TikTok)</td></tr>
+        <tr><td class="pt">Notificación de brechas de datos</td><td class="no">No tiene</td><td class="no">No tiene</td><td class="no">No tiene</td><td class="no">No tiene (pero Uber sí tuvo brechas reales en 2016 y 2022)</td></tr>
+        <tr><td class="pt">Contrato formal con comercios (duración/renovación)</td><td class="no">Informal, sin documento de adhesión propio</td><td class="no">Sin documento público equivalente</td><td class="no">Sin documento público equivalente</td><td class="yes">Sí — renovación automática anual, con indemnización del comercio hacia Uber</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:13px;color:var(--ink-soft)">Leyenda: <span class="yes">verde</span> = mejor cobertura, <span class="partial">ámbar</span> = parcial/mixto, <span class="no">rojo</span> = ausente. El borrador de la Fase 3 ya resuelve 4 de estas filas (indemnización, fuerza mayor, cesión, scraping, DMCA, disclaimer de IA) — falta aprobarlo y publicarlo.</p>
+
+  <h3 class="sub">El punto más sensible: relación laboral encubierta</h3>
+  <p>Ni Rappi ni PedidosYa ni Uber Eats resolvieron esto con una cláusula — <strong>ninguna cláusula lo resuelve</strong>, es un tema de cómo opera la relación en la práctica, no de qué dice el contrato (ver el fallo contra Rappi arriba). Un dato a favor de PaP X: el diseño de <code>matchingUtils.rankearCandidatos()</code> le <em>ofrece</em> un pedido al cadete, que puede rechazarlo, en vez de asignárselo de forma obligatoria — es exactamente el tipo de señal que un juez laboral suele mirar a favor de la independencia real. Vale la pena mantenerlo y reforzarlo a propósito.</p>
+
+  <h3 class="sub">Arbitraje — con los 3 competidores ya investigados a fondo, la conclusión de la Fase 4 se mantiene</h3>
+  <p>Uber Eats es el único de los tres con arbitraje real (mediación CCI + arbitraje vinculante, 1 árbitro, sede Ámsterdam, ley holandesa, idioma inglés salvo que el usuario no lo hable). Ni Rappi ni PedidosYa lo usan con consumidores en Argentina — ambas resuelven por vía judicial ordinaria, dándole al usuario opción de foro. Esto confirma con más fuerza lo que ya se había recomendado en la Fase 4: el patrón de Rappi/PedidosYa (judicial, con opción de foro) es el más seguro para PaP X con clientes; el de Uber es una plantilla global de una empresa holandesa, no un patrón pensado para consumidores argentinos.</p>
+
+  <h3 class="sub">Privacidad — cookies y analytics de terceros</h3>
+  <p>PaP X declara no usar cookies de terceros con fines publicitarios, y la investigación de código (Fase 4) confirmó que no hay ningún SDK de analytics real. Los 3 competidores sí declaran analytics/ad-tech de terceros: Rappi nombra Amplitude, PedidosYa nombra Google Analytics, Uber Eats nombra Criteo/Google/TripleLift y comparte datos con Meta/TikTok. Esto no es necesariamente un gap de PaP X — es una diferencia de modelo de negocio real (los 3 competidores monetizan con publicidad de terceros, PaP X no) — pero confirma que la política de privacidad actual de PaP X es honesta con lo que hace, no aspiracional.</p>
+
+  <!-- ═══════════════ BLOQUE B: PRODUCTO/NEGOCIO ═══════════════ -->
+  <h2 class="sec">Bloque B — Producto y negocio</h2>
+
+  <h3 class="sub">Comisión a comercios — la diferencia de modelo más grande</h3>
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead><tr><th></th><th>PaP X</th><th>Rappi</th><th>PedidosYa</th><th>Uber Eats</th></tr></thead>
+      <tbody>
+        <tr><td class="pt">Comisión al comercio</td><td class="yes"><strong>0%</strong> — el comercio recibe el 100% de su precio de lista</td><td class="no">No publicada; estimaciones de mercado 25-35%</td><td class="no">No publicada; estimaciones de mercado 25-35% (histórico 2021, ya vencido: 10-18%)</td><td class="no">No publicada; rango de industria estimado 25-30%</td></tr>
+        <tr><td class="pt">Cargo al cliente</td><td>20% fijo + tarifa por km</td><td>Tarifa dinámica (no publicada) + 1.5-2% de servicio</td><td>Costo de envío + "Service Fee" separado (cifra no publicada)</td><td>Tarifa variable (no confirmada para el relanzamiento 2026) + posible surge</td></tr>
+        <tr><td class="pt">Membresía/suscripción</td><td class="no">No tiene</td><td>Rappi Pro $5.990/mes · Pro Black $9.990/mes</td><td>PedidosYa Plus $499/mes, +150.000 suscriptores, 80% renovación</td><td>Uber One $3.999/mes o $39.000/año</td></tr>
+        <tr><td class="pt">Publicidad paga para comercios</td><td class="no">No tiene</td><td class="yes">Rappi Ads</td><td class="yes">Posicionamiento promocional (Partner Portal)</td><td class="yes">Uber Eats Ads (modelo CPC)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Ninguno de los tres competidores le cobra 0% al comercio.</strong> Es, con diferencia, el argumento comercial más fuerte que tiene PaP X para captar comercios frente a los tres — vale la pena que aparezca explícito en cualquier material de ventas/onboarding de comercios, no solo implícito en el pricing.</p>
+
+  <h3 class="sub">Funcionalidades</h3>
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead><tr><th>Funcionalidad</th><th>PaP X</th><th>Rappi</th><th>PedidosYa</th><th>Uber Eats</th></tr></thead>
+      <tbody>
+        <tr><td class="pt">Pedidos programados</td><td class="no">No</td><td class="partial">No confirmado</td><td class="yes">Sí</td><td class="partial">Existe globalmente, no confirmado para AR</td></tr>
+        <tr><td class="pt">Carrito grupal/multi-comercio</td><td class="no">No</td><td class="partial">No confirmado</td><td class="partial">No confirmado</td><td class="partial">Existe globalmente, no confirmado para AR</td></tr>
+        <tr><td class="pt">"Super app" (farmacia/super/mandados)</td><td class="no">No — solo delivery de comercios locales</td><td class="yes">Sí, extenso: Turbo, Farmacia, Super, RappiFavor, RappiPay</td><td class="yes">Sí: PedidosYa Market, farmacia, Envíos (logística B2B)</td><td class="no">No — Uber Eats es solo delivery de comida; la "super app" de Uber es viajes+delivery, no retail</td></tr>
+        <tr><td class="pt">Programa de referidos</td><td class="yes">Sí — embajador (capta comercios) y cadete (2% de 50 viajes)</td><td class="partial">Solo repartidores/clientes, no para captar comercios</td><td class="partial">No confirmado equivalente</td><td class="partial">Existe globalmente para repartidores, no confirmado activo en AR</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub">Economía del cadete/rider — contexto de mercado</h3>
+  <p>Cifras de mercado (no específicas de una sola plataforma, de fuentes periodísticas — tratarlas como estimación, no dato duro): pago promedio por entrega reportado entre <strong>$2.700 y $3.900</strong> según la fuente y el mes; estudios citan que un repartidor necesita entre <strong>150 y 460+ entregas mensuales</strong> para no caer bajo la línea de pobreza, según composición del hogar. Es contexto de la industria completa, no una comparación directa con la tarifa de PaP X (`tarifaUtils.js`: base $1800 moto/$1200 bici + $750/km, +20% por clima), pero sirve para calibrar si la tarifa de PaP X es competitiva frente al mercado real, no solo frente a la fórmula de los competidores.</p>
+
+  <h2 class="sec">Resumen — qué se le está escapando a PaP X</h2>
+
+  <div class="summary-grid">
+    <div class="sum-card"><span class="badge badge-gap">Riesgo real</span><h4>Relación laboral de cadetes</h4><p>Ley 27.802 + fallo contra Rappi. Ninguna cláusula lo resuelve — requiere revisión legal de cómo opera la relación en la práctica.</p></div>
+    <div class="sum-card"><span class="badge badge-ok">Ventaja a explotar</span><h4>0% de comisión al comercio</h4><p>Ningún competidor lo iguala. Es el argumento de ventas más fuerte frente a los tres — hacerlo explícito.</p></div>
+    <div class="sum-card"><span class="badge badge-shared">Oportunidad de producto</span><h4>Sin membresía/suscripción</h4><p>Los 3 competidores tienen un programa de fidelización pago (Pro, Plus, One). PaP X no tiene ninguno equivalente.</p></div>
+    <div class="sum-card"><span class="badge badge-mixed">Vigilar, no actuar aún</span><h4>Uber compra Delivery Hero</h4><p>Cierre recién en 2027. No hay acción inmediata, pero cambia el contexto competitivo de mediano plazo.</p></div>
+  </div>
+
+  <ol class="priority">
+    <li class="hot"><strong>Consultar a un abogado laboral</strong> sobre Ley 27.802 y el fallo contra Rappi (Corte de Buenos Aires, abril 2026) — es el único punto de todo este informe donde hay riesgo legal real y actual, no solo comparación de producto.</li>
+    <li class="hot">Revisar si la sección 7.3 de <code>legal.html</code> ("sin seguro provisto por la empresa") sigue siendo sostenible bajo la nueva ley — puede requerir ajuste de texto y/o de práctica real.</li>
+    <li>Aprobar y publicar las cláusulas del borrador de la Fase 3 (indemnización, fuerza mayor, cesión, propiedad intelectual reforzada, contenido subido, DMCA, IA) — esta investigación confirma que las 3 competidoras ya las tienen, en su mayoría.</li>
+    <li>Agregar una cláusula de reembolsos/cancelaciones — gap real de PaP X, presente en los 3 competidores.</li>
+    <li>Hacer explícito en marketing/onboarding de comercios que PaP X no cobra comisión — es la ventaja competitiva más clara de todo el informe.</li>
+    <li>Evaluar (no urgente) un programa de membresía/suscripción tipo Plus/Pro/One para clientes frecuentes — hoy PaP X no tiene ninguna herramienta de fidelización de este tipo.</li>
+    <li>Confirmar con un abogado la cláusula de jurisdicción de clientes (ya señalado en la Fase 3) — con Rappi y PedidosYa dando opción de foro al usuario, mantener la jurisdicción fija de PaP X en Santiago del Estero es, además del riesgo de nulidad ya identificado, la opción menos alineada con el resto de la industria.</li>
+    <li>Sin acción inmediata: seguir de cerca el proceso Uber–Delivery Hero (cierre 2027) y la expansión de Uber Eats a más ciudades — hoy no llega a La Plata ni Santiago del Estero, pero el plan de rollout es activo.</li>
+  </ol>
+
+  <footer>
+    <p><strong>Nota sobre las fuentes:</strong> este documento resume tres investigaciones independientes (una por competidor), cada una con entre 35 y 40 búsquedas/fetches propios. Las URLs completas de cada afirmación específica no se repiten todas acá por espacio — están documentadas en el detalle de cada investigación (disponible bajo pedido). Los datos de pricing/comisiones marcados como "no publicados" u "estimación de mercado" están así marcados a propósito — no son cifras oficiales confirmadas por las empresas.</p>
+    <p style="margin-top:10px">Complementa: <em>Blindaje Legal PaP X</em> (Fase 3, borrador de cláusulas) y <em>Auditoría de Cumplimiento PaP X</em> (Fase 4, checklist de IA/arbitraje/privacy labels/DMCA).</p>
+  </footer>
+
+</div>
