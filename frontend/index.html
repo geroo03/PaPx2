@@ -4,10 +4,69 @@
   <meta charset="UTF-8">
   <link rel="icon" type="image/jpeg" href="/puertaapuertax.jpg">
   <title>Puerta a Puerta X</title>
-  <script>
-    // Preserva query params y hash (tokens OAuth de Supabase viajan en el hash)
-    window.location.replace('/login.html' + window.location.search + window.location.hash);
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/env.js"></script>
 </head>
-<body></body>
+<body>
+<script type="module">
+  // Entrada única de la app (Capacitor abre esto en cada cold-start, y es
+  // la raíz del dominio web). Antes redirigía SIEMPRE a /login.html sin
+  // mirar si ya había sesión — con eso, alguien ya logueado veía la
+  // pantalla de login en cada apertura de la app, no solo la primera vez.
+  //
+  // login.js NO hace este chequeo a propósito (ver comentario ahí: "si el
+  // usuario está en login.html, quiere loguearse" — fix de 2026-06-29,
+  // evita que una sesión vieja te secuestre la navegación cuando querés
+  // entrar con otra cuenta). Ese fix sigue 100% intacto: login.html solo
+  // se pisa cuando se llega ACÁ, en el arranque — nunca al visitar
+  // /login.html directo (logout, "cambiar de cuenta", etc. navegan ahí
+  // sin pasar por este archivo).
+  //
+  // RUTAS duplica el mapa de login.js (assets/js/login.js) a propósito —
+  // ver CLAUDE.md sobre por qué login.js se dejó sin tocar/unificar en la
+  // limpieza de duplicación de 2026-08-11. Es un objeto de 5 líneas que
+  // casi no cambia; el costo de la duplicación es menor que acoplar este
+  // archivo a los efectos secundarios de login.js (listeners de DOM que
+  // no existen acá).
+  const RUTAS = {
+    usuario:   '/cliente/index.html',
+    cliente:   '/cliente/index.html',
+    comercio:  '/comercio/comercio.html',
+    cadete:    '/cadete/cadete.html',
+    embajador: '/embajador/dashboard.html',
+    admin:     '/admin/admin.html',
+  };
+
+  const irALogin = () => {
+    window.location.replace('/login.html' + window.location.search + window.location.hash);
+  };
+
+  (async () => {
+    try {
+      const url = window.SUPABASE_URL, key = window.SUPABASE_ANON_KEY;
+      if (!url || !key || !window.supabase) return irALogin();
+      const sb = window.supabase.createClient(url, key);
+
+      // getUser() (no getSession()) a propósito: valida contra el server en
+      // vez de confiar en un token cacheado en localStorage que puede estar
+      // vencido/revocado — ver commit b8da572 en este mismo repo, mismo
+      // problema ya encontrado antes en el guard de cadete. Acá el costo
+      // (~300-800ms) es aceptable: es un chequeo de una sola vez al abrir
+      // la app, no un hot path.
+      const { data: { user }, error } = await sb.auth.getUser();
+      if (error || !user) return irALogin();
+
+      let rol = null;
+      const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', user.id).single();
+      rol = perfil?.rol ?? user.user_metadata?.role ?? null;
+
+      if (!rol || !RUTAS[rol]) return irALogin();
+      window.location.replace(RUTAS[rol]);
+    } catch (e) {
+      console.error('[PaP index] Error chequeando sesión existente:', e);
+      irALogin();
+    }
+  })();
+</script>
+</body>
 </html>
