@@ -102,7 +102,11 @@
   <!-- TAB: Comercios -->
   <div class="tab-panel" id="tab-comercios">
     <div class="panel"><h2>Comercios pendientes (embajadores)</h2><div id="pendientes-list">Cargando...</div></div>
-    <div class="panel"><h2>Comercios activos</h2><div id="comercios-list">Cargando...</div></div>
+    <div class="panel">
+      <h2>Comercios activos</h2>
+      <div id="deuda-comercios-resumen" style="margin-bottom:18px;max-width:220px;"></div>
+      <div id="comercios-list">Cargando...</div>
+    </div>
   </div>
 
   <!-- TAB: Cadetes -->
@@ -116,7 +120,11 @@
 
   <!-- TAB: Embajadores -->
   <div class="tab-panel" id="tab-embajadores">
-    <div class="panel"><h2>Embajadores y billeteras</h2><div id="embajadores-list">Cargando...</div></div>
+    <div class="panel">
+      <h2>Embajadores y billeteras</h2>
+      <div id="comisiones-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;"></div>
+      <div id="embajadores-list">Cargando...</div>
+    </div>
   </div>
 
   <!-- TAB: Retiros -->
@@ -292,18 +300,25 @@ async function loadPedidos() {
 // ── COMERCIOS ────────────────────────────────────────────────────────────────
 async function loadComercios() {
   const el = document.getElementById('comercios-list');
+  const resumenEl = document.getElementById('deuda-comercios-resumen');
   try {
     const { data, error } = await supabase
       .from('comercios')
-      .select('id, nombre, categoria, direccion, telefono, estado_registro, lat, lng')
+      .select('id, nombre, categoria, direccion, telefono, estado_registro, lat, lng, deuda')
       .order('nombre');
     if (error) throw error;
     _comerciosCache = data || [];
     if (!data?.length) { el.innerHTML = '<div class="empty">Sin comercios.</div>'; return; }
-    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Rubro</th><th>Direccion</th><th>Tel</th><th>GPS</th><th>Estado</th><th>Accion</th></tr></thead><tbody>${data.map(c => {
+
+    const deudaTotal = data.reduce((s,c)=>s+Number(c.deuda||0),0);
+    if (resumenEl) resumenEl.innerHTML = `<article class="kpi"><div><div class="title">Deuda total de comercios</div><div class="value" style="color:${deudaTotal>0?'#dc2626':'inherit'};">$${deudaTotal.toLocaleString('es-AR')}</div></div></article>`;
+
+    el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Rubro</th><th>Direccion</th><th>Tel</th><th>GPS</th><th>Deuda</th><th>Estado</th><th>Accion</th></tr></thead><tbody>${data.map(c => {
       const gps = (c.lat && c.lng) ? `<span class="badge badge-green" title="${esc(c.lat)},${esc(c.lng)}">Si</span>` : '<span class="badge badge-red">No</span>';
       const est = c.estado_registro === 'activo' ? '<span class="badge badge-green">Activo</span>' : `<span class="badge badge-yellow">${esc(c.estado_registro)}</span>`;
-      return `<tr><td style="font-weight:600;">${esc(c.nombre)}</td><td>${esc(c.categoria)||'—'}</td><td>${esc(c.direccion)||'—'}</td><td>${esc(c.telefono)||'—'}</td><td>${gps}</td><td>${est}</td><td><button class="btn btn-outline" style="font-size:11px;padding:4px 8px;" onclick="editarGPS('${c.id}')">GPS</button></td></tr>`;
+      const deuda = Number(c.deuda||0);
+      const deudaTxt = `<span style="font-weight:700;color:${deuda>0?'#dc2626':'#16a34a'};">$${deuda.toLocaleString('es-AR')}</span>`;
+      return `<tr><td style="font-weight:600;">${esc(c.nombre)}</td><td>${esc(c.categoria)||'—'}</td><td>${esc(c.direccion)||'—'}</td><td>${esc(c.telefono)||'—'}</td><td>${gps}</td><td>${deudaTxt}</td><td>${est}</td><td><button class="btn btn-outline" style="font-size:11px;padding:4px 8px;margin-right:4px;" onclick="editarGPS('${c.id}')">GPS</button><button class="btn btn-outline" style="font-size:11px;padding:4px 8px;" onclick="editarDeudaComercio('${c.id}')">Deuda</button></td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando comercios.</div>'; console.error(e); }
 }
@@ -471,27 +486,29 @@ window.adminRechazarLiq = async function(liqId) {
 // ── EMBAJADORES ──────────────────────────────────────────────────────────────
 async function loadEmbajadores() {
   const el = document.getElementById('embajadores-list');
+  const resumenEl = document.getElementById('comisiones-resumen');
   try {
-    const { data, error } = await supabase
-      .from('perfiles')
-      .select('usuario_id, email, nombre')
-      .eq('rol','embajador');
-    if (error) throw error;
-    if (!data?.length) { el.innerHTML = '<div class="empty">Sin embajadores.</div>'; return; }
+    // Vía backend (service_role) — billetera_embajador no tiene policy RLS de
+    // admin, solo "el propio embajador" y "service_role". Ver comentario de
+    // adminResumenComisiones() en embajadorController.js.
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch((window.BACKEND_URL||'') + '/api/embajadores/admin/resumen', {
+      headers: { 'Authorization': 'Bearer ' + session.access_token },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
 
-    // Cargar billeteras
-    const ids = data.map(e => e.usuario_id);
-    const { data: billeteras } = await supabase.from('billetera_embajador').select('*').in('embajador_id', ids);
-    const billMap = Object.fromEntries((billeteras||[]).map(b => [b.embajador_id, b]));
+    const t = json.totales || { generadas: 0, pagadas: 0, pendientes: 0 };
+    resumenEl.innerHTML = `
+      <article class="kpi"><div><div class="title">Comisiones generadas</div><div class="value">$${Number(t.generadas).toLocaleString('es-AR')}</div></div></article>
+      <article class="kpi"><div><div class="title">Comisiones pagadas</div><div class="value">$${Number(t.pagadas).toLocaleString('es-AR')}</div></div></article>
+      <article class="kpi"><div><div class="title">Comisiones pendientes</div><div class="value" style="color:#16a34a;">$${Number(t.pendientes).toLocaleString('es-AR')}</div></div></article>`;
 
-    // Cargar patrocinios count
-    const { data: pats } = await supabase.from('patrocinios').select('embajador_id').in('embajador_id', ids);
-    const patCount = {};
-    (pats||[]).forEach(p => { patCount[p.embajador_id] = (patCount[p.embajador_id]||0) + 1; });
+    const data = json.embajadores || [];
+    if (!data.length) { el.innerHTML = '<div class="empty">Sin embajadores.</div>'; return; }
 
     el.innerHTML = `<table><thead><tr><th>Nombre</th><th>Email</th><th>Comercios</th><th>Disponible</th><th>Acumulado</th><th>Retirado</th></tr></thead><tbody>${data.map(e => {
-      const b = billMap[e.usuario_id] || {};
-      return `<tr><td style="font-weight:600;">${esc(e.nombre)||'—'}</td><td>${esc(e.email)||'—'}</td><td>${patCount[e.usuario_id]||0}</td><td style="color:#16a34a;font-weight:700;">$${Number(b.saldo_disponible||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_acumulado||0).toLocaleString('es-AR')}</td><td>$${Number(b.saldo_retirado||0).toLocaleString('es-AR')}</td></tr>`;
+      return `<tr><td style="font-weight:600;">${esc(e.nombre)||'—'}</td><td>${esc(e.email)||'—'}</td><td>${e.comercios||0}</td><td style="color:#16a34a;font-weight:700;">$${Number(e.saldo_disponible||0).toLocaleString('es-AR')}</td><td>$${Number(e.saldo_acumulado||0).toLocaleString('es-AR')}</td><td>$${Number(e.saldo_retirado||0).toLocaleString('es-AR')}</td></tr>`;
     }).join('')}</tbody></table>`;
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando embajadores.</div>'; console.error(e); }
 }
@@ -639,6 +656,22 @@ window.editarGPS = async function(id) {
     const { error } = await supabase.from('comercios').update({ lat: latN, lng: lngN }).eq('id', id);
     if (error) throw error;
     alert(`GPS actualizado para "${nombre}": ${latN}, ${lngN}`);
+    loadComercios();
+  } catch(e) { alert('Error: ' + e.message); }
+};
+
+window.editarDeudaComercio = async function(id) {
+  const comercio = _comerciosCache.find(c => c.id === id);
+  const nombre = comercio?.nombre ?? '(comercio)';
+  const deudaActual = Number(comercio?.deuda ?? 0);
+  const nuevo = prompt(`Deuda del comercio "${nombre}" (20% de sus pedidos cobrados en efectivo).\nActual: $${deudaActual.toLocaleString('es-AR')}`, deudaActual);
+  if (nuevo === null) return;
+  const nuevoN = parseFloat(nuevo);
+  if (isNaN(nuevoN) || nuevoN < 0) { alert('Monto inválido.'); return; }
+  try {
+    const { error } = await supabase.from('comercios').update({ deuda: nuevoN }).eq('id', id);
+    if (error) throw error;
+    alert(`Deuda de "${nombre}" actualizada a $${nuevoN.toLocaleString('es-AR')}`);
     loadComercios();
   } catch(e) { alert('Error: ' + e.message); }
 };

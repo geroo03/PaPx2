@@ -6,6 +6,7 @@ import {
   solicitarRetiro,
   confirmarPago,
   rechazarRetiro,
+  adminResumenComisiones,
 } from '../controllers/embajadorController.js';
 
 const router = Router();
@@ -18,5 +19,6 @@ router.post('/solicitar-retiro',  requireAuth, solicitarRetiro);
 // Admin
 router.patch('/retiro/:id/pagar',   requireAuth, confirmarPago);
 router.patch('/retiro/:id/rechazar',requireAuth, rechazarRetiro);
+router.get('/admin/resumen',        requireAuth, adminResumenComisiones);
 
 export default router;

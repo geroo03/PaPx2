@@ -266,6 +266,78 @@ export async function rechazarRetiro(req, res) {
   }
 }
 
+// ─── adminResumenComisiones ───────────────────────────────────────────────────
+
+/**
+ * GET /api/embajadores/admin/resumen
+ *
+ * Solo admin. Resumen de comisiones de TODOS los embajadores (generadas/
+ * pagadas/pendientes, total y por embajador) para el panel de admin.
+ *
+ * Existe porque `billetera_embajador` (la tabla real, ver nota en CLAUDE.md
+ * §7 sobre `opciones_items` para el mismo tipo de desvío schema-vs-realidad)
+ * solo tiene policies RLS de "el propio embajador" (`embajador_id = auth.uid()`)
+ * y "service_role" — nunca una de admin. admin.html leía esta tabla directo
+ * con el cliente de Supabase y la query no fallaba, solo devolvía 0 filas, así
+ * que el panel mostraba $0 en Disponible/Acumulado/Retirado para todos los
+ * embajadores sin ningún error visible. Acá se resuelve pasando por
+ * supabaseAdmin (service_role) en vez de tocar RLS.
+ */
+export async function adminResumenComisiones(req, res) {
+  const rol = await resolveRol(req.user.id, req.user.user_metadata);
+  if (rol !== 'admin') {
+    return res.status(403).json({ error: 'Solo administradores pueden ver este resumen.' });
+  }
+
+  try {
+    const { data: embajadores, error: eErr } = await supabaseAdmin
+      .from('perfiles')
+      .select('usuario_id, nombre, email')
+      .eq('rol', 'embajador');
+    if (eErr) throw eErr;
+
+    const ids = (embajadores ?? []).map(e => e.usuario_id);
+    if (!ids.length) {
+      return res.json({ embajadores: [], totales: { generadas: 0, pagadas: 0, pendientes: 0 } });
+    }
+
+    const [{ data: billeteras }, { data: patrocinios }] = await Promise.all([
+      supabaseAdmin.from('billetera_embajador').select('*').in('embajador_id', ids),
+      supabaseAdmin.from('patrocinios').select('embajador_id').in('embajador_id', ids),
+    ]);
+
+    const billMap = Object.fromEntries((billeteras ?? []).map(b => [b.embajador_id, b]));
+    const patCount = {};
+    (patrocinios ?? []).forEach(p => { patCount[p.embajador_id] = (patCount[p.embajador_id] ?? 0) + 1; });
+
+    let generadas = 0, pagadas = 0, pendientes = 0;
+    const lista = embajadores.map(e => {
+      const b = billMap[e.usuario_id] ?? {};
+      const disponible = Number(b.saldo_disponible ?? 0);
+      const acumulado  = Number(b.saldo_acumulado ?? 0);
+      const retirado   = Number(b.saldo_retirado ?? 0);
+      generadas  += acumulado;
+      pagadas    += retirado;
+      pendientes += disponible;
+      return {
+        usuario_id:       e.usuario_id,
+        nombre:           e.nombre,
+        email:            e.email,
+        comercios:        patCount[e.usuario_id] ?? 0,
+        saldo_disponible: disponible,
+        saldo_acumulado:  acumulado,
+        saldo_retirado:   retirado,
+      };
+    });
+
+    return res.json({ embajadores: lista, totales: { generadas, pagadas, pendientes } });
+
+  } catch (err) {
+    console.error('[adminResumenComisiones] Error:', err?.message ?? err);
+    return res.status(500).json({ error: 'Error cargando el resumen de comisiones.' });
+  }
+}
+
 // ─── registrarComisionSiAplica ────────────────────────────────────────────────
 
 /**
