@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
 escucharCallbackOAuthNativo((session) => {
-  if (session?.user?.id) redirectPorRol(session.user.id, false);
+  if (session?.user?.id) redirectPorRol(session.user.id, false, true);
 });
 
 // Detectar retorno del email de reset de contraseña, y del redirect de
@@ -56,7 +56,12 @@ sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     showRecoveryForm();
   } else if (event === 'SIGNED_IN' && session?.user?.id) {
-    redirectPorRol(session.user.id, false);
+    // app_metadata.provider distingue Google de password — SIGNED_IN
+    // dispara para ambos, y solo en el caso Google tiene sentido ofrecer
+    // el selector de rol si la cuenta todavía no tiene uno (ver
+    // redirectPorRol más abajo).
+    const esGoogle = session.user.app_metadata?.provider === 'google';
+    redirectPorRol(session.user.id, false, esGoogle);
   }
 });
 
@@ -139,7 +144,13 @@ async function handleLogin() {
 // ─── REDIRECT POR ROL (núcleo del módulo) ─────────────────────────────────────
 // Consulta la tabla REAL 'perfiles' para obtener el rol del usuario.
 // Embajador: redirige a su dashboard. Sus comercios asociados pueden tener campos NULL.
-async function redirectPorRol(userId, silencioso = false) {
+//
+// esGoogle: cuando no hay rol Y vino de Google, no es una cuenta rota — es
+// alguien que se identificó por primera vez pero todavía no eligió qué
+// quiere ser (Google crea el usuario en auth.users solo, sin fila en
+// perfiles). Se le ofrece el selector en vez de mandarlo a error+signOut
+// como al resto de los casos sin rol (ahí sí es una cuenta rota de verdad).
+async function redirectPorRol(userId, silencioso = false, esGoogle = false) {
   // 1. Consultar tabla 'perfiles' — fuente de verdad para el rol
   // usuario_id es el FK a auth.users; 'id' en perfiles es un UUID random (nueva schema)
   const { data: perfil, error: perfErr } = await sb
@@ -157,8 +168,11 @@ async function redirectPorRol(userId, silencioso = false) {
     rol = user?.user_metadata?.role ?? null;
   }
 
-  // 3. Sin rol → sesión inválida, desloguear
+  // 3. Sin rol
   if (!rol) {
+    if (esGoogle) { mostrarSelectorRolGoogle(); return; }
+    // Password login / recovery sin rol → esto sí es una cuenta rota
+    // (el registro por email/password crea el rol en el mismo paso).
     if (!silencioso) showError('Tu cuenta no tiene un rol asignado. Contactá al administrador.');
     await sb.auth.signOut();
     return;
@@ -234,15 +248,72 @@ function bindRegisterMenu() {
     }
   });
 
-  // Botones dentro del menú — cada uno navega a su registro
+  // Botones dentro del menú. Dos casos posibles:
+  //  1. Click normal en "Registrarme", sin sesión todavía — navega al
+  //     registro de ese rol, como siempre.
+  //  2. Venimos de "Continuar con Google" con una cuenta sin rol (ver
+  //     mostrarSelectorRolGoogle) — ya hay una sesión de Google activa:
+  //     - comercio sigue necesitando los datos reales del negocio (nombre,
+  //       dirección, ubicación) → navega a registro-comercio.html con
+  //       pap_pending_role, que ya sabe continuar desde una sesión de
+  //       Google activa sin pedir email/contraseña de nuevo.
+  //     - cadete/cliente no necesitan nada más para arrancar (el cadete
+  //       completa vehículo/DNI después, desde su propio panel — mismo
+  //       criterio que ya usa /api/auth/set-role) → se asigna el rol
+  //       directo con ese endpoint (nunca permite admin/embajador) y entra
+  //       derecho al panel, sin un formulario más.
   menu.querySelectorAll('[data-register]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const tipo = btn.dataset.register;
-      if (tipo === 'comercio') location.href = '/comercio/registro-comercio.html';
+      localStorage.setItem('pap_pending_role', tipo);
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (session && tipo !== 'comercio') {
+        await asignarRolYEntrar(session, tipo);
+        return;
+      }
+
+      if (tipo === 'comercio')     location.href = '/comercio/registro-comercio.html';
       else if (tipo === 'cadete')  location.href = '/cadete/registro-cadete.html';
       else                          location.href = '/cliente/login-usuario.html?tab=registro';
     });
   });
+}
+
+// Se muestra cuando alguien se identifica con Google por primera vez y su
+// cuenta todavía no tiene rol asignado (ver redirectPorRol). Reutiliza el
+// mismo menú de "Registrarme" — mismas 3 opciones, mismos botones.
+function mostrarSelectorRolGoogle() {
+  hideMessages();
+  const menu = document.getElementById('register-menu');
+  if (!menu) return;
+  menu.classList.remove('is-hidden');
+  menu.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showOk('Ya te identificaste con Google — elegí qué querés ser para terminar.');
+}
+
+// Asigna el rol vía POST /api/auth/set-role (mismo endpoint que usa el
+// registro por email/password — nunca permite admin/embajador) usando la
+// sesión de Google ya activa, y entra directo al panel. Solo para
+// cadete/cliente, que no necesitan más datos para arrancar.
+async function asignarRolYEntrar(session, tipo) {
+  document.getElementById('register-menu')?.classList.add('is-hidden');
+  hideMessages();
+  showOk('Un momento...');
+  try {
+    const res = await fetch((window.BACKEND_URL || '') + '/api/auth/set-role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ role: tipo }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error al asignar el rol');
+    localStorage.removeItem('pap_pending_role');
+    location.href = RUTAS[tipo];
+  } catch (err) {
+    showError('No se pudo completar el registro. Intentá de nuevo.');
+    console.error('[PaP Login] asignarRolYEntrar', err.message ?? err);
+  }
 }
 
 // ─── PASSWORD RECOVERY FORM ───────────────────────────────────────────────────
