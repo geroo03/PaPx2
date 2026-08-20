@@ -17,6 +17,7 @@
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: stretch;
       background: #0d0d0d;
@@ -41,12 +42,20 @@
       flex-direction: column;
       justify-content: space-between;
       min-height: 100vh;
+      min-height: 100dvh;
       padding: 52px 0 0;
     }
-    /* Parte superior — headline */
+    /* Parte superior — headline. flex-shrink:0 a propósito: con flex:1 solo
+       (shrink:1 por default) el navegador podía achicar este bloque más allá
+       de su tamaño natural cuando la tarjeta de abajo no entraba en el alto
+       disponible (típico en mobile con la barra de direcciones ocupando
+       espacio) — el headline centrado (justify-content:center) terminaba
+       desbordando por arriba del viewport, cortando "Tu pedido," casi
+       entero. Ahora nunca se achica: si no entra todo, la página scrollea
+       (body ya tiene overflow-y:auto) en vez de recortar el texto. */
     .top {
       padding: 0 28px 36px;
-      flex: 1;
+      flex: 1 0 auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -184,18 +193,19 @@
     .divider-text { font-size: 12px; color: #aaa; white-space: nowrap; }
     .btn-register {
       width: 100%;
-      background: #f5f5f5;
-      color: #555;
-      border: 1.5px solid #e5e5e5;
+      background: #FF6B35;
+      color: #fff;
+      border: none;
       border-radius: 14px;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 600;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
       font-family: inherit;
       cursor: pointer;
-      transition: background .15s;
+      transition: opacity .15s, transform .1s;
     }
-    .btn-register:hover { background: #ececec; }
+    .btn-register:hover  { opacity: .9; }
+    .btn-register:active { transform: scale(.98); }
     /* Menú de registro */
     .register-wrap { position: relative; }
     #register-menu {
@@ -236,27 +246,32 @@
     }
     #register-menu button[data-register="comercio"]:hover { background: #E55A27; }
     .is-hidden { display: none !important; }
+    /* Secundario a propósito — no es la primera opción que ve el usuario.
+       Ver commit: Google OAuth es una dependencia externa que ya se rompió
+       una vez sin que nadie lo notara (Client Secret desincronizado,
+       2026-06-29 a 2026-08-07), así que no es el CTA principal de esta
+       página, pero sigue disponible para quien lo prefiera. */
     .btn-google {
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      background: #111;
-      color: #fff;
-      border: none;
+      gap: 10px;
+      background: #fff;
+      color: #444;
+      border: 1.5px solid #e5e5e5;
       border-radius: 14px;
-      padding: 15px;
-      font-size: 15px;
-      font-weight: 700;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      transition: opacity .15s, transform .1s;
-      margin-bottom: 20px;
+      transition: background .15s, border-color .15s;
     }
-    .btn-google:hover  { opacity: .9; }
+    .btn-google:hover  { background: #fafafa; border-color: #ddd; }
     .btn-google:active { transform: scale(.98); }
     .btn-google:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-google svg { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
@@ -279,18 +294,6 @@
   <div class="card">
     <div class="card-title">Bienvenido</div>
     <div class="card-sub">Ingresá con tu email y contraseña. Tu acceso se detecta automáticamente.</div>
-
-    <!-- Google -->
-    <button class="btn-google" id="btn-google">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20c11 0 20-9 20-20 0-1.5-.2-3-.4-4.5z"/><path fill="#FF3D00" d="M6.3 15.4l6.6 4.8C14.7 17.1 19 14 24 14c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 16.3 5 9.7 9.2 6.3 15.4z"/><path fill="#4CAF50" d="M24 45c4.9 0 9.3-1.9 12.7-4.9l-5.9-5c-1.8 1.3-4.1 2-6.8 2-5.2 0-9.6-3.5-11.2-8.3l-6.5 5C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l5.9 5C40.8 35.5 44 30.7 44 25c0-1.5-.2-3-.4-4.5z"/></svg>
-      Continuar con Google
-    </button>
-
-    <div class="divider">
-      <div class="divider-line"></div>
-      <div class="divider-text">o con email</div>
-      <div class="divider-line"></div>
-    </div>
 
     <!-- Email -->
     <div class="form-group">
@@ -393,8 +396,20 @@
       </div>
     </div>
 
+    <!-- Google — opción secundaria, no la primera que se ve. Ver comentario
+         en .btn-google (arriba) sobre por qué. -->
+    <div class="divider" style="margin:18px 0 14px;">
+      <div class="divider-line"></div>
+      <div class="divider-text">o</div>
+      <div class="divider-line"></div>
+    </div>
+    <button class="btn-google" id="btn-google">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.1 29.2 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 12.9 5 4 13.9 4 25s8.9 20 20 20c11 0 20-9 20-20 0-1.5-.2-3-.4-4.5z"/><path fill="#FF3D00" d="M6.3 15.4l6.6 4.8C14.7 17.1 19 14 24 14c2.8 0 5.3 1 7.2 2.7l5.7-5.7C33.5 7.1 29 5 24 5 16.3 5 9.7 9.2 6.3 15.4z"/><path fill="#4CAF50" d="M24 45c4.9 0 9.3-1.9 12.7-4.9l-5.9-5c-1.8 1.3-4.1 2-6.8 2-5.2 0-9.6-3.5-11.2-8.3l-6.5 5C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l5.9 5C40.8 35.5 44 30.7 44 25c0-1.5-.2-3-.4-4.5z"/></svg>
+      Continuar con Google
+    </button>
+
     <div style="text-align:center;margin-top:20px;">
-      <a href="/legal.html" style="font-size:11px;color:rgba(255,255,255,.4);text-decoration:none;">Terminos y Condiciones · Politica de Privacidad</a>
+      <a href="/legal.html" style="font-size:11px;color:#aaa;text-decoration:none;">Terminos y Condiciones · Politica de Privacidad</a>
     </div>
   </div><!-- /card -->
 </div><!-- /wrap -->
