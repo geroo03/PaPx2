@@ -17,6 +17,7 @@
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: stretch;
       background: #0d0d0d;
@@ -41,12 +42,20 @@
       flex-direction: column;
       justify-content: space-between;
       min-height: 100vh;
+      min-height: 100dvh;
       padding: 52px 0 0;
     }
-    /* Parte superior — headline */
+    /* Parte superior — headline. flex-shrink:0 a propósito: con flex:1 solo
+       (shrink:1 por default) el navegador podía achicar este bloque más allá
+       de su tamaño natural cuando la tarjeta de abajo no entraba en el alto
+       disponible (típico en mobile con la barra de direcciones ocupando
+       espacio) — el headline centrado (justify-content:center) terminaba
+       desbordando por arriba del viewport, cortando "Tu pedido," casi
+       entero. Ahora nunca se achica: si no entra todo, la página scrollea
+       (body ya tiene overflow-y:auto) en vez de recortar el texto. */
     .top {
       padding: 0 28px 36px;
-      flex: 1;
+      flex: 1 0 auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
