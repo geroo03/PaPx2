@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Getnet — Página de prueba (WIP, no producción)</title>
+<link rel="stylesheet" href="assets/css/safe-area.css">
+<script src="/env.js"></script>
+<style>
+  body { min-height: 100vh; min-height: 100dvh; font-family: system-ui, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; padding-top: calc(20px + var(--safe-top)); }
+  .warn { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; max-width: 420px; margin: 0 auto 16px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  input { width: 100%; box-sizing: border-box; font-size: 16px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+  button { width: 100%; font-size: 16px; padding: 12px; border: none; border-radius: 6px; background: #EC0000; color: #fff; font-weight: 700; margin-top: 16px; cursor: pointer; }
+  pre { background: #111; color: #0f0; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-width: 420px; margin: 16px auto; white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+
+<div class="warn" style="max-width:420px;margin:0 auto 20px;">
+  ⚠️ Página de prueba manual, WIP. No está linkeada desde ningún login/menú
+  de la app. No arma nada de tarjeta acá (Get Checkout es hospedado) — solo
+  llama a <code>POST /api/getnet/crear-checkout</code>, que hoy devuelve
+  <code>501</code> mientras no haya <code>GETNET_CLIENT_ID</code> /
+  <code>GETNET_CLIENT_SECRET</code> configuradas en el backend. Ver
+  <code>docs/GETNET-INTEGRACION.md</code>.
+</div>
+
+<div class="card">
+  <label>Total del pedido de prueba (ARS)</label>
+  <input id="total" inputmode="numeric" value="100">
+  <label>Dirección de entrega</label>
+  <input id="direccion" value="Dirección de prueba">
+  <button id="btn-checkout">Crear checkout (redirige a Getnet)</button>
+</div>
+
+<pre id="log">Esperando...</pre>
+
+<script type="module">
+  import { crearCheckout } from './assets/js/getnet.js';
+
+  const log = (msg, obj) => {
+    document.getElementById('log').textContent =
+      msg + (obj !== undefined ? '\n' + JSON.stringify(obj, null, 2) : '');
+  };
+
+  document.getElementById('btn-checkout').addEventListener('click', async () => {
+    try {
+      log('Llamando al backend /api/getnet/crear-checkout...');
+
+      // Requiere sesión activa (el endpoint usa requireAuth) — este harness
+      // no maneja login, asumí que ya hay un access_token en localStorage
+      // (ej. abriendo esta página después de loguearte en otra pestaña de
+      // la misma app, mismo localStorage).
+      const authToken = localStorage.getItem('access_token') || '';
+
+      const datosPedido = {
+        items:             [{ nombre: 'Producto de prueba', qty: 1, precio: Number(document.getElementById('total').value) }],
+        total:             Number(document.getElementById('total').value),
+        comercio_id:       null,
+        direccion_entrega: document.getElementById('direccion').value,
+      };
+
+      const resultado = await crearCheckout(datosPedido, authToken);
+      log('Checkout creado — redirigiendo en 3s a checkout_url:', resultado);
+      setTimeout(() => { window.location.href = resultado.checkout_url; }, 3000);
+    } catch (e) {
+      log('Error: ' + e.message);
+    }
+  });
+</script>
+</body>
+</html>

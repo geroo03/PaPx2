@@ -22,6 +22,7 @@ import rateLimit     from 'express-rate-limit';
 import pedidoRoutes   from './routes/pedidoRoutes.js';
 import authRoutes     from './routes/authRoutes.js';
 import mpRoutes       from './routes/mpRoutes.js';
+import getnetRoutes   from './routes/getnetRoutes.js';
 import cadeteRoutes   from './routes/cadeteRoutes.js';
 import embajadorRoutes from './routes/embajadorRoutes.js';
 import { iniciarSchedulerMatching } from './jobs/matchingScheduler.js';
@@ -116,8 +117,15 @@ function createApp() {
   app.use('/api/auth/register', authLimiter);
   app.use('/api/auth/admin/crear-usuario', authLimiter);
 
-  // Parseo de JSON nativo de Express (no necesita body-parser por separado)
-  app.use(express.json());
+  // Parseo de JSON nativo de Express (no necesita body-parser por separado).
+  // `verify` guarda el buffer crudo en req.rawBody, sin cambiar el parseo
+  // normal para ninguna ruta — lo necesita getnetWebhook (⚠️ WIP, ver
+  // getnetController.js) para verificar la firma HMAC contra los bytes
+  // exactos que llegaron, igual que ya requiere cualquier verificación de
+  // firma de webhook en serio.
+  app.use(express.json({
+    verify: (req, _res, buf) => { req.rawBody = buf; },
+  }));
 
   // ─── Rutas ──────────────────────────────────────────────────────────────────
 
@@ -129,6 +137,12 @@ function createApp() {
 
   // MercadoPago: /api/mp/crear-preferencia, /api/mp/webhook
   app.use('/api/mp', mpRoutes);
+
+  // Getnet: /api/getnet/crear-checkout, /api/getnet/estado/:id, /api/getnet/webhook
+  // — ⚠️ WIP, sin credenciales reales, sin ningún HTML/JS de producción que
+  // lo llame todavía. Sin GETNET_CLIENT_ID/GETNET_CLIENT_SECRET devuelve
+  // 501 siempre — ver docs/GETNET-INTEGRACION.md.
+  app.use('/api/getnet', getnetRoutes);
 
   // Cadete GPS: /api/cadete/actualizar-ubicacion
   app.use('/api/cadete', cadeteRoutes);

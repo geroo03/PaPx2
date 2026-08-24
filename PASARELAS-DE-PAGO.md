@@ -106,16 +106,49 @@ punto de partida técnico, no hay que empezar de cero.
 
 ---
 
+## 3c. Getnet entra en escena (2026-08-24)
+
+El usuario trajo una comparativa interna de Santander/Getnet ("Comparativa
+de costos", nota al pie "Comunicación interna — no compartir fuera de
+Santander y Getnet") comparando comisiones de Getnet contra Payway, Fiserv,
+MercadoPago, Openpay y Nave — Getnet aparece con las tarifas más bajas en
+casi todas las categorías (QR, débito, crédito en 1 pago y en cuotas, tasas
+de financiación). No se reproduce la tabla completa acá por el pie de
+confidencialidad del documento original; el resumen y las fuentes públicas
+usadas para investigar Getnet quedan en `docs/GETNET-INTEGRACION.md`.
+
+**Getnet y Payway son gateways distintos** (Getnet es la marca adquirente
+de Santander; Payway corre sobre infraestructura Decidir/Prisma) — esto no
+reemplaza ni se confunde con el punto 3b, cada uno tiene su propia rama y
+su propio esqueleto de código con prefijo propio (`getnet*` / `payway*`).
+
+Según el usuario, Fabri ya está al tanto de este chart y el foco pasa a
+estar en Getnet — por eso se preparó el mismo tipo de esqueleto WIP inerte
+que ya existía para Payway: rama `work/2026-08-24-getnet-integracion`,
+`docs/GETNET-INTEGRACION.md` con el detalle completo (qué se confirmó de
+la API pública, qué queda pendiente de confirmar con cuenta real, y el
+checklist de negocio). Igual que con Payway: **nada de esto está activo ni
+enganchado al flujo real** — MercadoPago sigue siendo la única pasarela que
+cobra de verdad. La rama de Payway no se tocó ni se descartó — queda tal
+cual estaba.
+
+---
+
 ## 4. Quién decide esto
 
 - `CLAUDE.md` §5 (alerta para IAs): MercadoPago es la pasarela actual,
-  pero se está evaluando migrar a **Payway** — no es una decisión firme
+  pero se está evaluando migrar a **Payway** y, desde el 2026-08-24,
+  también a **Getnet** — ninguna de las dos es una decisión firme
   todavía. No asumir que MP es definitivo, no empezar una migración de
   pasarela por cuenta propia.
 - `PENDIENTES-LANZAMIENTO.md` ítem 8 y `README.md` ítem 5: **Payway está
-  a cargo de Fabri — no tocar sin que él avance.**
+  a cargo de Fabri — no tocar sin que él avance.** Según el usuario, Fabri
+  también está al tanto de Getnet (ver 3c) — pero la decisión de negocio
+  final (¿cuál de las dos, o coexisten? ¿reemplaza a MP?) sigue sin estar
+  tomada; esto sigue siendo terreno de Fabri, no una decisión tomada acá.
 - `IMPORTANTE-PREGUNTAS-GERARDO.md` ítem 6 ya tiene pendiente confirmar
-  en qué estado está la relación contractual con Payway.
+  en qué estado está la relación contractual con Payway — falta agregar la
+  misma pregunta para Getnet.
 
 Un sistema de split/payout automático es una decisión de pasarela, no
 un detalle de implementación — por eso esto quedó en notas y no en

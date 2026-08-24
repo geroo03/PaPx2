@@ -1,6 +1,6 @@
 # CLAUDE.md — Puerta a Puerta X
 
-> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-19.
+> Documento de contexto para IAs. Leer antes de cualquier tarea. Última actualización: 2026-08-24.
 
 ---
 
@@ -46,6 +46,7 @@ puertaapuerta-main/
 │   ├── env.js.template        # Plantilla para clonar el repo
 │   ├── manifest.json          # PWA manifest (icons: logo-192.png, logo-512.png)
 │   ├── sw.js                  # Service Worker: recibe y muestra push notifications
+│   ├── getnet-test.html       # ⚠️ WIP, no linkeada desde ningún menú/login — ver §5/§13 y docs/GETNET-INTEGRACION.md
 │   ├── cliente/
 │   │   ├── index.html         # App del cliente (SPA inline, guard de sesión embebido)
 │   │   ├── login-usuario.html
@@ -79,6 +80,7 @@ puertaapuerta-main/
 │   │       ├── importadorMenu.js  # Módulo puro (sin DOM/Supabase): parseo/validación del CSV/Excel de productos — testeado desde backend/test/, ver §6
 │   │       ├── embajador.js   # Dashboard embajador + link de referidos
 │   │       ├── push.js        # Push: web (VAPID) + nativa (Capacitor FCM)
+│   │       ├── getnet.js      # ⚠️ WIP — arma checkout hospedado, solo usado por getnet-test.html, no en el flujo real
 │   │       ├── state.js       # Estado global (LocalStorage persistence)
 │   │       ├── ui.js          # sanitizeHTML, formatARS, navigateSeguro
 │   │       └── icons.js       # Objeto ICONS con emojis/SVG
@@ -94,13 +96,15 @@ puertaapuerta-main/
 │   │   │   ├── pedidoRoutes.js
 │   │   │   ├── cadeteRoutes.js
 │   │   │   ├── embajadorRoutes.js
-│   │   │   └── mpRoutes.js
+│   │   │   ├── mpRoutes.js
+│   │   │   └── getnetRoutes.js       # ⚠️ WIP — /api/getnet/*, ver §5/§13 y docs/GETNET-INTEGRACION.md
 │   │   ├── controllers/
 │   │   │   ├── authController.js
 │   │   │   ├── pedidoController.js   # Pricing, ejecutarDifusion/difundir, aceptar, aceptar-comercio, rechazar-oferta, cambiar-estado
 │   │   │   ├── cadeteController.js   # GPS, efectivo, liquidaciones
 │   │   │   ├── embajadorController.js # Dashboard, comercios, retiros, comisiones
 │   │   │   ├── mpController.js       # MercadoPago preferencias + webhook
+│   │   │   ├── getnetController.js   # ⚠️ WIP — crea checkout hospedado + webhook, sin credenciales devuelve 501 siempre
 │   │   │   └── pushController.js     # Web Push VAPID
 │   │   ├── jobs/
 │   │   │   ├── matchingScheduler.js  # setInterval 15s: despacho diferido + re-difusión automática + expira ofertas + refresco de clima (15min)
@@ -114,8 +118,10 @@ puertaapuerta-main/
 │   │       ├── tarifaUtils.js        # calcularTarifa(vehiculo, distanciaKm, climaAplicado) → ganancia
 │   │       ├── matchingUtils.js      # haversineKm + rankearCandidatos(candidatos, config) — fairness/rotación
 │   │       ├── climaUtils.js         # esClimaAdverso(weatherCode) — clasificación pura, testeable
-│   │       └── climaService.js       # esClimaAdversoParaUbicacion(lat,lng) cache-first + refrescarCacheClima()
-│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils, importadorMenu (importa frontend/assets/js/importadorMenu.js cross-folder)
+│   │       ├── climaService.js       # esClimaAdversoParaUbicacion(lat,lng) cache-first + refrescarCacheClima()
+│   │       ├── getnetClient.js       # ⚠️ WIP — cliente REST (fetch nativo), OAuth2 client_credentials, endpoints sin verificar contra la API real
+│   │       └── getnetUtils.js        # ⚠️ WIP — funciones puras (mapeo de estados, verificación de firma), testeadas sin credenciales
+│   ├── test/                         # node:test — matchingUtils, climaUtils, tarifaUtils, comisionUtils, codigoUtils, getnetUtils (⚠️ WIP), importadorMenu (importa frontend/assets/js/importadorMenu.js cross-folder)
 │   ├── scripts/qa-e2e.mjs            # Smoke test E2E contra producción real (sin service_role) — correr antes de cada release
 │   └── package.json                  # "type":"module", Express 5, Supabase JS, web-push
 │
@@ -160,6 +166,10 @@ SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Nunca al frontend
 MP_ACCESS_TOKEN=APP_USR-...        # MercadoPago producción
 MP_WEBHOOK_SECRET=...              # Firma HMAC del webhook
+GETNET_CLIENT_ID=...                # ⚠️ WIP, vacío hoy — sin esto /api/getnet/* devuelve 501. Ver §13 y docs/GETNET-INTEGRACION.md
+GETNET_CLIENT_SECRET=...            # ⚠️ WIP, vacío hoy
+GETNET_SELLER_ID=...                # ⚠️ WIP, vacío hoy
+GETNET_WEBHOOK_SECRET=...           # ⚠️ WIP, vacío hoy — fórmula de firma sin confirmar
 FRONTEND_URL=https://tu-dominio.com,https://otro-dominio.com
 SERVER_URL=https://tu-backend.railway.app
 VAPID_PUBLIC_KEY=...                # Configurado en Railway (2026-08-11)
@@ -175,6 +185,8 @@ window.SUPABASE_URL      = '...'
 window.SUPABASE_ANON_KEY = '...'   // Solo ANON key. Nunca SERVICE_ROLE.
 window.BACKEND_URL       = 'https://tu-backend.railway.app'
 window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
+window.GETNET_SELLER_ID        = ''  // ⚠️ WIP, vacío hoy. Ver §13 y docs/GETNET-INTEGRACION.md
+window.GETNET_CHECKOUT_SDK_URL = ''  // ⚠️ WIP — solo modo "embebido", no implementado
 ```
 
 ---
@@ -231,7 +243,7 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 | POST | `/crear-preferencia` | JWT | Crea preferencia de pago. Retorna init_point. |
 | POST | `/webhook` | Público | Recibe notificación MP. Verifica HMAC. Crea pedido si pago aprobado. |
 
-> ⚠️ **Alerta para IA:** MercadoPago es la pasarela de pago actual e integrada, pero se está **evaluando migrar a Payway** (pasarela de pagos argentina) como alternativa. Todavía no es una decisión firme. No asumir que MercadoPago es definitivo, no proponer ni empezar una migración de pasarela por cuenta propia — confirmar con el usuario primero si el trabajo pedido toca esta área.
+> ⚠️ **Alerta para IA:** MercadoPago es la pasarela de pago actual e integrada, pero se está **evaluando migrar a Payway** (pasarela de pagos argentina) y, desde el 2026-08-24, también a **Getnet** (adquirente de Santander) como alternativas. Cada una tiene su propio esqueleto WIP inerte en su propia rama (`work/2026-08-18-payway-integracion` / `work/2026-08-24-getnet-integracion`), sin mergear a `main` y sin conectar al flujo real de pedidos — ver `PASARELAS-DE-PAGO.md`, `docs/PAYWAY-INTEGRACION.md` y `docs/GETNET-INTEGRACION.md`. Ninguna es una decisión firme todavía. No asumir que MercadoPago es definitivo, no proponer ni empezar una migración de pasarela por cuenta propia — confirmar con el usuario primero si el trabajo pedido toca esta área.
 >
 > También hay una Edge Function `supabase/functions/mp-webhook/index.ts` en el repo que **no parece estar en uso**: `mpController.js` configura `notification_url` apuntando al propio backend (`/api/mp/webhook`), no a la Edge Function, y esta no fue tocada desde la modularización inicial. Antes de tocarla o borrarla, confirmar con el usuario si sigue siendo necesaria (podría ser un remanente de un diseño anterior).
 
@@ -644,7 +656,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 | 1 | Cuenta de desarrollador de Google Play Console — **verificación superada, app ya creada (2026-08-19)**: "Puerta a Puerta X" / `com.puertaapuertax.app`, visible en el Panel. Dentro de "Contenido de la app" ya están **declarados**: Anuncios (No), Apps gubernamentales (No), Funciones financieras (ninguna — se confirmó por código que no hay ninguna función de préstamo/crédito en la app, ni activa ni deshabilitada; lo único deshabilitado a propósito hoy es "Crear Promociones", "Administración de Usuarios", "Permiso procesamiento de pedidos" y "Foto de portada" en `comercio.html`, ninguna financiera), Apps de salud (No). **Quedan pendientes:** ID de publicidad (respuesta preparada: No), Público objetivo y contenido (respuesta preparada: solo 18+), Clasificación del contenido, Seguridad de los datos (Data Safety), y Detalles de acceso (necesita una cuenta de prueba real con usuario/contraseña para el revisor de Google — todavía no armada). **Política de Privacidad deliberadamente en pausa:** la URL a declarar sería `https://pa-px2.vercel.app/legal.html` (ya en producción), pero existe un borrador más nuevo con la cláusula de Propiedad Intelectual reforzada (`docs/legal-tyc-borrador-2026-08-17.html`, ver ítem 9) todavía sin volcar a esa página en vivo — el usuario prefirió no declarar la URL hasta decidir si la actualiza antes. Ficha de Play Store: descripción corta/completa, categoría ("Comida y bebida") y datos de contacto ya redactados (pendiente pegarlos en el formulario real); faltan el feature graphic (ítem 3) y las capturas de pantalla (necesitan el `.aab` corriendo, ver ítem 2). **Corrección de dato importante:** el mínimo real que exige Play Console para el track de Closed Testing es **12 testers que acepten activamente la invitación** (no ~20 como se estimaba antes de tener la cuenta real) — corridos 14 días antes de poder pedir acceso a Producción; sigue siendo el ítem de mayor lead time del lanzamiento, conviene ir consiguiendo esos 12 testers ya. Apple Developer Account: sin novedades, no mencionado. | Distribución / fecha real de lanzamiento |
 | 2 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). En curso 2026-08-11: probado en un celular real, aparecieron bugs de CSS pendientes de detalle. | App nativa |
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
-| 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |
+| 4 | Payway/Getnet vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance. **2026-08-24:** el usuario trajo una comparativa interna de Santander/Getnet y pidió investigar — se preparó el mismo tipo de esqueleto WIP inerte que ya existía para Payway (rama `work/2026-08-24-getnet-integracion`, `docs/GETNET-INTEGRACION.md`), sin conectar al flujo real ni mergear a `main`. Según el usuario, Fabri ya está al tanto y el foco pasó a Getnet, pero la decisión de negocio final (¿cuál de las dos, o coexisten? ¿reemplaza a MP?) sigue sin confirmarse — ver `PASARELAS-DE-PAGO.md` §3c/§4. | Pagos |
 | 5 | Encontrar y deshabilitar la `GMAPS_KEY` vieja (`AIzaSyASBhagsg9K...`) — vive en algún otro proyecto de Google Cloud (no en "Puerta a Puerta X"), nunca tuvo restricciones. La app ya no la usa (rotada 2026-08-11), no es urgente, pero sigue técnicamente viva. | Seguridad, baja prioridad |
 | 6 | Restringir en Google Cloud Console (HTTP referrer + API scope, mismo tratamiento que `GMAPS_KEY`) la API key de Firebase (`AIzaSyAdRnQQ-ZlZnZLEqbH0rNc5CExwWxMkVdE`) encontrada en el historial de git — quedó de un snippet de FCM comentado y ya eliminado (commits `c25bfe9`/`44e218c`), no está en el código actual. Las API keys de Firebase están pensadas por diseño para exponerse en el cliente (seguridad real vía Firebase Security Rules, no vía secreto de la key), así que el riesgo es bajo — **cobra relevancia ahora que se reabrió Firebase/FCM (ítem 8)**, evaluar si conviene restringirla ya o esperar a confirmar si hay que regenerarla. | Seguridad, baja prioridad |
 | 7 | `frontend/admin/admin.html` (Carrusel de patrocinios, ~línea 660-724) sigue leyendo/escribiendo la tabla `patrocinios` con forma de banner (`titulo`, `imagen_url`, `link_oferta`...) — pero esa tabla se redefinió el 2026-08-11 (`fix-criticos-importantes.sql`) como la relación embajador-comercio (`embajador_id`, `comercio_id` NOT NULL) y los banners se migraron a una tabla nueva, `banners`. Encontrado de paso investigando el bug de comisiones de embajador (ver §6, resuelto 2026-08-13), no confirmado en producción si ya está roto o si hay algo que lo compensa — revisar antes de tocar el carrusel de banners del admin. | Panel admin, banners del home |
