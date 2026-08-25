@@ -147,6 +147,23 @@
 
   .contact-box{ background:var(--paper-tint); border-radius:12px; padding:16px 18px; margin:18px 0; border:1px solid var(--paper-line); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:13.5px; }
 
+  /* ── Decision items (encargo para el abogado) ─────────── */
+  .decisions{ display:flex; flex-direction:column; gap:14px; margin:22px 0 8px; }
+  .decision{ border:1px solid var(--paper-line); border-radius:12px; padding:18px 20px 20px; background:var(--paper); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .decision.hot{ border-color: color-mix(in srgb, var(--risk) 45%, var(--paper-line)); }
+  .decision-head{ display:flex; align-items:flex-start; gap:12px; margin-bottom:8px; }
+  .decision-head .chk{ flex:0 0 auto; width:22px; height:22px; border-radius:6px; border:2px solid var(--ink-soft); margin-top:1px; }
+  .decision.hot .decision-head .chk{ border-color:var(--risk); }
+  .decision-head h4{ margin:0; font-size:15.5px; color:var(--ink); flex:1; }
+  .decision p.ask{ margin:0 0 12px; font-size:13.5px; color:var(--ink-soft); line-height:1.6; padding-left:34px; }
+  .opciones{ padding-left:34px; }
+  .opciones-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin:0 0 8px; }
+  .opciones ul{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+  .opciones li{ margin:0; padding:10px 12px; border-radius:8px; background:var(--paper-tint); font-size:13px; line-height:1.55; }
+  .opciones li b{ color:var(--accent); margin-right:4px; }
+  .opciones li.recomendada{ border:1px solid color-mix(in srgb, var(--accent) 35%, var(--paper-line)); }
+  .opciones li .tag-mini{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; font-weight:700; color:var(--accent); margin-left:6px; }
+
   footer{ margin-top:60px; padding-top:22px; border-top:1px solid var(--paper-line); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size:12.5px; color:var(--ink-soft); }
   footer a{ color:var(--ink-soft); }
   footer li{ margin-bottom:4px; }
@@ -175,15 +192,82 @@
   </div>
 
   <h2 class="sec">Encargo para el abogado — en 5 puntos</h2>
-  <p>Si vas a reenviar este link tal cual, esto es lo concreto que necesitamos que haga, en orden:</p>
-  <ol class="priority">
-    <li class="hot"><strong>Cadetes (§7):</strong> no es leer el texto — es mirar cómo funciona la relación en la práctica (¿pueden rechazar pedidos sin sanción? ¿hay turnos fijos? ¿pueden repartir para otra app al mismo tiempo?) y decirnos si sostiene "prestador independiente" o hay riesgo real de relación de dependencia encubierta.</li>
-    <li class="hot"><strong>§11 Jurisdicción</strong> y <strong>§10.1/10.2/10.3 Responsabilidad e indemnización:</strong> confirmar que no caen en "cláusula abusiva" frente a un consumidor (Ley 24.240, art. 37) — son las dos secciones con más exposición frente a clientes.</li>
-    <li><strong>§8.2 Arbitraje comercios:</strong> elegir el tribunal arbitral real de Santiago del Estero (hoy dice <span class="placeholder">[a definir]</span>) y validar la redacción.</li>
-    <li><strong>Contratos virtuales:</strong> confirmar si el mecanismo de aceptación (checkbox + el registro server-side que proponemos más abajo) alcanza el estándar de los arts. 1106-1116 del Código Civil y Comercial, y dar luz verde para construirlo.</li>
-    <li><strong>Visto bueno final</strong> (o las correcciones puntuales que haga falta) para pegar el texto de la sección "Texto final" en <code>frontend/legal.html</code>, reemplazando la versión actual en producción.</li>
-  </ol>
-  <p style="font-size:13px;color:var(--ink-soft)">El resto del documento (tabla de verificación completa, comparación contra Rappi/PedidosYa/Uber, el hallazgo de contratos virtuales en detalle) es contexto de apoyo para estos 5 puntos — no hace falta leerlo todo de corrido si no quiere.</p>
+  <p>Si vas a reenviar este link tal cual, esto es lo concreto que necesitamos que resuelva, en orden — cada uno con las alternativas reales entre las que puede elegir (no es "sí o no", son caminos distintos con distinto costo/beneficio).</p>
+
+  <div class="decisions">
+
+    <div class="decision hot">
+      <div class="decision-head"><span class="chk"></span><h4>1. Cadetes (§7) — ¿la relación sostiene "independiente"?</h4><span class="badge badge-risk">Prioridad alta</span></div>
+      <p class="ask">No es leer el texto — es mirar cómo funciona en la práctica (¿pueden rechazar pedidos sin sanción? ¿hay turnos fijos? ¿pueden repartir para otra app al mismo tiempo? ¿existen sanciones más allá de dar de baja la cuenta?) y decirnos si eso sostiene "prestador independiente" bajo la Ley 20.744, art. 12, o hay riesgo real de relación de dependencia encubierta.</p>
+      <div class="opciones">
+        <p class="opciones-label">Según lo que encuentre</p>
+        <ul>
+          <li class="recomendada"><b>A.</b> Si el diseño actual alcanza (ofrece pedidos, no asigna; sin turnos obligatorios; sin exclusividad) → no cambiar nada operativo, solo reforzar por escrito el Acuerdo de Cadete Independiente. <span class="tag-mini">Más simple</span></li>
+          <li><b>B.</b> Si encuentra zonas grises puntuales → ajustes operativos concretos (ej. eliminar cualquier sanción disciplinaria informal, confirmar por escrito que no hay turnos fijos) antes de seguir sumando cadetes.</li>
+          <li><b>C.</b> Si el riesgo es alto y no se resuelve operativamente → evaluar un esquema distinto para una parte de la flota (cooperativa de trabajo, relación de dependencia parcial). Es una decisión de negocio grande, no de redacción — último recurso, no el punto de partida.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="decision hot">
+      <div class="decision-head"><span class="chk"></span><h4>2. §11 Jurisdicción y §10 Responsabilidad — ¿son válidas frente a un consumidor?</h4><span class="badge badge-risk">Prioridad alta</span></div>
+      <p class="ask">Confirmar que ninguna de las dos cae en "cláusula abusiva" frente a un consumidor (Ley 24.240, art. 37) — son las dos secciones con más exposición frente a clientes, no frente a comercios/cadetes.</p>
+      <div class="opciones">
+        <p class="opciones-label">Opciones — jurisdicción (§11)</p>
+        <ul>
+          <li class="recomendada"><b>A.</b> La ya aplicada en el texto final: justicia ordinaria, a elección del usuario (domicilio de PaP X o del usuario). Mismo patrón que Rappi/PedidosYa. <span class="tag-mini">Ya aplicada</span></li>
+          <li><b>B.</b> Sede fija en Santiago del Estero solo para comercios/cadetes (vínculo comercial, más margen legal) + Opción A para clientes.</li>
+        </ul>
+        <p class="opciones-label" style="margin-top:12px">Opciones — responsabilidad/indemnización (§10.1/10.2)</p>
+        <ul>
+          <li class="recomendada"><b>A.</b> Mantener tal cual: tope en $ (monto del último pedido) + exclusión de daños indirectos/lucro cesante. <span class="tag-mini">Ya aplicada</span></li>
+          <li><b>B.</b> Si el abogado ve riesgo de nulidad por exceso, suavizar el alcance de la exclusión (dejar alguna vía de reclamo mínima) para blindarla contra un planteo de abusividad.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="decision">
+      <div class="decision-head"><span class="chk"></span><h4>3. §8.2 Arbitraje con comercios — ¿con qué tribunal, y sigue siendo válido?</h4><span class="badge badge-changed">Prioridad media</span></div>
+      <p class="ask"><strong>Encontré algo que no habíamos marcado antes:</strong> el art. 1651, inciso d) del Código Civil y Comercial excluye del arbitraje las controversias que surjan de <em>contratos de adhesión</em> — y el vínculo de PaP X con los comercios (términos estándar, sin negociación individual) probablemente califica como tal. Hay jurisprudencia comercial mayoritaria que igual valida estos acuerdos, pero no es unánime — por eso esta cláusula, tal como está, necesita el visto bueno del abogado antes de nada, no solo elegir el tribunal.</p>
+      <div class="opciones">
+        <p class="opciones-label">Opciones — a quién designar</p>
+        <ul>
+          <li><b>A.</b> Arbitraje <em>ad hoc</em> (sin institución fija, reglamento definido en el propio contrato) — no depende de que una institución externa lo acepte, más simple de dejar redactado ya. <span class="tag-mini">Más simple</span></li>
+          <li><b>B.</b> Un tribunal institucional conocido a nivel nacional (ej. CEMARC de la Cámara Argentina de Comercio, o el Tribunal de Arbitraje General de la Bolsa de Comercio de Buenos Aires) — procedimiento ya armado, aunque implica sede fuera de Santiago del Estero.</li>
+          <li><b>C.</b> Consultar directo si el <a href="https://www.colegioabogadossde.org.ar/" target="_blank" rel="noopener">Colegio de Abogados de Santiago del Estero</a> ofrece un servicio de arbitraje institucional local (otros colegios, como el de La Plata, sí lo tienen) — sería lo más coherente con "sede en Santiago del Estero" que ya dice la cláusula, pero no lo pude confirmar desde acá.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="decision">
+      <div class="decision-head"><span class="chk"></span><h4>4. Contratos virtuales — ¿alcanza el mecanismo de aceptación?</h4><span class="badge badge-changed">Prioridad media</span></div>
+      <p class="ask">Confirmar si el checkbox actual + el registro server-side que proponemos (ver hallazgo más abajo) alcanza el estándar de los arts. 1106 a 1116 del Código Civil y Comercial, y dar luz verde para construirlo.</p>
+      <div class="opciones">
+        <p class="opciones-label">Opciones — qué construir</p>
+        <ul>
+          <li><b>A.</b> Fix mínimo: guardar solo fecha/hora del servidor + IP al momento del registro. Resuelve lo más grave (hoy no hay nada server-side) con el menor esfuerzo.</li>
+          <li class="recomendada"><b>B.</b> Fix intermedio: lo de A + versión del documento aceptado (fecha de "última actualización" vigente en ese momento). <span class="tag-mini">Recomendado</span></li>
+          <li><b>C.</b> Fix completo: lo de B + hash del texto exacto aceptado + re-consentimiento obligatorio cuando cambian los Términos de forma significativa. Más robusto, más trabajo — tiene sentido si el volumen de usuarios ya justifica el blindaje extra.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="decision">
+      <div class="decision-head"><span class="chk"></span><h4>5. Visto bueno final para publicar</h4><span class="badge badge-ok">Cierre</span></div>
+      <p class="ask">Última palabra sobre el texto de la sección "Texto final" antes de reemplazar la versión actual de <code>frontend/legal.html</code> (25-jun-2026).</p>
+      <div class="opciones">
+        <p class="opciones-label">Opciones</p>
+        <ul>
+          <li class="recomendada"><b>A.</b> Aprobar tal cual y publicar ya. <span class="tag-mini">Más rápido</span></li>
+          <li><b>B.</b> Aprobar con cambios puntuales (redlines) — se ajustan y se publica en la misma vuelta.</li>
+          <li><b>C.</b> Pedir una segunda revisión completa antes de decidir — tiene sentido solo si los puntos 1-4 salieron con hallazgos grandes.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="font-size:13px;color:var(--ink-soft);margin-top:18px">El resto del documento (tabla de verificación completa, comparación contra Rappi/PedidosYa/Uber, el hallazgo de contratos virtuales en detalle) es contexto de apoyo para estos 5 puntos — no hace falta leerlo todo de corrido si no quiere.</p>
 
   <h2 class="sec">Antes de leer nada más</h2>
   <p>Ningún contrato, por bien escrito que esté, puede impedir que alguien inicie una demanda — eso lo decide quien demanda, no el texto que aceptó. Lo que sí hace un contrato bien armado es tres cosas concretas: <strong>reduce las chances de perder</strong> si te demandan (porque el usuario aceptó reglas claras de antemano), <strong>te da defensas específicas</strong> para usar en ese momento (topes de responsabilidad, exclusión de ciertos daños, indemnización), y <strong>desalienta</strong> reclamos débiles porque el terreno ya está claramente a tu favor. Eso es lo que este documento busca — el blindaje más fuerte que permite la ley argentina, no una promesa de inmunidad que no existe.</p>
@@ -199,7 +283,7 @@
         <tr><td class="pt">§11 Jurisdicción</td><td>Justicia ordinaria, a elección del usuario (domicilio de PaP X o del usuario)</td><td>Ley 24.240 art. 36; CCyC, cláusulas abusivas en adhesión</td><td><span class="badge badge-risk">Alto</span></td><td>Que esta redacción realmente neutraliza el riesgo de nulidad para clientes de La Plata/Córdoba (antes era sede fija en Sgo. del Estero)</td></tr>
         <tr><td class="pt">Contratos virtuales</td><td>Cómo se prueba que alguien aceptó — ver hallazgo abajo</td><td>CCyC arts. 971, 1106-1116</td><td><span class="badge badge-risk">Alto (evidenciario)</span></td><td>Si coincide en que hace falta un registro server-side para poder probar consentimiento en una disputa real</td></tr>
         <tr><td class="pt">§10.1/10.2/10.3 Responsabilidad</td><td>Tope en $, exclusión de daños indirectos, indemnización, fuerza mayor</td><td>Ley 24.240 art. 37 (cláusulas abusivas)</td><td><span class="badge badge-changed">Medio</span></td><td>Que el tope + las exclusiones no crucen la línea de "abusivo" frente a un consumidor</td></tr>
-        <tr><td class="pt">§8.2 Arbitraje comercios</td><td>Arbitraje de derecho para disputas con comercios</td><td>CCyC arts. 1649 y ss.</td><td><span class="badge badge-changed">Medio</span></td><td>Elegir el tribunal arbitral real (queda como <span class="placeholder">[a definir]</span>) y validar la redacción</td></tr>
+        <tr><td class="pt">§8.2 Arbitraje comercios</td><td>Arbitraje de derecho para disputas con comercios</td><td>CCyC arts. 1649 y ss. — ⚠️ art. 1651 inc. d) excluye arbitraje en contratos de adhesión</td><td><span class="badge badge-risk">Alto</span></td><td>Confirmar si el vínculo con comercios cae en "adhesión" pese a jurisprudencia mayoritaria a favor, y elegir el tribunal real (queda <span class="placeholder">[a definir]</span>)</td></tr>
         <tr><td class="pt">§3.3 Suspensión de cuentas</td><td>PaP X puede suspender sin exponer motivos, con efecto inmediato</td><td>Buena fe contractual (CCyC)</td><td><span class="badge badge-changed">Medio</span></td><td>Que no choque con el deber de información/lealtad en casos límite</td></tr>
         <tr><td class="pt">§9.1/9.2/9.3 Propiedad intelectual</td><td>PI reforzada + licencia sobre contenido subido + takedown</td><td>Ley 11.723</td><td><span class="badge badge-ok">Bajo</span></td><td>Que la licencia sobre fotos/reseñas no sea excesiva frente a comercios</td></tr>
         <tr><td class="pt">§6.4 Asistente IA</td><td>Disclaimer de que el chat usa IA y puede equivocarse</td><td>Ley 24.240 (deber de información), Ley 22.802</td><td><span class="badge badge-ok">Bajo</span></td><td>Formalidad — confirmar que alcanza con esto</td></tr>
@@ -403,10 +487,13 @@
       <li><a href="https://legal.rappi.com.co/argentina/terminos-y-condiciones-rappi-2/" target="_blank" rel="noopener">Rappi Argentina — Términos y Condiciones</a></li>
       <li><a href="https://terms.pystatic.com/about/generales/tyc_generales_argentina.html" target="_blank" rel="noopener">PedidosYa Argentina — Términos y Condiciones Generales</a></li>
       <li><a href="https://www.uber.com/legal/en/document/?country=argentina&lang=es&name=general-terms-of-use" target="_blank" rel="noopener">Uber — Términos y Condiciones Generales de Uso (AR)</a></li>
-      <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/235000-239999/235975/norma.htm" target="_blank" rel="noopener">Código Civil y Comercial de la Nación — texto completo (arts. 971, 1106-1116 contratos electrónicos; 1649+ arbitraje)</a></li>
+      <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/235000-239999/235975/norma.htm" target="_blank" rel="noopener">Código Civil y Comercial de la Nación — texto completo (arts. 971, 1106-1116 contratos electrónicos; 1649+ arbitraje, 1651 inc. d) exclusión en adhesión)</a></li>
       <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/0-4999/638/texact.htm" target="_blank" rel="noopener">Ley 24.240 — Defensa del Consumidor</a></li>
       <li><a href="http://servicios.infoleg.gob.ar/infolegInternet/anexos/25000-29999/25552/texact.htm" target="_blank" rel="noopener">Ley 20.744 — Contrato de Trabajo (art. 12, irrenunciabilidad)</a></li>
       <li><a href="https://support.google.com/googleplay/android-developer/answer/10787469" target="_blank" rel="noopener">Google Play Console — Data Safety, guía oficial</a></li>
+      <li><a href="https://www.calp.org.ar/tribunal-arbitral/" target="_blank" rel="noopener">Tribunal Arbitral — Colegio de la Abogacía de La Plata</a> (referencia de un colegio de abogados que sí ofrece arbitraje institucional)</li>
+      <li><a href="https://www.labolsa.com.ar/institucional/tribunal/" target="_blank" rel="noopener">Tribunal de Arbitraje General — Bolsa de Comercio de Buenos Aires</a></li>
+      <li><a href="https://www.colegioabogadossde.org.ar/" target="_blank" rel="noopener">Colegio de Abogados de Santiago del Estero</a> (a confirmar si ofrece arbitraje institucional propio)</li>
     </ul>
     <p style="margin-top:14px">Consolida <code>docs/legal-tyc-borrador-2026-08-17.html</code> (Fase 3) y <code>docs/legal-checklist-cumplimiento-2026-08-17.html</code> (Fase 4) en un solo documento, más el hallazgo nuevo sobre prueba de aceptación digital. Ambos archivos originales quedan en el repo sin cambios, como historial.</p>
   </footer>
