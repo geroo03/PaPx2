@@ -66,8 +66,14 @@ function assertConfigurado() {
  * memoria del proceso hasta ~30s antes de que expire, para no pedir uno
  * nuevo en cada request (mismo criterio de caché simple que ya usa
  * climaService.js para no golpear una API externa de más).
+ *
+ * Exportada (además de usarse internamente en getnetFetch) para que
+ * scripts/getnet-sandbox-check.mjs pueda probar el paso de auth solo,
+ * separado de crearCheckout() — así un fallo de credenciales no se
+ * confunde con un fallo del endpoint de creación de orden (ese sí no
+ * verificado, ver disclaimer al inicio del archivo).
  */
-async function obtenerAccessToken() {
+export async function obtenerAccessToken() {
   assertConfigurado();
 
   const ahora = Date.now();

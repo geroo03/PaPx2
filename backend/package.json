@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test:getnet-sandbox": "node scripts/getnet-sandbox-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",

@@ -75,11 +75,21 @@ de Play Store le dé mucha más visibilidad pública al nombre, vale la
 pena confirmar que no hay conflicto y evaluar si conviene iniciar el
 trámite ahora.
 
-### 6. Payway
-¿En qué estado está la relación contractual? Si se suma como pasarela
-alternativa a MercadoPago, hay que actualizar `legal.html` sección 5
-("Métodos de Pago") para incluirlo — hoy solo menciona MercadoPago y
-efectivo.
+### 6. Getnet
+El foco pasó de Payway a **Getnet** (2026-08-24, pasarela de Santander) —
+¿en qué estado está el alta comercial? El alta self-service
+(getnet.com.ar/registro) está pensada para comercio con QR/posnet, no para
+integración vía API — probablemente convenga pedir hablar directo con un
+ejecutivo de e-commerce/desarrolladores para conseguir acceso al developer
+portal (`developer.globalgetnet.com`) y credenciales de sandbox. Si el
+contacto que pasó la comparativa de tarifas es un canal directo de
+Santander, puede ser el atajo para esto — confirmar con Fabri. Una vez que
+se sume como pasarela alternativa a MercadoPago (activada de verdad, no
+solo el esqueleto WIP de hoy), hay que actualizar `legal.html` sección 5
+("Métodos de Pago") para incluirla — hoy solo menciona MercadoPago y
+efectivo. (El esqueleto de Payway, `work/2026-08-18-payway-integracion`,
+queda en pausa — si en algún momento se retoma, la misma pregunta sobre el
+estado contractual sigue pendiente para esa alternativa.)
 
 ---
 

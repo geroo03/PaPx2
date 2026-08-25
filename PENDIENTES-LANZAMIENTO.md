@@ -166,10 +166,22 @@ que hace falta para que se acredite algo. Detalle completo en `CLAUDE.md`
   todavía este fix — si vas a probar el flujo de embajador desde la app
   nativa, avisame y recompilo.
 
-## 8. 🟢 Cuando tengan Payway resuelto (Fabri)
+## 8. 🟢 Cuando tengan Getnet resuelto (Fabri)
 
-No toqué nada de esto a propósito. Cuando Fabri termine su parte, avisame y
-lo integramos/probamos junto con todo lo demás antes del lanzamiento final.
+**2026-08-24:** el foco pasó de Payway a **Getnet** (pasarela de Santander)
+— el usuario trajo una comparativa interna de tarifas y pidió avanzar con
+esta opción. El esqueleto de código WIP para Payway (`work/2026-08-18-payway-integracion`)
+queda tal cual estaba, en pausa, no se tocó ni se borró — el nuevo, para
+Getnet, es `work/2026-08-24-getnet-integracion`. Ver `docs/GETNET-INTEGRACION.md`
+para el estado técnico completo y `docs/GETNET-SANDBOX-TESTING.md` para el
+plan de pruebas apenas haya credenciales.
+
+No toqué nada del flujo real de pagos a propósito — sigue siendo
+MercadoPago exclusivamente. Lo que falta es 100% de gestión: cuenta
+comercial de Getnet + acceso al developer portal para confirmar los
+endpoints técnicos (ver checklist en `docs/GETNET-INTEGRACION.md` §4).
+Cuando Fabri/vos consigan eso, avisame y lo probamos/integramos junto con
+todo lo demás antes del lanzamiento final.
 
 ## 9. ✅ Duplicación de lógica entre archivos — resuelta en su mayor parte
 

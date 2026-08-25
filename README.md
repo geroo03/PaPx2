@@ -9,13 +9,13 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 
 ## 🟡 IMPORTANTE — Qué falta para poder lanzar
 
-> Checklist completo y en detalle en [`PENDIENTES-LANZAMIENTO.md`](PENDIENTES-LANZAMIENTO.md). Resumen acá porque es lo más importante del repo en este momento. Actualizado 2026-08-19.
+> Checklist completo y en detalle en [`PENDIENTES-LANZAMIENTO.md`](PENDIENTES-LANZAMIENTO.md). Resumen acá porque es lo más importante del repo en este momento. Actualizado 2026-08-25.
 
 1. **Google Play Console — cuenta verificada, app ya creada, completando el checklist.** El track de Closed Testing exige un mínimo de **12 testers que acepten activamente la invitación** (no ~20 como se pensaba antes de tener la cuenta real), corridos 14 días antes de poder pedir Production — sigue siendo el ítem de mayor lead-time de todo el lanzamiento. Detalle línea por línea de qué está declarado y qué falta en `PENDIENTES-LANZAMIENTO.md` ítem 1.
 2. **Backup del keystore de firma Android sin confirmar** fuera de esta máquina. Si se pierde, no hay forma de recuperarlo ni de que Google lo resetee — significaría no poder actualizar nunca más la misma ficha de Play Store.
 3. **APK probado una vez en un dispositivo real (2026-08-11)**, aparecieron bugs de CSS — ya diagnosticados y arreglados en el código (edge-to-edge de Android 15 sin `safe-area-inset`). Falta reinstalar el build actualizado y reconfirmar que desaparecieron, más el resto del flujo: login con Google (deep link nativo), pedido de punta a punta, permisos de GPS/cámara. `qa-e2e.mjs` prueba el backend, pero no el shell nativo.
 4. **Feature graphic de Play Store (1024×500 px)** — único gráfico que falta para la ficha.
-5. **Payway** — a cargo de Fabri, no tocar sin que él avance.
+5. **Getnet** (pasarela de Santander, alternativa a MercadoPago — el foco pasó de Payway a Getnet el 2026-08-24) — esqueleto de código WIP ya preparado (rama `work/2026-08-24-getnet-integracion`, sin mergear), pendiente de cuenta comercial + credenciales de sandbox. Ver `docs/GETNET-INTEGRACION.md` y `docs/GETNET-SANDBOX-TESTING.md`. Sigue siendo un tema a coordinar con Fabri (relación con Santander) antes de ir a producción.
 6. **Firebase/FCM para push nativo — reabierto el 2026-08-19**, pospuesto a propósito hasta cerrar el checklist de Play Console (ítem 1). No está confirmado si ya existe un proyecto de Firebase de un intento anterior (hay un indicio real: una API key de Firebase huérfana en el historial de git). Ver `PENDIENTES-LANZAMIENTO.md` ítem 14.
 7. **Cuenta de prueba para el revisor de Google Play** ("Detalles de acceso" del checklist de Play Console) — todavía no armada.
 8. **Política de Privacidad — declaración en Play Console en pausa a propósito.** Hay un borrador con la cláusula de Propiedad Intelectual reforzada (`docs/legal-tyc-borrador-2026-08-17.html`) sin volcar todavía a la página en vivo (`frontend/legal.html`, ya en producción en `pa-px2.vercel.app/legal.html`).
@@ -28,7 +28,7 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 |------|-----------|
 | Backend | Node.js 20+ / Express 5 / ES Modules (`"type": "module"`) |
 | Base de datos | Supabase (PostgreSQL + Auth + Realtime + Storage) |
-| Pagos | MercadoPago SDK v3 (preferencias + webhook HMAC-SHA256) |
+| Pagos | MercadoPago SDK v3 (preferencias + webhook HMAC-SHA256) — Getnet en evaluación, esqueleto WIP sin conectar (ver ítem 5 arriba) |
 | Frontend | HTML/CSS/JS vanilla + Supabase CDN client + Leaflet.js (mapa) |
 | Deploy | Railway (backend) + Vercel (frontend) + Supabase (DB) |
 

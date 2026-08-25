@@ -130,25 +130,47 @@ la API pública, qué queda pendiente de confirmar con cuenta real, y el
 checklist de negocio). Igual que con Payway: **nada de esto está activo ni
 enganchado al flujo real** — MercadoPago sigue siendo la única pasarela que
 cobra de verdad. La rama de Payway no se tocó ni se descartó — queda tal
-cual estaba.
+cual estaba, en pausa.
+
+**2026-08-25 — confirmado, se avanza con Getnet:** el usuario pidió
+preparar todo el terreno técnico posible antes de tener cuenta real. Se
+sumó a la misma rama:
+- `backend/scripts/getnet-sandbox-check.mjs` (`npm run test:getnet-sandbox`
+  en `backend/`) — diagnóstico automatizado: confirma auth + intenta crear
+  un checkout real contra el sandbox apenas haya credenciales, para
+  detectar rápido qué supuestos de `getnetClient.js` hay que corregir.
+- `docs/GETNET-SANDBOX-TESTING.md` — plan de pruebas manual paso a paso
+  (pago aprobado/rechazado/pendiente, webhook duplicado, firma inválida,
+  reconciliación de montos) para la primera vez que se prueba contra
+  sandbox real.
+- README.md, PENDIENTES-LANZAMIENTO.md e IMPORTANTE-PREGUNTAS-GERARDO.md
+  actualizados: donde antes apuntaban a "Payway a cargo de Fabri" ahora
+  apuntan a Getnet, dejando anotado que el esqueleto de Payway sigue
+  existiendo pero en pausa (no se borró nada, no se reescribió esa
+  historia).
+
+Sigue sin haber credenciales reales de ningún tipo — lo único que falta
+ahora es 100% de gestión (cuenta comercial + developer portal), no código.
+Ver checklist completo en `docs/GETNET-INTEGRACION.md` §4.
 
 ---
 
 ## 4. Quién decide esto
 
-- `CLAUDE.md` §5 (alerta para IAs): MercadoPago es la pasarela actual,
-  pero se está evaluando migrar a **Payway** y, desde el 2026-08-24,
-  también a **Getnet** — ninguna de las dos es una decisión firme
-  todavía. No asumir que MP es definitivo, no empezar una migración de
-  pasarela por cuenta propia.
-- `PENDIENTES-LANZAMIENTO.md` ítem 8 y `README.md` ítem 5: **Payway está
-  a cargo de Fabri — no tocar sin que él avance.** Según el usuario, Fabri
-  también está al tanto de Getnet (ver 3c) — pero la decisión de negocio
-  final (¿cuál de las dos, o coexisten? ¿reemplaza a MP?) sigue sin estar
-  tomada; esto sigue siendo terreno de Fabri, no una decisión tomada acá.
-- `IMPORTANTE-PREGUNTAS-GERARDO.md` ítem 6 ya tiene pendiente confirmar
-  en qué estado está la relación contractual con Payway — falta agregar la
-  misma pregunta para Getnet.
+- `CLAUDE.md` §5 (alerta para IAs): MercadoPago es la pasarela actual y
+  activa. El usuario ya definió que el foco de una posible migración es
+  **Getnet** (Payway queda en pausa) — pero eso es la dirección técnica a
+  preparar, no la activación real. No asumir que MP dejó de ser la
+  pasarela real, no conectar Getnet al flujo de producción por cuenta
+  propia.
+- `PENDIENTES-LANZAMIENTO.md` ítem 8 y `README.md` ítem 5: **Getnet — a
+  cargo de Fabri (relación con Santander), no conectar al flujo real sin
+  que él avance.** Preparar el esqueleto de código sí está confirmado por
+  el usuario; activarlo con credenciales reales y tocar `cliente.js`/
+  `pago.html` sigue siendo terreno de Fabri.
+- `IMPORTANTE-PREGUNTAS-GERARDO.md` ítem 6 tiene pendiente confirmar en
+  qué estado está el alta comercial de Getnet y si conviene ir por el
+  canal de Santander que ya trajo la comparativa de tarifas.
 
 Un sistema de split/payout automático es una decisión de pasarela, no
 un detalle de implementación — por eso esto quedó en notas y no en

@@ -168,8 +168,9 @@ Sin cuenta comercial no se pudo confirmar:
 - [ ] Confirmar URL del SDK embebido si se decide usar el modo "embebido"
       en vez de "redirect" — actualizar `getnet.js` y
       `window.GETNET_CHECKOUT_SDK_URL` en `env.js` real.
-- [ ] Correr un pago de prueba end-to-end contra sandbox usando
-      `frontend/getnet-test.html`.
+- [ ] Correr `npm run test:getnet-sandbox` y después un pago de prueba
+      end-to-end contra sandbox usando `frontend/getnet-test.html` — ver
+      `docs/GETNET-SANDBOX-TESTING.md` para el plan completo.
 - [ ] Correr `migration-getnet-wip.sql` en Supabase.
 - [ ] Decidir si Getnet reemplaza o coexiste con MercadoPago (y qué pasa
       con Payway) y ajustar `cliente.js`/`pago.html` según corresponda —
@@ -188,3 +189,16 @@ npm test -- --test-name-pattern=getnetUtils
 Estos tests (mapeo de estados, verificación de firma HMAC-SHA256) no
 requieren ninguna credencial ni red — son los únicos que se pueden confiar
 hoy sin acceso real a Getnet.
+
+## 7. El día que haya credenciales de sandbox
+
+`backend/scripts/getnet-sandbox-check.mjs` (`npm run test:getnet-sandbox`
+dentro de `backend/`) es un diagnóstico automatizado: confirma auth +
+intenta crear un checkout real contra el sandbox, para descubrir rápido si
+los supuestos de `getnetClient.js` (paths, payload) coinciden con la API
+real o hay que ajustarlos. El plan completo de pruebas manuales
+(escenarios de pago aprobado/rechazado/pendiente, webhook duplicado, firma
+inválida, reconciliación de montos) está en
+`docs/GETNET-SANDBOX-TESTING.md` — separado de este documento a propósito,
+para no mezclar "qué se investigó/preparó" con "qué hay que probar paso a
+paso una vez que haya cuenta real".
