@@ -174,6 +174,17 @@
     </div>
   </div>
 
+  <h2 class="sec">Encargo para el abogado — en 5 puntos</h2>
+  <p>Si vas a reenviar este link tal cual, esto es lo concreto que necesitamos que haga, en orden:</p>
+  <ol class="priority">
+    <li class="hot"><strong>Cadetes (§7):</strong> no es leer el texto — es mirar cómo funciona la relación en la práctica (¿pueden rechazar pedidos sin sanción? ¿hay turnos fijos? ¿pueden repartir para otra app al mismo tiempo?) y decirnos si sostiene "prestador independiente" o hay riesgo real de relación de dependencia encubierta.</li>
+    <li class="hot"><strong>§11 Jurisdicción</strong> y <strong>§10.1/10.2/10.3 Responsabilidad e indemnización:</strong> confirmar que no caen en "cláusula abusiva" frente a un consumidor (Ley 24.240, art. 37) — son las dos secciones con más exposición frente a clientes.</li>
+    <li><strong>§8.2 Arbitraje comercios:</strong> elegir el tribunal arbitral real de Santiago del Estero (hoy dice <span class="placeholder">[a definir]</span>) y validar la redacción.</li>
+    <li><strong>Contratos virtuales:</strong> confirmar si el mecanismo de aceptación (checkbox + el registro server-side que proponemos más abajo) alcanza el estándar de los arts. 1106-1116 del Código Civil y Comercial, y dar luz verde para construirlo.</li>
+    <li><strong>Visto bueno final</strong> (o las correcciones puntuales que haga falta) para pegar el texto de la sección "Texto final" en <code>frontend/legal.html</code>, reemplazando la versión actual en producción.</li>
+  </ol>
+  <p style="font-size:13px;color:var(--ink-soft)">El resto del documento (tabla de verificación completa, comparación contra Rappi/PedidosYa/Uber, el hallazgo de contratos virtuales en detalle) es contexto de apoyo para estos 5 puntos — no hace falta leerlo todo de corrido si no quiere.</p>
+
   <h2 class="sec">Antes de leer nada más</h2>
   <p>Ningún contrato, por bien escrito que esté, puede impedir que alguien inicie una demanda — eso lo decide quien demanda, no el texto que aceptó. Lo que sí hace un contrato bien armado es tres cosas concretas: <strong>reduce las chances de perder</strong> si te demandan (porque el usuario aceptó reglas claras de antemano), <strong>te da defensas específicas</strong> para usar en ese momento (topes de responsabilidad, exclusión de ciertos daños, indemnización), y <strong>desalienta</strong> reclamos débiles porque el terreno ya está claramente a tu favor. Eso es lo que este documento busca — el blindaje más fuerte que permite la ley argentina, no una promesa de inmunidad que no existe.</p>
   <p>Con una salvedad importante, que ya aparecía en el checklist del 17 de agosto y sigue siendo el punto más serio de todo esto: <strong>la relación con los cadetes no se resuelve con una cláusula.</strong> Los derechos laborales son irrenunciables (Ley 20.744, art. 12) — si en los hechos la relación se parece a un empleo, ningún texto que el cadete haya aceptado lo puede tapar. Ver el hallazgo de la sección siguiente y, sobre todo, la guía de verificación.</p>
