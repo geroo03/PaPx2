@@ -1,0 +1,175 @@
+<title>Guía Getnet PaP X</title>
+<style>
+  :root{
+    --ink:        #1a1d1a;
+    --ink-soft:   #4b524c;
+    --paper:      #ffffff;
+    --paper-tint: #f2f4f0;
+    --paper-line: #dfe3dd;
+    --accent:     #1f6f53;
+    --accent-soft:#e3f1ea;
+    --new:        #b5602b;
+    --new-soft:   #f8e9dd;
+    --changed:    #35529a;
+    --changed-soft:#e6ebf7;
+    --risk:       #a3312a;
+    --risk-soft:  #f7e6e4;
+    --shadow: 0 1px 2px rgba(20,24,20,.04), 0 8px 24px rgba(20,24,20,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+      --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a;
+      --changed:#8ca3e8; --changed-soft:#1c243d; --risk:#e2857e; --risk-soft:#3a201f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+    --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a;
+    --changed:#8ca3e8; --changed-soft:#1c243d; --risk:#e2857e; --risk-soft:#3a201f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.4);
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height:1.6; font-size:16px;
+  }
+  a{ color:var(--accent); }
+  code{ background:var(--paper-tint); padding:1px 6px; border-radius:4px; font-size:.9em; }
+  ::selection{ background:var(--accent-soft); }
+
+  .wrap{ max-width:760px; margin:0 auto; padding: 0 24px 96px; }
+
+  .masthead{ border-bottom:3px double var(--paper-line); padding: 44px 0 26px; margin-bottom: 32px; }
+  .eyebrow{ text-transform:uppercase; letter-spacing:.12em; font-size:12px; color:var(--accent); font-weight:700; margin:0 0 10px; }
+  h1.title{ font-size: clamp(28px,4.4vw,40px); margin:0 0 10px; letter-spacing:-.015em; text-wrap:balance; font-weight:800; }
+  .subtitle{ color:var(--ink-soft); font-size:16px; margin:0 0 6px; max-width:56ch; }
+
+  h2.sec{ font-size:20px; margin:48px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--paper-line); display:flex; align-items:baseline; gap:9px; text-wrap:balance; }
+  h2.sec .num{ color:var(--accent); font-variant-numeric:tabular-nums; }
+  p{ margin:0 0 12px; }
+  ul,ol{ padding-left:22px; margin:0 0 14px; }
+  li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+
+  .notice{ padding:14px 16px; border-radius:8px; background:var(--risk-soft); border:1px solid color-mix(in srgb, var(--risk) 35%, var(--paper-line)); font-size:13.5px; }
+  .notice b{ color:var(--risk); }
+
+  /* ── Link cards ───────────────────────────────────────── */
+  .links-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:12px; margin: 4px 0 8px; }
+  .link-card{ display:block; border:1px solid var(--paper-line); border-radius:12px; padding:16px 18px; background:var(--paper); text-decoration:none; transition: border-color .15s, box-shadow .15s; }
+  .link-card:hover{ border-color: var(--accent); box-shadow: var(--shadow); }
+  .link-card .lbl{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--accent); margin-bottom:6px; }
+  .link-card h4{ margin:0 0 4px; font-size:15px; color:var(--ink); }
+  .link-card p{ margin:0; font-size:12.5px; color:var(--ink-soft); }
+  .link-card .url{ display:block; margin-top:8px; font-size:11.5px; color:var(--ink-soft); word-break:break-all; }
+
+  /* ── Steps ────────────────────────────────────────────── */
+  ol.steps{ counter-reset: step; list-style:none; padding-left:0; margin:20px 0; }
+  ol.steps > li{ counter-increment: step; position:relative; padding:2px 0 24px 46px; border-left:2px solid var(--paper-line); margin-left:15px; }
+  ol.steps > li:last-child{ border-left-color:transparent; padding-bottom:2px; }
+  ol.steps > li::before{ content: counter(step); position:absolute; left:-15px; top:0; width:30px; height:30px; border-radius:50%; background:var(--accent); color:var(--paper); font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center; }
+  ol.steps h4{ margin:0 0 6px; font-size:16px; color:var(--ink); }
+  ol.steps p{ font-size:14px; color:var(--ink-soft); margin:0 0 8px; }
+  .say-box{ background:var(--changed-soft); border:1px solid color-mix(in srgb, var(--changed) 30%, var(--paper-line)); border-radius:8px; padding:10px 14px; font-size:13.5px; margin-top:6px; }
+  .say-box b{ color:var(--changed); display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+
+  /* ── Checklist ────────────────────────────────────────── */
+  .checklist{ display:flex; flex-direction:column; gap:8px; margin:16px 0; }
+  .checklist li{ list-style:none; display:flex; align-items:flex-start; gap:10px; font-size:14.5px; padding:9px 12px; background:var(--paper-tint); border-radius:8px; margin:0; }
+  .checklist .box{ flex:0 0 auto; width:18px; height:18px; border-radius:5px; border:2px solid var(--ink-soft); margin-top:2px; }
+
+  .contact-box{ background:var(--paper-tint); border-radius:12px; padding:16px 18px; margin:18px 0; border:1px solid var(--paper-line); font-size:14px; }
+  .contact-box .row{ display:flex; gap:10px; margin:6px 0; }
+  .contact-box .row .k{ color:var(--ink-soft); min-width:70px; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; padding-top:2px; }
+
+  footer{ margin-top:56px; padding-top:20px; border-top:1px solid var(--paper-line); font-size:12px; color:var(--ink-soft); }
+  footer a{ color:var(--ink-soft); }
+
+  @media (max-width:520px){ .wrap{ padding:0 16px 72px; } .masthead{ padding:30px 0 20px; } }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow">Para Gerardo — pasos a seguir</p>
+    <h1 class="title">Alta de Getnet</h1>
+    <p class="subtitle">Los links directos y el paso a paso para conseguir cuenta comercial + credenciales de sandbox — lo único que falta para activar el esqueleto técnico que ya está listo.</p>
+  </div>
+
+  <div class="notice">
+    <b>Lo importante antes de llamar:</b> el alta rápida de la web es para cobrar con QR/posnet en un local. Nosotros necesitamos <strong>integración online vía API</strong> (Get Checkout) — si no lo aclarás desde el primer contacto, es fácil que te deriven al circuito equivocado.
+  </div>
+
+  <h2 class="sec"><span class="num">01</span> Links directos</h2>
+  <div class="links-grid">
+    <a class="link-card" href="https://www.getnet.net/en/contact" target="_blank" rel="noopener">
+      <div class="lbl">Empezar por acá</div>
+      <h4>Contacto comercial</h4>
+      <p>Para hablar con un asesor y aclarar que es para e-commerce/API, no QR local.</p>
+      <span class="url">getnet.net/en/contact</span>
+    </a>
+    <a class="link-card" href="https://getnet.com.ar/registro" target="_blank" rel="noopener">
+      <div class="lbl">Alternativa</div>
+      <h4>Registro online</h4>
+      <p>Alta en 3 pasos + después te llaman por teléfono para cerrar el proceso.</p>
+      <span class="url">getnet.com.ar/registro</span>
+    </a>
+    <a class="link-card" href="https://www.getnet.net/ar/nuestras-soluciones/cobros-online/checkout-para-ecommerce" target="_blank" rel="noopener">
+      <div class="lbl">Para mostrarles qué querés</div>
+      <h4>Get Checkout — cobros online</h4>
+      <p>La página del producto exacto que necesitamos (checkout hospedado para e-commerce).</p>
+      <span class="url">getnet.net/ar/.../checkout-para-ecommerce</span>
+    </a>
+    <a class="link-card" href="https://docs.globalgetnet.com/en" target="_blank" rel="noopener">
+      <div class="lbl">Recién con cuenta ya creada</div>
+      <h4>Portal de desarrolladores</h4>
+      <p>Acá es donde yo voy a confirmar los detalles técnicos, una vez que tengan acceso.</p>
+      <span class="url">docs.globalgetnet.com</span>
+    </a>
+  </div>
+
+  <h2 class="sec"><span class="num">02</span> Paso a paso</h2>
+  <ol class="steps">
+    <li>
+      <h4>Contactar a Getnet, aclarando que es para integración online (API)</h4>
+      <p>Usá el contacto comercial de arriba, o directo a la persona de Santander que te pasó la comparativa de tarifas — probablemente sea el atajo más rápido, ya los conoce.</p>
+      <div class="say-box"><b>Qué decir</b>"Tenemos una app de delivery en producción (Puerta a Puerta X) y queremos integrar Get Checkout — el checkout online por API, no el cobro presencial con QR/posnet. Necesitamos hablar con el equipo de e-commerce/desarrolladores."</div>
+    </li>
+    <li>
+      <h4>Completar el alta comercial</h4>
+      <p>Van a pedir los datos estándar de cualquier alta de cobros — ver el checklist de abajo para tener todo a mano antes de la llamada.</p>
+    </li>
+    <li>
+      <h4>Pedir específicamente acceso al developer portal + credenciales de <strong>sandbox</strong></h4>
+      <p>No solo las de producción — sin sandbox no se puede probar nada antes de cobrar plata real. Esto es lo que activa todo el trabajo técnico que ya está preparado.</p>
+    </li>
+    <li>
+      <h4>Avisarme apenas las tengan</h4>
+      <p>Con <code>GETNET_CLIENT_ID</code> / <code>GETNET_CLIENT_SECRET</code> / <code>GETNET_SELLER_ID</code> corro el diagnóstico automatizado que ya está armado (<code>npm run test:getnet-sandbox</code>) y ajusto lo que haga falta contra la API real en la misma sesión.</p>
+    </li>
+  </ol>
+
+  <h2 class="sec"><span class="num">03</span> Qué tener a mano antes de llamar</h2>
+  <ul class="checklist">
+    <li><span class="box"></span> DNI y, si existe, CUIT de la empresa (acelera el alta y sube el tope de montos que se pueden procesar)</li>
+    <li><span class="box"></span> Datos bancarios — CBU o alias de la cuenta donde quieren que se acredite</li>
+    <li><span class="box"></span> Rubro: delivery / marketplace de comercios (para que te asignen el asesor correcto)</li>
+    <li><span class="box"></span> Volumen estimado de operaciones mensuales, aunque sea aproximado — suelen pedirlo para dimensionar la cuenta</li>
+    <li><span class="box"></span> Aclarar que la integración es a medida (Node.js propio), no vía Tiendanube/WooCommerce/Magento — así no te ofrecen el plugin equivocado</li>
+  </ul>
+
+  <div class="contact-box">
+    <div class="row"><span class="k">Email</span><span><a href="mailto:comercios@getnet.com.ar">comercios@getnet.com.ar</a></span></div>
+    <div class="row"><span class="k">Teléfono</span><span>+54 11 6074-7001</span></div>
+  </div>
+
+  <footer>
+    <p>Confirmado en vivo el 25-ago-2026 contra <a href="https://www.getnet.net/en/contact" target="_blank" rel="noopener">getnet.net/en/contact</a>. El estado técnico completo (qué ya está armado, qué falta confirmar contra la API real) vive en <code>docs/GETNET-INTEGRACION.md</code> y <code>docs/GETNET-SANDBOX-TESTING.md</code>, rama <code>work/2026-08-24-getnet-integracion</code>.</p>
+  </footer>
+
+</div>
