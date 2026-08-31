@@ -144,7 +144,20 @@ function redirigirSegunRol(rol){
 // después de un signup). Antes esta página confiaba únicamente en
 // user_metadata, que además de poder quedar desactualizado nunca se completa
 // en un login con Google.
+//
+// En la app nativa, un login con Google dispara esta función DOS VECES para
+// el mismo evento: una vez desde escucharCallbackOAuthNativo() (el callback
+// del deep link) y otra vez desde sb.auth.onAuthStateChange() de más abajo,
+// porque el setSession() que hace el deep link también dispara ese listener
+// genérico (sigue activo, la página no se recarga al volver del navegador
+// in-app). Sin esta traba, las dos ejecuciones corren en paralelo y navegan
+// (window.location.href) casi al mismo tiempo — encontrado 2026-08-31
+// probando el login de Google en un dispositivo Android real (la app se
+// cerraba y no volvía a abrir). yaResolviendoRol evita la segunda ejecución.
+let yaResolviendoRol = false;
 async function resolverRolYRedirigir(userId, rolMetadata) {
+  if (yaResolviendoRol) return;
+  yaResolviendoRol = true;
   let rol = null;
   try {
     const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', userId).single();
@@ -319,9 +332,12 @@ sb.auth.getSession().then(({ data: { session } }) => {
 <script type="module">
   import { escucharCallbackOAuthNativo } from '../assets/js/auth-service.js';
   // En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
-  escucharCallbackOAuthNativo((session) => {
-    window.resolverRolYRedirigir?.(session?.user?.id, session?.user?.user_metadata?.role);
-  });
+  escucharCallbackOAuthNativo(
+    (session) => {
+      window.resolverRolYRedirigir?.(session?.user?.id, session?.user?.user_metadata?.role);
+    },
+    (msg) => { window.showError?.(msg); }
+  );
 </script>
 </body>
 </html>

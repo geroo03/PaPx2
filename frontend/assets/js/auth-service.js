@@ -62,8 +62,12 @@ export async function iniciarLoginGoogleNativo(redirectPathWeb) {
 // (solo hace algo en la app nativa). Llamar UNA vez por página que use
 // iniciarLoginGoogleNativo, antes de que el usuario toque el botón de Google.
 // `onSuccess` se llama después de setSession() — normalmente para navegar a
-// la pantalla correspondiente.
-export function escucharCallbackOAuthNativo(onSuccess) {
+// la pantalla correspondiente. `onError` (opcional) se llama con un mensaje
+// legible cuando el callback vuelve sin tokens o setSession() falla — antes
+// esto solo quedaba en console.error, el usuario se quedaba mirando la
+// pantalla de login sin ninguna explicación (encontrado 2026-08-31 en la
+// misma ronda de pruebas que el crash del login con Google).
+export function escucharCallbackOAuthNativo(onSuccess, onError) {
   if (!isNative()) return;
   if (!sbClient) initAuthClient();
 
@@ -80,6 +84,7 @@ export function escucharCallbackOAuthNativo(onSuccess) {
 
       if (!access_token || !refresh_token) {
         console.error('[OAuth nativo] Callback sin tokens:', url);
+        onError?.('No se pudo completar el login con Google. Intentá de nuevo.');
         return;
       }
 
@@ -88,6 +93,7 @@ export function escucharCallbackOAuthNativo(onSuccess) {
       onSuccess?.(data?.session ?? null);
     } catch (err) {
       console.error('[OAuth nativo] Error procesando callback:', err?.message ?? err);
+      onError?.('Error al procesar el login con Google. Intentá de nuevo.');
     } finally {
       Browser?.close().catch(() => {});
     }

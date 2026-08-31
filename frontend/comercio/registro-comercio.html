@@ -699,7 +699,16 @@ el('btn-back')?.addEventListener('click', () => {
 // de comercio.html (y al submit de este form) que hay que corregirlo con
 // POST /api/auth/set-role una vez creada la fila en `comercios`. Mismo
 // patrón que ya usa cadete/registro-cadete.html + cadete.js.
+// En la app nativa, escucharCallbackOAuthNativo() (deep link) y el
+// onAuthStateChange() genérico de más abajo se disparan los dos para el
+// mismo login — el setSession() del deep link también dispara ese listener,
+// sigue activo porque la página no se recarga al volver del navegador
+// in-app. yaActivadoGoogle evita procesar el mismo login dos veces (mismo
+// bug encontrado y corregido en cliente/login-usuario.html, 2026-08-31).
+let yaActivadoGoogle = false;
 function activarModoGoogle(session) {
+  if (yaActivadoGoogle) return;
+  yaActivadoGoogle = true;
   sesionGoogle = session;
   el('cuenta-acceso-wrap').style.display = 'none';
   const banner = el('google-banner');
@@ -727,9 +736,10 @@ el('btn-google')?.addEventListener('click', async () => {
 });
 
 // En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
-escucharCallbackOAuthNativo((session) => {
-  if (session) activarModoGoogle(session);
-});
+escucharCallbackOAuthNativo(
+  (session) => { if (session) activarModoGoogle(session); },
+  (msg) => { showErr(msg); const btn = el('btn-google'); if (btn) btn.disabled = false; }
+);
 
 // En la web, Supabase deja la sesión en el hash de la URL al volver de
 // Google y dispara SIGNED_IN. También cubre refrescar la página ya

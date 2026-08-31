@@ -43,15 +43,25 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal).
-escucharCallbackOAuthNativo((session) => {
-  if (session?.user?.id) redirectPorRol(session.user.id, false, true);
-});
+escucharCallbackOAuthNativo(
+  (session) => { if (session?.user?.id) redirectPorRol(session.user.id, false, true); },
+  (msg) => { showError(msg); const btn = document.getElementById('btn-google'); if (btn) btn.disabled = false; }
+);
 
 // Detectar retorno del email de reset de contraseña, y del redirect de
 // Google OAuth en la web (Supabase procesa el hash de la URL solo y dispara
-// SIGNED_IN). Password login también dispara SIGNED_IN — redirectPorRol()
-// corriendo dos veces (acá y en handleLogin) es inofensivo, mismo patrón
-// que ya usa cliente/login-usuario.html.
+// SIGNED_IN). Password login también dispara SIGNED_IN, así que
+// redirectPorRol() puede correr dos veces para el mismo login (acá y en
+// handleLogin) — CORRECCIÓN 2026-08-31: esto decía "es inofensivo", pero no
+// lo es. En la app nativa, un login con Google dispara esta función DOS
+// VECES para el mismo evento (una desde escucharCallbackOAuthNativo() de
+// más arriba — el callback del deep link — y otra desde este mismo
+// listener, porque el setSession() del deep link también lo dispara, sigue
+// activo porque la página no se recarga al volver del navegador in-app).
+// Las dos ejecuciones corren en paralelo y navegan (location.href) casi al
+// mismo tiempo — esto es lo que rompía la app al loguearse con Google en un
+// dispositivo Android real (la app se cerraba y no volvía a abrir). Ver el
+// guard redirigiendoPorRol dentro de redirectPorRol más abajo.
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     showRecoveryForm();
@@ -150,7 +160,18 @@ async function handleLogin() {
 // quiere ser (Google crea el usuario en auth.users solo, sin fila en
 // perfiles). Se le ofrece el selector en vez de mandarlo a error+signOut
 // como al resto de los casos sin rol (ahí sí es una cuenta rota de verdad).
+// redirigiendoPorRol evita que dos invocaciones concurrentes de
+// redirectPorRol (ver comentario en onAuthStateChange más arriba) corran en
+// paralelo. Se resetea en cada salida que NO termina navegando (selector de
+// rol, cuenta sin rol, rol desconocido) para no bloquear un intento
+// legítimo posterior en la misma carga de página — solo queda "true" para
+// siempre en el camino que sí navega (location.href, al final), momento en
+// el que ya no importa porque la página se descarga.
+let redirigiendoPorRol = false;
 async function redirectPorRol(userId, silencioso = false, esGoogle = false) {
+  if (redirigiendoPorRol) return;
+  redirigiendoPorRol = true;
+
   // 1. Consultar tabla 'perfiles' — fuente de verdad para el rol
   // usuario_id es el FK a auth.users; 'id' en perfiles es un UUID random (nueva schema)
   const { data: perfil, error: perfErr } = await sb
@@ -170,11 +191,12 @@ async function redirectPorRol(userId, silencioso = false, esGoogle = false) {
 
   // 3. Sin rol
   if (!rol) {
-    if (esGoogle) { mostrarSelectorRolGoogle(); return; }
+    if (esGoogle) { redirigiendoPorRol = false; mostrarSelectorRolGoogle(); return; }
     // Password login / recovery sin rol → esto sí es una cuenta rota
     // (el registro por email/password crea el rol en el mismo paso).
     if (!silencioso) showError('Tu cuenta no tiene un rol asignado. Contactá al administrador.');
     await sb.auth.signOut();
+    redirigiendoPorRol = false;
     return;
   }
 
@@ -182,6 +204,7 @@ async function redirectPorRol(userId, silencioso = false, esGoogle = false) {
   if (!RUTAS[rol]) {
     if (!silencioso) showError(`Rol desconocido: "${rol}". Contactá al administrador.`);
     await sb.auth.signOut();
+    redirigiendoPorRol = false;
     return;
   }
 

@@ -97,9 +97,6 @@ import { iniciarLoginGoogleNativo, escucharCallbackOAuthNativo } from '../assets
 
 const base = window.BACKEND_URL ?? '';
 
-// En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal)
-escucharCallbackOAuthNativo(() => { window.location.href = '/cadete/cadete.html'; });
-
 function mostrarErr(msg) {
   const el = document.getElementById('err');
   if (el) { el.textContent = msg; el.style.display = 'block'; }
@@ -113,6 +110,12 @@ function setLoading(on) {
   document.getElementById('btn-google').disabled = on;
   document.getElementById('btn-registrar').disabled = on;
 }
+
+// En la app nativa, Google vuelve acá vía deep link (no vía redirectTo normal)
+escucharCallbackOAuthNativo(
+  () => { window.location.href = '/cadete/cadete.html'; },
+  (msg) => { mostrarErr(msg); setLoading(false); }
+);
 
 window.loginConGoogle = async function() {
   const chk = document.getElementById('chk-tyc-cadete');
