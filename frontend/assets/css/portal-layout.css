@@ -440,7 +440,7 @@ img { display: block; max-width: 100%; }
     transform: translateX(0);
     box-shadow: var(--shadow-xl);
   }
-  .sidebar-overlay { display: block; }
+  .sidebar-overlay.show { display: block; }
 
   .portal-main { margin-left: 0; }
 
