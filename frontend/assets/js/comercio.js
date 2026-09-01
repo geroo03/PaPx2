@@ -109,6 +109,26 @@ function navigate(viewName) {
   })[viewName]?.();
 }
 
+// ─── BOTÓN ATRÁS NATIVO (Android) ──────────────────────────────────────────────
+// Este portal navega entre vistas con clases CSS (navigate()), sin pushState/
+// history real -- sin esto el botón físico de atrás de Android no tiene nada
+// que cerrar y no hace nada visible (mismo problema encontrado y arreglado en
+// cliente.js). Cierra lo más específico primero (modal abierto, sidebar mobile
+// abierto), después vuelve a "pedidos" (vista por defecto), y ahí sale de la app.
+if (window.Capacitor?.isNativePlatform?.()) {
+  const { App } = window.Capacitor.Plugins;
+  App.addListener('backButton', () => {
+    if (document.querySelector('.modal-overlay:not(.hidden)')) { closeAllModals(); return; }
+    if (g('sidebar')?.classList.contains('open')) {
+      g('sidebar')?.classList.remove('open');
+      g('sidebar-overlay')?.classList.remove('show');
+      return;
+    }
+    if (S.view !== 'pedidos') { navigate('pedidos'); return; }
+    App.exitApp();
+  });
+}
+
 // ─── EVENT DELEGATION ─────────────────────────────────────────────────────────
 function bindAllEvents() {
   document.addEventListener('click',  e => {

@@ -59,6 +59,27 @@ function go(screen){
   window.scrollTo(0,0);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOTÓN ATRÁS NATIVO (Android) — esta SPA no usa pushState/history real, así
+// que sin esto el botón físico de atrás no tiene ninguna pantalla/panel que
+// cerrar y no hace nada visible: el usuario queda trabado en cualquier lado
+// que no sea la home (reportado: Perfil → Métodos de pago). Cierra lo más
+// específico primero (paneles superpuestos), después vuelve a home, y recién
+// en home sale de la app — mismo patrón window.Capacitor.Plugins que ya usa
+// main.js (StatusBar) y push.js, sin bundler.
+// ═══════════════════════════════════════════════════════════════════════════════
+if(window.Capacitor?.isNativePlatform?.()){
+  const{App}=window.Capacitor.Plugins;
+  App.addListener('backButton',()=>{
+    const extra=document.getElementById('pantalla-extra');
+    if(extra&&getComputedStyle(extra).display!=='none'){cerrarPantallaExtra();return;}
+    if(document.getElementById('devolucion-screen')?.classList.contains('visible')){cerrarDevolucion();return;}
+    if(document.getElementById('rating-screen')?.classList.contains('visible')){cerrarRating();return;}
+    if(currentScreen!=='home'){go('home');return;}
+    App.exitApp();
+  });
+}
+
 function showToast(msg,duration=2500){document.getElementById('toast-msg').innerHTML=msg;const t=document.getElementById('toast');t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),duration);}
 function bump(el){if(!el)return;el.classList.remove('anim-pop');void el.offsetWidth;el.classList.add('anim-pop');}
 

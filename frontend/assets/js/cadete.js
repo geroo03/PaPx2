@@ -152,6 +152,22 @@ function stab(tab) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ─── BOTÓN ATRÁS NATIVO (Android) ──────────────────────────────────────────────
+// Las tabs (stab()) se manejan con clases CSS, sin pushState/history real --
+// sin esto el botón físico de atrás de Android no tiene nada que cerrar y no
+// hace nada visible (mismo problema encontrado y arreglado en cliente.js).
+// Durante el onboarding obligatorio no se deja "salir" del formulario con
+// atrás (evitaría completar el alta) -- ahí atrás sale directo de la app.
+if (window.Capacitor?.isNativePlatform?.()) {
+  const { App } = window.Capacitor.Plugins;
+  App.addListener('backButton', () => {
+    const onboarding = document.getElementById('onboarding-overlay');
+    if (onboarding && getComputedStyle(onboarding).display !== 'none') { App.exitApp(); return; }
+    if (!document.getElementById('tab-v')?.classList.contains('active')) { stab('v'); return; }
+    App.exitApp();
+  });
+}
+
 function removeAlertBtn() {
   document.getElementById('viaje-alert-btn')?.remove();
 }
