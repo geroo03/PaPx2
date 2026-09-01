@@ -11,6 +11,26 @@ const isNative = () =>
 // ─── NATIVA (Capacitor / FCM) ────────────────────────────────────────────────
 
 async function registrarPushNativa() {
+  // DESACTIVADO 2026-09-01 (Sentry ANDROID-1): PushNotifications.register()
+  // llama a FirebaseMessaging.getInstance() del lado nativo, que revienta con
+  // IllegalStateException ("Default FirebaseApp is not initialized") porque
+  // todavía no existe google-services.json ni se llamó
+  // FirebaseApp.initializeApp() — Firebase/FCM sigue pendiente (ver CLAUDE.md
+  // §13 ítem 8). Esto NO es un error de JS atajable con try/catch: pasa
+  // adentro del puente nativo de Capacitor (Bridge.java, invocación por
+  // reflection) antes de que el control vuelva a JS — el try/catch de acá
+  // abajo nunca llegaba a correr, la app entera crasheaba (Android mostraba
+  // "la app dejó de funcionar") en cualquier dispositivo real justo después
+  // del login, que es cuando esta función se llama. Sacar esto no rompe nada
+  // que ya funcionara — las push nativas nunca funcionaron, esto solo evita
+  // que la app entera se caiga por intentarlo. Reactivar recién cuando
+  // Firebase esté de verdad configurado (google-services.json en su lugar +
+  // el plugin de Gradle aplicado — android/app/build.gradle ya tiene el
+  // try/catch condicional listo para cuando exista ese archivo).
+  console.warn('[Push] Registro nativo desactivado — falta configurar Firebase (ver CLAUDE.md §13 ítem 8)');
+  return;
+
+  // eslint-disable-next-line no-unreachable
   try {
     const { PushNotifications } = window.Capacitor.Plugins;
     if (!PushNotifications) return;
