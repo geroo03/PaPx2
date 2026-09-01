@@ -82,6 +82,8 @@ function iniciarReporteGPS() {
 
   gpsWatchId = navigator.geolocation.watchPosition(
     async (pos) => {
+      actualizarPosicionPropiaEnMapa(pos.coords.latitude, pos.coords.longitude);
+
       const now = Date.now();
       if (now - gpsLastSent < GPS_SEND_INTERVAL) return;
       gpsLastSent = now;
@@ -152,6 +154,33 @@ function stab(tab) {
 
 function removeAlertBtn() {
   document.getElementById('viaje-alert-btn')?.remove();
+}
+
+// Antes era 100% falso (confirm() + toast hardcodeado, sin persistir nada).
+// Ahora inserta de verdad en 'reportes' — RLS ya permite que el propio
+// cadete inserte con su usuario_id (reportes_owner_all), sin tocar nada de
+// base. Todavía no hay pantalla de admin para revisar estos reportes.
+async function reportarProblemaCadete() {
+  if (!activeTrip || !cadeteUserId) return;
+  if (!confirm('¿Reportar un problema con este viaje al administrador?')) return;
+
+  const detalle = prompt('Contanos brevemente qué pasó (opcional):', '') ?? '';
+
+  try {
+    const { error } = await sb.from('reportes').insert([{
+      pedido_id:   activeTrip.id ?? activeTrip.pedido_id,
+      usuario_id:  cadeteUserId,
+      motivo:      'problema_cadete',
+      descripcion: detalle.trim() || null,
+      tipo:        'cadete',
+      estado:      'pendiente',
+    }]);
+    if (error) throw error;
+    toast(`${ICONS.check} Reporte enviado. El administrador lo va a revisar.`, 3000);
+  } catch (err) {
+    console.error('[reportarProblemaCadete] Error insertando reporte:', err.message);
+    toast(`${ICONS.warn} No se pudo enviar el reporte. Intentá de nuevo.`, 3000);
+  }
 }
 
 function mapsTo(addr) {
@@ -231,6 +260,7 @@ async function cargarOfertas() {
         estado,
         pedidos (
           id, numero, estado, total, metodo_pago, direccion_entrega, created_at,
+          lat_entrega, lng_entrega,
           comercios ( nombre, direccion, telefono )
         )
       `)
@@ -436,6 +466,8 @@ function renderTripActivo(container) {
           </div>
         </div>
 
+        <div id="viaje-map" style="height:150px;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#1a1a1a;"></div>
+
         ${productosHTML}
 
         <!-- Código de retiro: el comercio te lo da cuando llegás -->
@@ -486,10 +518,9 @@ function renderTripActivo(container) {
 
     removeAlertBtn();
     document.body.insertAdjacentHTML('beforeend', alertBtnHtml);
-    document.getElementById('viaje-alert-btn')?.addEventListener('click', () => {
-      if (confirm('¿Reportar un problema con este viaje al administrador?')) toast('Reporte enviado.');
-    });
+    document.getElementById('viaje-alert-btn')?.addEventListener('click', reportarProblemaCadete);
     initChatCadete(v.id ?? v.pedido_id);
+    initMapaViajeCadete(v.comercio_lat, v.comercio_lng, comercioNombre);
     return;
   }
 
@@ -519,6 +550,8 @@ function renderTripActivo(container) {
             <div id="km-al-cliente" style="font-size:16px;font-weight:800;color:#34D399;">—</div>
           </div>
         </div>
+
+        <div id="viaje-map" style="height:150px;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#1a1a1a;"></div>
 
         <!-- Código de entrega: el cliente te lo muestra al llegar -->
         <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);
@@ -591,10 +624,9 @@ function renderTripActivo(container) {
 
     removeAlertBtn();
     document.body.insertAdjacentHTML('beforeend', alertBtnHtml);
-    document.getElementById('viaje-alert-btn')?.addEventListener('click', () => {
-      if (confirm('¿Reportar un problema con este viaje al administrador?')) toast('Reporte enviado.');
-    });
+    document.getElementById('viaje-alert-btn')?.addEventListener('click', reportarProblemaCadete);
     initChatCadete(v.id ?? v.pedido_id);
+    initMapaViajeCadete(v.lat_entrega, v.lng_entrega, 'Cliente');
     return;
   }
 
@@ -611,11 +643,86 @@ function renderTripActivo(container) {
       activeTripState = 0;
       if (kmChannel) { sb.removeChannel(kmChannel); kmChannel = null; }
       detenerProductosViajeActivo();
+      detenerMapaViajeCadete();
       actualizarStats();
       renderViajes();
       toast(`${ICONS.confetti} ¡Viaje completado! Ganaste $${Number(ganFinal).toLocaleString('es-AR')}`, 3500);
     }, 1200);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAPA EMBEBIDO DEL VIAJE ACTIVO — mismo patrón Leaflet que usa cliente.js
+// para el tracking en vivo. Pin de destino (comercio o cliente según el
+// estado) + posición propia si hay geolocalización. Suma el mapa in-app,
+// no reemplaza el link "Ver ruta..." que abre Google Maps.
+// ═══════════════════════════════════════════════════════════════════════════════
+let _viajeMap = null, _viajeSelfMarker = null;
+let cadeteLat = null, cadeteLng = null; // última posición conocida, la setea iniciarReporteGPS()
+
+function pinDivIcon(color, size) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,
+    iconSize: [size + 6, size + 6],
+    iconAnchor: [(size + 6) / 2, (size + 6) / 2],
+  });
+}
+
+function initMapaViajeCadete(destLat, destLng, destLabel) {
+  const el = document.getElementById('viaje-map');
+  if (!el || !window.L) return;
+
+  // El contenedor es un nodo DOM nuevo en cada render (container.innerHTML se
+  // reemplaza entero) — la instancia vieja de Leaflet queda huérfana, hay que tirarla.
+  if (_viajeMap) { try { _viajeMap.remove(); } catch {} _viajeMap = null; _viajeSelfMarker = null; }
+
+  const tieneDestino = destLat != null && destLng != null;
+  const center = tieneDestino
+    ? [destLat, destLng]
+    : (cadeteLat != null ? [cadeteLat, cadeteLng] : [-27.7951, -64.2615]); // fallback: Santiago del Estero
+
+  try {
+    _viajeMap = L.map(el, { center, zoom: 15, zoomControl: false, attributionControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_viajeMap);
+
+    let destMarker = null;
+    if (tieneDestino) {
+      destMarker = L.marker([destLat, destLng], { icon: pinDivIcon('#FF6B35', 16) })
+        .addTo(_viajeMap).bindTooltip(destLabel || 'Destino', { direction: 'top' });
+    }
+
+    if (cadeteLat != null && cadeteLng != null) {
+      _viajeSelfMarker = L.marker([cadeteLat, cadeteLng], { icon: pinDivIcon('#3B82F6', 14) })
+        .addTo(_viajeMap).bindTooltip('Vos', { direction: 'bottom' });
+    }
+
+    if (destMarker && _viajeSelfMarker) {
+      _viajeMap.fitBounds(L.latLngBounds([[destLat, destLng], [cadeteLat, cadeteLng]]).pad(0.25), { maxZoom: 16 });
+    }
+  } catch (err) {
+    console.warn('[initMapaViajeCadete] Error inicializando el mapa:', err.message);
+  }
+}
+
+function actualizarPosicionPropiaEnMapa(lat, lng) {
+  cadeteLat = lat; cadeteLng = lng;
+  if (!_viajeMap || !window.L) return;
+  try {
+    if (!_viajeSelfMarker) {
+      _viajeSelfMarker = L.marker([lat, lng], { icon: pinDivIcon('#3B82F6', 14) })
+        .addTo(_viajeMap).bindTooltip('Vos', { direction: 'bottom' });
+    } else {
+      _viajeSelfMarker.setLatLng([lat, lng]);
+    }
+  } catch (err) {
+    console.warn('[actualizarPosicionPropiaEnMapa] Error:', err.message);
+  }
+}
+
+function detenerMapaViajeCadete() {
+  if (_viajeMap) { try { _viajeMap.remove(); } catch {} }
+  _viajeMap = null; _viajeSelfMarker = null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -758,11 +865,11 @@ async function confirmarRetiro() {
     activeTripState = 2;
 
     // Redirigir live KM hacia el cliente cuando haya coordenadas disponibles
-    if (activeTrip.cliente_lat && activeTrip.cliente_lng) {
+    if (activeTrip.lat_entrega && activeTrip.lng_entrega) {
       suscribirKmCadete(
         activeTrip.id ?? activeTrip.pedido_id,
-        activeTrip.cliente_lat,
-        activeTrip.cliente_lng,
+        activeTrip.lat_entrega,
+        activeTrip.lng_entrega,
         'km-al-cliente',
       );
     }
@@ -941,30 +1048,56 @@ function iniciarRealtimeCadete() {
   } catch {}
 }
 
+// AudioContext único reusado a nivel de módulo — crear uno nuevo por
+// notificación (sin cerrarlo nunca, como era antes) hace que 2+ ofertas casi
+// simultáneas superpongan contextos y, en mobile, puede pisar el límite de
+// contextos concurrentes del navegador (el error quedaba silenciado).
+let _audioCtx = null;
+
+function getAudioCtx() {
+  if (_audioCtx && _audioCtx.state !== 'closed') return _audioCtx;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  _audioCtx = new AC();
+  return _audioCtx;
+}
+
 function sonarViaje() {
-  try {
-    const ctx   = new (window.AudioContext || window.webkitAudioContext)();
-    const notes = [784, 659, 784, 880];
-    const noteStep = 0.12, noteDur = 0.15;
-    const seqLen = notes.length * noteStep; // 0.48s
-    const seqGap = 0.10;                   // gap between repeats
-    const reps   = 5;                      // 5 × (0.48 + 0.10) = 2.9s ≈ 3s
-    for (let r = 0; r < reps; r++) {
-      notes.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = freq;
-        osc.type = 'sine';
-        const t = ctx.currentTime + r * (seqLen + seqGap) + i * noteStep;
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.exponentialRampToValueAtTime(0.01, t + noteDur);
-        osc.start(t);
-        osc.stop(t + noteDur);
-      });
+  const ctx = getAudioCtx();
+  if (!ctx) { console.warn('[sonarViaje] Web Audio no disponible en este navegador'); return; }
+
+  const tocar = () => {
+    try {
+      const notes = [784, 659, 784, 880];
+      const noteStep = 0.12, noteDur = 0.15;
+      const seqLen = notes.length * noteStep; // 0.48s
+      const seqGap = 0.10;                   // gap between repeats
+      const reps   = 5;                      // 5 × (0.48 + 0.10) = 2.9s ≈ 3s
+      for (let r = 0; r < reps; r++) {
+        notes.forEach((freq, i) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = freq;
+          osc.type = 'sine';
+          const t = ctx.currentTime + r * (seqLen + seqGap) + i * noteStep;
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + noteDur);
+          osc.start(t);
+          osc.stop(t + noteDur);
+        });
+      }
+    } catch (err) {
+      console.warn('[sonarViaje] Error reproduciendo sonido:', err.message);
     }
-  } catch {}
+  };
+
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(tocar).catch(err => console.warn('[sonarViaje] No se pudo resumir el AudioContext:', err.message));
+  } else {
+    tocar();
+  }
 }
 
 
@@ -1017,6 +1150,7 @@ async function enviarIACadete() {
   cont?.appendChild(typing);
   if (cont) cont.scrollTop = cont.scrollHeight;
 
+  let mensajeError = 'Error de conexión. Intentá de nuevo.';
   try {
     const supabaseUrl = (typeof window !== 'undefined' && window.SUPABASE_URL) ? window.SUPABASE_URL : '';
     const anonKey     = (typeof window !== 'undefined' && window.SUPABASE_ANON_KEY) ? window.SUPABASE_ANON_KEY : '';
@@ -1025,14 +1159,26 @@ async function enviarIACadete() {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anonKey}` },
       body:    JSON.stringify({ messages: iaHistorialCadete, rol: 'cadete' }),
     });
+
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      console.error('[enviarIACadete] Respuesta no-OK del asistente:', res.status, bodyText);
+      mensajeError = res.status >= 500
+        ? 'El servicio no respondió bien. Intentá en unos minutos.'
+        : `Error del asistente (${res.status}). Intentá de nuevo.`;
+      throw new Error(mensajeError);
+    }
+
     const data = await res.json();
     const respuesta = data.respuesta || 'No pude procesar tu consulta.';
     document.getElementById('ia-typing')?.remove();
     agregarMsgIACadete('bot', respuesta);
     iaHistorialCadete.push({ role: 'assistant', content: respuesta });
-  } catch {
+  } catch (err) {
+    console.error('[enviarIACadete] Error:', err?.message ?? err);
     document.getElementById('ia-typing')?.remove();
-    agregarMsgIACadete('bot', 'Error de conexión. Intentá de nuevo.');
+    const sinConexion = !navigator.onLine || err instanceof TypeError;
+    agregarMsgIACadete('bot', sinConexion ? 'Parece que no tenés conexión. Revisá tu red e intentá de nuevo.' : mensajeError);
   }
   if (btn) btn.disabled = false;
 }
@@ -1107,37 +1253,80 @@ if (checkForm) {
     }
   });
 
-  sb.auth.getUser().then(async ({ data: { user } }) => {
-    if (!user) return;
-    const { data } = await sb.from('cadetes').select('*').eq('auth_uid', user.id).single();
-    if (!data) return;
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    setVal('cd-nombre', data.nombre);
-    setVal('cd-fecha', data.fecha_nacimiento);
-    setVal('cd-email', data.email);
-    setVal('cd-telefono', data.telefono);
-    setVal('cd-cvu', data.cvu);
-    setVal('cd-vehiculo', data.vehiculo);
-    setVal('cd-color', data.color);
-    setVal('cd-patente', data.patente);
+  cargarDatosPerfil();
+}
 
-    // Setear vehículo global para cálculo de tarifa
-    const veh = (data.vehiculo ?? '').toLowerCase();
-    cadeteVehiculo = (veh === 'moto') ? 'moto' : 'bici';
-    actualizarSelectorVehiculo();
-    cadeteClima = !!data.tarifa_clima;
-    actualizarToggleClima();
+// Precarga el form de Perfil con lo que ya está guardado en 'cadetes'.
+// Se llama: al arrancar el script (cadete que ya se onboardeó), al terminar
+// el onboarding (aceptarAcuerdoCadete, recién ahí existen datos reales que
+// mostrar), y al entrar a la pestaña Perfil (tab-p en cadete.html) — antes
+// corría UNA sola vez al cargar el script, así que el form quedaba con el
+// snapshot vacío/viejo de antes del onboarding para siempre.
+async function cargarDatosPerfil() {
+  // Al cargar el script (primer call site, más abajo) el guard de rol
+  // (guardCadete()) todavía no corrió — cadeteUserId sigue en null porque
+  // el módulo se ejecuta de punta a punta y ese guard vive más adelante en
+  // el archivo. Reusar cadeteUserId cuando ya está (llamadas posteriores,
+  // más rápido, sin round-trip de red) y si no, resolver el uid directo.
+  let uid = cadeteUserId;
+  if (!uid) {
+    const { data: { user } } = await sb.auth.getUser();
+    uid = user?.id ?? null;
+  }
+  if (!uid) return;
+  const { data } = await sb.from('cadetes').select('*').eq('auth_uid', uid).single();
+  if (!data) return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  setVal('cd-nombre', data.nombre);
+  setVal('cd-fecha', data.fecha_nacimiento);
+  setVal('cd-email', data.email);
+  setVal('cd-telefono', data.telefono);
+  setVal('cd-cvu', data.cvu);
+  setVal('cd-vehiculo', data.vehiculo);
+  setVal('cd-color', data.color);
+  setVal('cd-patente', data.patente);
 
-    // Actualizar header con nombre real de la tabla cadetes
-    if (data.nombre) {
-      const h = document.getElementById('cad-nombre');
-      if (h) h.textContent = data.nombre;
-      const p = document.getElementById('perf-nombre');
-      if (p) p.textContent = data.nombre;
-      const av = document.getElementById('perf-av');
-      if (av) av.textContent = data.nombre.slice(0, 2).toUpperCase();
-    }
-  });
+  // Setear vehículo global para cálculo de tarifa
+  const veh = (data.vehiculo ?? '').toLowerCase();
+  cadeteVehiculo = (veh === 'moto') ? 'moto' : 'bici';
+  actualizarSelectorVehiculo();
+  cadeteClima = !!data.tarifa_clima;
+  actualizarToggleClima();
+
+  const rEl = document.getElementById('perf-rating');
+  if (rEl) rEl.textContent = Number(data.rating ?? 5).toFixed(1);
+
+  // Actualizar header con nombre real de la tabla cadetes
+  if (data.nombre) {
+    const h = document.getElementById('cad-nombre');
+    if (h) h.textContent = data.nombre;
+    const p = document.getElementById('perf-nombre');
+    if (p) p.textContent = data.nombre;
+    const av = document.getElementById('perf-av');
+    if (av) av.textContent = data.nombre.slice(0, 2).toUpperCase();
+  }
+
+  await mostrarFotoDniGuardada(data.foto_dni_url);
+}
+
+// La foto de DNI vive en un bucket privado (cadetes-antecedentes) — no hay
+// atajo con getPublicUrl, hace falta una signed URL para mostrarla.
+async function mostrarFotoDniGuardada(fotoDniPath) {
+  const preview = document.getElementById('dni-preview');
+  const img = document.getElementById('dni-img');
+  if (!preview || !img) return;
+  if (!fotoDniPath) { preview.style.display = 'none'; return; }
+  try {
+    const { data, error } = await sb.storage
+      .from('cadetes-antecedentes')
+      .createSignedUrl(fotoDniPath, 300); // 5 min, se regenera cada vez que se abre Perfil
+    if (error || !data?.signedUrl) throw error ?? new Error('sin URL firmada');
+    img.src = data.signedUrl;
+    preview.style.display = 'block';
+  } catch (err) {
+    console.warn('[mostrarFotoDniGuardada] No se pudo generar la URL firmada:', err.message);
+    preview.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1199,6 +1388,8 @@ function bindOnboardingForm() {
 
     if (!nombre) { errEl.textContent = 'Ingresá tu nombre completo.'; errEl.style.display = 'block'; return; }
     if (!dniFile) { errEl.textContent = 'Subí la foto de tu DNI.'; errEl.style.display = 'block'; return; }
+    if (!dniFile.type.startsWith('image/')) { errEl.textContent = 'El DNI debe ser una imagen (JPG, PNG, etc.).'; errEl.style.display = 'block'; return; }
+    if (dniFile.size > 8 * 1024 * 1024) { errEl.textContent = 'La imagen del DNI no puede superar los 8MB.'; errEl.style.display = 'block'; return; }
     if (!cvu) { errEl.textContent = 'Ingresá tu CVU o alias.'; errEl.style.display = 'block'; return; }
     if (_obVehiculo === 'moto' && !(document.getElementById('ob-patente')?.value ?? '').trim()) {
       errEl.textContent = 'Ingresá la patente de tu moto.'; errEl.style.display = 'block'; return;
@@ -1232,6 +1423,9 @@ async function aceptarAcuerdoCadete() {
     const nombre = document.getElementById('ob-nombre')?.value.trim();
     const cvu    = document.getElementById('ob-cvu')?.value.trim();
     const dniFile = document.getElementById('ob-dni')?.files?.[0];
+      if (!dniFile) throw new Error('Subí la foto de tu DNI.');
+      if (!dniFile.type.startsWith('image/')) throw new Error('El DNI debe ser una imagen (JPG, PNG, etc.).');
+      if (dniFile.size > 8 * 1024 * 1024) throw new Error('La imagen del DNI no puede superar los 8MB.');
       // Subir foto DNI a Storage
       const dniPath = `${cadeteUserId}/dni/${Date.now()}_${dniFile.name}`;
       const { error: upErr } = await sb.storage.from('cadetes-antecedentes').upload(dniPath, dniFile, { cacheControl: '3600', upsert: true });
@@ -1311,6 +1505,7 @@ async function aceptarAcuerdoCadete() {
     localStorage.setItem('pap_onboarding_completo', 'true');
     document.getElementById('onboarding-overlay').style.display = 'none';
     actualizarSelectorVehiculo();
+    await cargarDatosPerfil(); // recién ahora hay datos reales guardados para mostrar en Perfil
     toast(`${ICONS.confetti} ¡Perfil completo! Ya podes recibir viajes`);
 
   } catch (err) {
@@ -1384,6 +1579,17 @@ async function cargarHistorial() {
 function previsualizarDNI(input) {
   const file = input.files?.[0];
   if (!file) return;
+  const statusEl = document.getElementById('dni-status');
+  if (!file.type.startsWith('image/')) {
+    if (statusEl) { statusEl.textContent = 'El archivo debe ser una imagen (JPG, PNG, etc.).'; statusEl.style.color = '#ff6b6b'; }
+    input.value = '';
+    return;
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    if (statusEl) { statusEl.textContent = 'La imagen no puede superar los 8MB.'; statusEl.style.color = '#ff6b6b'; }
+    input.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = document.getElementById('dni-img');
@@ -1573,13 +1779,18 @@ async function cancelarPorNoShow() {
   const pedidoId = activeTrip.id ?? activeTrip.pedido_id;
   try {
     await apiPost('/api/pedidos/no-show', { pedido_id: pedidoId });
-  } catch (e) {
-    console.error('[NoShow] Error al reportar no-show:', e.message);
-    toast('Error al registrar el no-show. El pedido fue cancelado localmente, contactá soporte.', 4000);
+  } catch (err) {
+    // El backend solo cancela si el pedido está exactamente 'en_camino'
+    // (400/403 en cualquier otro caso) — antes esto se ignoraba y siempre
+    // se mostraba "cancelado" aunque el pedido siguiera activo en la base.
+    console.error('[NoShow] Error al reportar no-show:', err.status, err.message);
+    toast(`${ICONS.warn} No se pudo cancelar: ${err.message || 'error del servidor'}. El viaje sigue activo.`, 4000);
+    return;
   }
   activeTrip = null;
   activeTripState = 3;
   detenerProductosViajeActivo();
+  detenerMapaViajeCadete();
   if (_noShowTimer) { clearInterval(_noShowTimer); _noShowTimer = null; }
   removeAlertBtn();
   renderViajes();
@@ -1821,7 +2032,15 @@ function appendMsgCadete(msg) {
 
 function toggleChatCadete() {
   const body = document.getElementById('chat-cad-body');
-  if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  if (!body) return;
+  const abrir = body.style.display === 'none';
+  body.style.display = abrir ? 'block' : 'none';
+
+  // #viaje-alert-btn es fixed al viewport; el botón de enviar del chat vive
+  // in-flow dentro de la card scrolleable y puede terminar en la misma zona
+  // de pantalla. Se oculta mientras el chat está expandido y se restaura al cerrar.
+  const alertBtn = document.getElementById('viaje-alert-btn');
+  if (alertBtn) alertBtn.style.display = abrir ? 'none' : 'flex';
 }
 
 async function enviarMsgCadete() {
@@ -1847,7 +2066,7 @@ async function verificarAlertasCadete() {
 
   try {
     const { data: cad } = await sb.from('cadetes')
-      .select('nombre, cvu, foto_dni_url, vehiculo, onboarding_completo, patente, seguro_url, carnet_url')
+      .select('nombre, cvu, foto_dni_url, vehiculo, onboarding_completo, patente, seguro_url, carnet_url, telefono')
       .eq('auth_uid', cadeteUserId).maybeSingle();
 
     if (!cad || !cad.onboarding_completo) return;
@@ -1860,6 +2079,15 @@ async function verificarAlertasCadete() {
         icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
         text: 'No tenes CVU/alias cargado. Sin eso no podemos pagarte los viajes.',
         btn: 'Completar', onclick: "stab('p')",
+      });
+    }
+
+    if (!cad.telefono) {
+      alertas.push({
+        color: '#0891B2', bg: '#ECFEFF', border: '#A5F3FC',
+        icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+        text: 'Falta tu teléfono/WhatsApp de contacto.',
+        btn: 'Completar', onclick: "stab('p');cargarDatosPerfil()",
       });
     }
 
@@ -1926,6 +2154,7 @@ Object.assign(window, {
   conectarMPCadete,
   cambiarVehiculo,
   cargarHistorial,
+  cargarDatosPerfil,
   obSelVeh,
   previsualizarDNI,
   subirDocumento,

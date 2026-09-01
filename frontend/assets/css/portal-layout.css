@@ -271,6 +271,8 @@ img { display: block; max-width: 100%; }
   font-weight: var(--w-medium);
   color: var(--text-secondary);
   transition: all var(--t-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .estado-btn.open {
   border-color: var(--color-success);
@@ -473,4 +475,19 @@ img { display: block; max-width: 100%; }
   .help-cards { grid-template-columns: 1fr; }
   .store-selector { max-width: 140px; font-size: var(--text-xs); }
   .btn-topbar:not(.btn-icon) { display: none; }
+
+  /* Textos de acción largos ("Pausar pedidos ahora", "Marcar como cerrado")
+     no entran en una fila junto al selector de local + campana en pantallas
+     chicas — se achican y truncan con "…" en vez de envolver y romper el
+     alto fijo del topbar (ver applyComercioToUI() en comercio.js). */
+  .estado-btn {
+    font-size: var(--text-xs);
+    padding: var(--sp-2);
+    max-width: 96px;
+  }
+  .estado-btn span:not(.estado-dot) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

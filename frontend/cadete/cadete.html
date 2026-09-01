@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fmqlpgerqdiplnvjjarl.supabase.co">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <link rel="stylesheet" href="../assets/css/safe-area.css">
 <link rel="stylesheet" href="../assets/css/animations.css">
 <link rel="stylesheet" href="../assets/css/cadete.css">
@@ -109,7 +111,7 @@
   <div class="tab active" id="tab-v" onclick="stab('v')">Viajes <span class="badge-n" id="bn" style="display:none">0</span></div>
   <div class="tab" id="tab-h" onclick="stab('h');cargarHistorial()">Historial</div>
   <div class="tab" id="tab-g" onclick="stab('g')">Ganancias</div>
-  <div class="tab" id="tab-p" onclick="stab('p')">Perfil</div>
+  <div class="tab" id="tab-p" onclick="stab('p');cargarDatosPerfil()">Perfil</div>
 </div>
 
 <!-- VIAJES -->

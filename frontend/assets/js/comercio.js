@@ -71,18 +71,19 @@ function applyComercioToUI(com) {
   if (dot) dot.className = 'estado-dot ' + (open ? 'open' : 'closed');
   if (btn) btn.classList.toggle('open', open);
 
+  // IMPORTANTE: nunca escribir en btn.textContent directo — el botón tiene
+  // como hijos el puntito de color (.estado-dot) y este mismo span de texto
+  // (#estado-texto); pisar btn.textContent los destruye a los dos y deja el
+  // botón como un nodo de texto plano sin el dot, que además es lo que
+  // rompía el layout mobile (texto largo sin la estructura pill original).
   if (!tieneHorario) {
-    if (txt) txt.textContent = open ? 'Abierto' : 'Cerrado';
-    if (btn) btn.textContent = open ? 'Marcar como cerrado' : 'Marcar como abierto';
+    if (txt) txt.textContent = open ? 'Marcar como cerrado' : 'Marcar como abierto';
   } else if (pausado) {
-    if (txt) txt.textContent = 'Pausado manualmente';
-    if (btn) btn.textContent = 'Reanudar pedidos';
+    if (txt) txt.textContent = 'Reanudar pedidos';
   } else if (open) {
-    if (txt) txt.textContent = 'Abierto (horario automático)';
-    if (btn) btn.textContent = 'Pausar pedidos ahora';
+    if (txt) txt.textContent = 'Pausar pedidos ahora';
   } else {
-    if (txt) txt.textContent = 'Cerrado (fuera de horario)';
-    if (btn) btn.textContent = 'Pausar pedidos ahora';
+    if (txt) txt.textContent = 'Pausar pedidos ahora';
   }
 }
 
