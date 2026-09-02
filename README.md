@@ -3,7 +3,9 @@
 Plataforma de delivery en tiempo real para Santiago del Estero, Argentina.
 Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador** y **admin**.
 
-> ⚠️ **Para IAs:** este README quedó desactualizado en varios puntos (deploy del frontend, tarifas de cadete, endpoints nuevos de efectivo/liquidaciones, Capacitor). **[`CLAUDE.md`](CLAUDE.md) es la fuente de verdad actualizada** — leerlo primero. Este archivo se mantiene como introducción general y detalle de funciones por archivo, pero ante cualquier contradicción con CLAUDE.md, confiar en CLAUDE.md.
+> ⚠️ **Para IAs:** las secciones de **detalle de funciones por archivo** de este README quedaron desactualizadas en varios puntos (deploy del frontend, tarifas de cadete, endpoints nuevos de efectivo/liquidaciones, Capacitor). Ante cualquier contradicción ahí, confiar en **[`CLAUDE.md`](CLAUDE.md)**.
+>
+> **Excepciones — estas secciones sí están al día y son la fuente de verdad de su tema:** el checklist de lanzamiento de acá abajo, [Sesión 2026-09-01/02](#sesión-2026-09-0102--auditoría-y-fixes-de-la-app-nativa-play-store) (qué se arregló, cómo se buildea y sube a Play Store, cómo leer un crash de Sentry) y [Errores históricos y soluciones](#errores-históricos-y-soluciones).
 
 ---
 
@@ -17,8 +19,84 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 4. **Feature graphic de Play Store (1024×500 px)** — único gráfico que falta para la ficha.
 5. **Payway** — a cargo de Fabri, no tocar sin que él avance.
 6. **Firebase/FCM para push nativo — reabierto el 2026-08-19**, pospuesto a propósito hasta cerrar el checklist de Play Console (ítem 1). No está confirmado si ya existe un proyecto de Firebase de un intento anterior (hay un indicio real: una API key de Firebase huérfana en el historial de git). Ver `PENDIENTES-LANZAMIENTO.md` ítem 14.
-7. **Cuenta de prueba para el revisor de Google Play** ("Detalles de acceso" del checklist de Play Console) — todavía no armada.
+7. ~~**Cuenta de prueba para el revisor de Google Play**~~ — **creada** (`googleplay.reviewer@puertaapuertax.app`). Ojo: el 2026-09-01 se encontró que su `perfiles.rol` había quedado en `cadete`, así que el revisor entraba al panel de cadete en vez de la app de cliente — corregido a `cliente` en `perfiles.rol` y en `user_metadata`. Si se vuelve a tocar esa cuenta, verificar el rol antes de declararla.
 8. **Política de Privacidad — declaración en Play Console en pausa a propósito.** Hay un borrador con la cláusula de Propiedad Intelectual reforzada (`docs/legal-tyc-borrador-2026-08-17.html`) sin volcar todavía a la página en vivo (`frontend/legal.html`, ya en producción en `pa-px2.vercel.app/legal.html`).
+9. **Trabajo real sin mergear a `main`** (detectado 2026-09-01, ver sección de sesión más abajo). La rama `work/2026-08-20-google-elegir-rol` tiene 8 commits que producción nunca recibió, incluido **`c3614a8` — un fix de crash del login con Google** (carrera de doble redirect). Hay que decidir qué se mergea y qué se descarta: es exactamente el mismo patrón que causó el crash de push que estuvo días en producción sin que nadie lo notara.
+10. **iOS — la Mac ya está disponible** (2026-09-02). Se levanta el bloqueo que había: ahora se puede correr `npx cap add ios` + `pod install` de verdad y abrir el proyecto en Xcode. Ver `docs/IOS-BUILD.md` para los 3 ajustes manuales de `Info.plist` que hay que reaplicar después de regenerar `ios/` (permisos de cámara/ubicación, deep link de Google OAuth, push). Falta todavía una fuente cuadrada de 1024×1024 para el ícono.
+
+---
+
+## Sesión 2026-09-01/02 — auditoría y fixes de la app nativa (Play Store)
+
+Todo esto salió de feedback de un **tester real probando la app instalada desde Google Play** (no la web). Se shippearon 4 commits a `main` y 5 builds firmados (`versionCode` 16 → 20). Deploy web: automático por Vercel al pushear a `main`. Deploy nativo: **no automático** — cada fix necesita `npx cap sync android` + build + subir el `.aab` a Play Console, ver "Cómo llega un fix al celular" más abajo.
+
+### Bugs arreglados — panel de COMERCIO
+
+**1. Overlay invisible del menú lateral bloqueaba TODOS los toques en celular.**
+`frontend/assets/css/portal-layout.css` — dentro del `@media (max-width: 768px)`, la regla era `.sidebar-overlay { display: block; }` sin condicionar a la clase `.show` que el JS sí manejaba bien. Resultado: un `div` fijo, transparente, de pantalla completa (`inset:0`, `z-index:199`) tapando todo el contenido, siempre. El tester reportó que no andaba nada salvo pausar pedidos y cerrar sesión — justamente los dos controles que quedaban por encima (topbar `z-index:300` y sidebar `z-index:200`). Fix: `.sidebar-overlay.show { display: block; }`. Ya se había detectado el 2026-08-18 y se dejó sin tocar por estar fuera de alcance de esa tarea.
+
+**2. El botón de estado del local se destruía a sí mismo + se cortaba en mobile.**
+`frontend/assets/js/comercio.js` → `applyComercioToUI()` escribía en `btn.textContent` sobre el botón entero, borrando sus dos hijos: `.estado-dot` (el puntito de color) y `#estado-texto`. Pasaba **siempre**, no solo con horario automático. Además `.estado-btn` no tenía `white-space:nowrap`, así que los textos largos envolvían a 2 líneas y se cortaban contra el alto fijo del topbar. Fix: escribir en el span interno + `nowrap` + truncado con ellipsis en pantallas de 480px o menos.
+
+### Bugs arreglados — panel de CADETE (8 reportes del tester)
+
+| # | Problema | Fix |
+|---|---|---|
+| 1 | La foto de DNI aceptaba cualquier archivo sin validar | Validación de tipo y tamaño (imagen, máx 8MB) en los 3 puntos de subida: onboarding paso 1, onboarding final y Perfil |
+| 2 | Cadete nuevo arrancaba con rating 5.0 | `migration-cadetes-rating-default-3.sql` — default de columna a 3.0, **no retroactivo**. Ya corrida en Supabase |
+| 3 | La pestaña Perfil no cargaba los datos ya guardados | La precarga corría **una sola vez al cargar el script**, o sea antes de que el onboarding escribiera nada, y nunca se volvía a llamar. Extraída a `cargarDatosPerfil()` con 3 disparadores: al iniciar, al terminar el onboarding, y al entrar a la pestaña |
+| 4 | La foto de DNI nunca se volvía a mostrar en Perfil | Nueva `mostrarFotoDniGuardada()` con `createSignedUrl` (bucket privado `cadetes-antecedentes`) |
+| 5 | El botón de reportar tapaba el de enviar del chat | `toggleChatCadete()` ahora oculta `#viaje-alert-btn` mientras el chat está abierto. El de reportar es `position:fixed` y el de enviar vive in-flow en una card scrolleable, así que coincidían según el scroll |
+| 6 | El sonido de nueva oferta se rompía con 2 pedidos simultáneos | `sonarViaje()` creaba un `AudioContext` nuevo por llamada sin cerrarlo nunca. En mobile se pisa el límite de contextos concurrentes y tira, silenciado por un `catch` vacío. Ahora reusa uno solo a nivel de módulo |
+| 7 | Ver ruta al local salía a Google Maps externo | Mapa Leaflet embebido en la card del viaje activo, **sumado** al link externo (no lo reemplaza). De paso: `cargarOfertas()` nunca pedía `lat_entrega`/`lng_entrega`, lo que además tenía muerto el KM en vivo al cliente |
+| 8 | El botón de reportar no hacía nada real | Era un `confirm()` más un `toast()` hardcodeado, sin ningún fetch. Ahora inserta de verdad en la tabla `reportes` (la policy `reportes_owner_all` ya lo permitía). **Falta la pantalla de admin para verlos** |
+
+**Bonus encontrado en el camino:** `cancelarPorNoShow()` avisaba que el pedido se había cancelado aunque el backend hubiera rechazado la cancelación (devuelve 400 si el pedido no está exactamente en `en_camino`). El cadete quedaba convencido de que canceló mientras el pedido seguía activo para cliente y comercio. Ahora muestra el error real y no toca el estado local.
+
+### Bug arreglado — las 3 apps (cliente, cadete, comercio)
+
+**El botón físico de atrás de Android no hacía nada.** Reportado como que la app se congelaba, y también como que se cerraba sola: según el dispositivo, Android o no hace nada o mata la app. Ninguna de las 3 apps registraba un listener de `backButton` — el plugin `@capacitor/app` estaba instalado pero no se usaba para esto. Como la navegación es por clases CSS (`go()` / `stab()` / `navigate()`) sin `pushState`, Android no tenía ninguna pantalla anterior a la que volver. Fix con el mismo patrón en los 3 archivos: cerrar lo más específico primero (panel, modal o sidebar abierto), después volver a la pantalla principal, y recién ahí salir de la app.
+
+### Crash crítico — push.js intentaba registrar FCM sin Firebase
+
+Es el más importante de todos. Sentry (Issue `ANDROID-1`) capturó `IllegalStateException: Default FirebaseApp is not initialized`, disparado por `PushNotificationsPlugin.register()` desde `registrarPushNativa()`, llamada por `main.js` **después de cualquier login exitoso**, o directo al abrir la app si ya había sesión guardada. No es atajable con `try/catch`: pasa dentro del puente nativo de Capacitor (`Bridge.java`, invocación por reflection) antes de que el control vuelva a JS, así que Android mata el proceso entero.
+
+**Lo grave no fue el bug sino cómo estaba perdido:** este fix ya se había diagnosticado y escrito en una sesión anterior, pero quedó **sin commitear, guardado en un `git stash` de otra rama**. Nunca llegó a `main`. Por eso los builds 16, 17, 18 y 19 de esta sesión salieron todos con el crash adentro, y el tester lo siguió reportando build tras build. Se recuperó del stash y se aplicó a `main` en el commit `48c0d5b` (versión 20).
+
+### Otros arreglos
+
+- **Cuenta del revisor de Google Play**: tenía `perfiles.rol` en `cadete`, así que el revisor habría entrado al panel de cadete en vez de la app de cliente. Corregida a `cliente` en `perfiles.rol` y en el metadata de auth.
+- **Alerta de política de Android 16 (API 36) en Play Console**: se resolvió al subir builds nuevas. La causa de que siguiera apareciendo era una build vieja (versión 1) todavía activa en el track de Prueba Interna — Google evalúa **todos** los tracks activos, no solo Producción.
+
+### Auditoría de la sección de cliente (sin hallazgos)
+
+Se revisó buscando específicamente los dos patrones de bug encontrados en comercio: no hay overlays con `display` incondicional, ningún `textContent` pisa contenedores con hijos, todos los campos de texto ya tienen `font-size:16px` (evita el zoom automático de iOS), y no hay scroll horizontal entre 320px y 768px. El diseño es fluido con `max-width:430px` centrado, sin `@media` — no necesita breakpoints.
+
+### Cómo llega un fix al celular (importante)
+
+`capacitor.config.json` **no tiene `server.url`**: el frontend se empaqueta dentro del `.aab` en el momento del build. O sea:
+
+| Vía de acceso | Cómo recibe un fix |
+|---|---|
+| Navegador (celular o PC) en `pa-px2.vercel.app` | **Al instante**, con solo pushear a `main` |
+| App instalada desde Google Play | Solo con un `.aab` nuevo subido a Play Console y el usuario actualizando |
+| iOS | No existe build todavía (ver checklist ítem 10) |
+
+Receta del build firmado por línea de comandos, que evita el wizard de Android Studio, con las trampas de esta máquina en particular:
+
+1. **Matar los daemons de Gradle/Java** que dejan colgados las extensiones de VS Code. Esta máquina tiene ~7.4GB de RAM y el build muere por OOM si no se hace. En PowerShell: listar con `Get-CimInstance Win32_Process` filtrando por `java.exe` y matarlos con `Stop-Process -Force`.
+2. **Bumpear `versionCode`** en `android/app/build.gradle`. Play Console rechaza un `versionCode` ya usado en **cualquier** track, incluso si la subida anterior falló a mitad de camino.
+3. `npx cap sync android`
+4. Desde `android/`, correr `gradlew.bat bundleRelease --no-daemon` con `JAVA_HOME` apuntando al JBR de Android Studio (`/c/Program Files/Android/Android Studio/jbr`, **no** el Java del PATH que es un Java 8 viejo) y los 4 parámetros de firma `android.injected.signing` (keystore, alias `upload`, contraseñas en `C:\Users\Usser\puertaapuertax-android-keystore\LEEME-CRITICO.txt`).
+5. **Verificar que quedó firmado de verdad**: el `.aab` tiene que tener `META-INF/UPLOAD.SF` y `META-INF/UPLOAD.RSA` en la raíz del zip. Sin eso, quedó sin firmar.
+
+Salida: `android/app/build/outputs/bundle/release/app-release.aab`
+
+### Cómo leer un crash de Sentry de este proyecto
+
+Sentry nativo está activo (`io.sentry:sentry-android`, DSN en `AndroidManifest.xml`, organización `puerta-a-puerta-x`). **Ante cualquier crash reportado, mirar Sentry primero**, antes de teorizar leyendo código: el stack trace real aparece en minutos.
+
+Al mirar un evento, **fijarse siempre en el tag `release` o `dist`**, que dice en qué `versionCode` pasó. Sentry agrupa por stack trace, así que un mismo Issue acumula eventos de versiones viejas todavía instaladas en teléfonos que no actualizaron. Un evento con `release 1.0+12` cuando la última versión es la 20 no es un bug nuevo: es una instalación vieja repitiendo algo ya resuelto.
 
 ---
 
@@ -502,6 +580,41 @@ Errores que surgieron durante el desarrollo y cómo se resolvieron. Útil para e
 ### 7. `backend/server.js` monolítico no ejecutable
 **Causa:** Usaba CommonJS (`require()`) pero `package.json` tiene `"type": "module"`.
 **Solución:** Se portaron todos los endpoints al sistema modular `backend/src/` con ES modules y se eliminó el archivo raíz.
+
+### 8. Un fix real perdido en un `git stash` de otra rama (2026-09-01)
+
+**Causa:** el fix del crash de push (ver ítem 9) se escribió y se probó en una sesión anterior, pero quedó sin commitear, guardado en un stash sobre una rama de trabajo sin mergear. `main` nunca lo recibió. Como los builds de Play Store se arman desde `main`, se subieron 4 versiones seguidas (16 a 19) con un crash conocido y ya resuelto adentro, mientras el tester lo reportaba una y otra vez.
+**Solución:** se recuperó del stash y se aplicó a `main`.
+**Regla:** antes de armar un build para Play Store, correr `git status`, `git stash list` y `git log --oneline main..<rama>` y confirmar que no hay fixes varados. Un fix que no está en `main` no existe para producción. A la fecha **todavía quedan 8 commits sin mergear** en `work/2026-08-20-google-elegir-rol`, uno de ellos otro fix de crash de login con Google.
+
+### 9. Crash nativo al loguearse: `Default FirebaseApp is not initialized`
+
+**Causa:** `registrarPushNativa()` (`push.js`) llamaba a `PushNotifications.register()` sin que Firebase estuviera configurado (falta `google-services.json`). Del lado nativo eso llama a `FirebaseMessaging.getInstance()`, que tira `IllegalStateException` y **mata el proceso entero**.
+**Por qué el `try/catch` no servía:** la excepción ocurre dentro del puente nativo de Capacitor (`Bridge.java`, invocación por reflection), antes de que el control vuelva a JS. Ningún `try/catch` de JavaScript la puede atajar.
+**Solución:** `registrarPushNativa()` retorna de entrada, sin llamar a `register()`, hasta que Firebase esté configurado de verdad. No se pierde nada: las push nativas nunca funcionaron.
+**Regla:** no asumir que un `try/catch` en JS protege de todo lo que hace un plugin de Capacitor. Los crashes de proceso solo se ven con reporte nativo (Sentry), no en la consola del navegador.
+
+### 10. Overlay invisible que se traga todos los toques
+
+**Causa:** `.sidebar-overlay` quedaba en `display:block` dentro del media query de mobile sin depender de la clase `.show`. Un `div` transparente a pantalla completa por encima del contenido, permanente.
+**Síntoma engañoso:** el usuario reporta que "no anda nada", pero lo que pasa es que los toques nunca llegan a los botones. Los únicos controles que responden son los que tienen un `z-index` mayor que el del overlay.
+**Cómo detectarlo:** `document.elementFromPoint(x, y)` sobre el botón que no responde. Si devuelve otro elemento, hay algo tapándolo. Ojo: `elemento.click()` desde la consola **sí** funciona aunque el botón esté tapado, porque saltea el hit-testing — por eso este bug se puede escapar en una prueba automatizada mal hecha.
+
+### 11. `textContent` sobre un contenedor borra sus hijos
+
+**Causa:** `boton.textContent = 'texto'` sobre un botón que tenía adentro un `<span>` con un ícono y otro con el texto. Asignar `textContent` reemplaza **todo** el contenido del nodo, incluidos los hijos.
+**Solución:** escribir en el span interno, nunca en el contenedor.
+
+### 12. El botón físico de atrás de Android no hace nada
+
+**Causa:** una SPA que cambia de pantalla con clases CSS, sin `pushState`, no le da a Android ninguna pantalla anterior a la que volver. Sin un listener de `backButton` del plugin `@capacitor/app`, el botón de atrás o no hace nada (parece que la app se colgó) o cierra la app entera.
+**Solución:** registrar el listener y manejar la pila de pantallas a mano: cerrar lo más específico primero, después volver a la pantalla principal, y recién ahí salir.
+
+### 13. Una precarga que corre antes de que existan los datos
+
+**Causa:** el bloque que llenaba el formulario de Perfil corría una sola vez al cargar el script, o sea antes de que el onboarding guardara nada, y no se volvía a llamar nunca. El formulario quedaba vacío para siempre aunque los datos ya estuvieran en la base.
+**Solución:** extraer a una función nombrada y llamarla también después de guardar y al entrar a la pestaña.
+**Regla:** ojo con el código de inicialización a nivel de módulo que depende de estado que todavía no existe. En este proyecto los guards de sesión corren al final del archivo, así que cualquier variable global que ellos setean (por ejemplo `cadeteUserId`) está en `null` para el código de arriba.
 
 ### Regla general para SQL en Supabase
 Toda migración debe seguir este patrón:

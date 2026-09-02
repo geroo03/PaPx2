@@ -576,9 +576,10 @@ El frontend usa el bundle UMD de Supabase cargado desde CDN:
 - Backend: `pushController.js` → usa `web-push` npm package
 - VAPID keys configuradas en Railway y alineadas con `frontend/env.js` desde el 2026-08-11 — push web funcional en producción
 
-### Nativa Android (Capacitor — pendiente Firebase)
-- `push.js` detecta `window.Capacitor.isNativePlatform()` → usa `@capacitor/push-notifications`
-- Requiere: proyecto Firebase + `google-services.json` en `android/app/`
+### Nativa Android (Capacitor — DESACTIVADA a propósito desde 2026-09-01)
+- **`registrarPushNativa()` (`push.js`) retorna de entrada y NO llama a `PushNotifications.register()`.** No es un olvido: llamarlo sin Firebase configurado tiraba `IllegalStateException: Default FirebaseApp is not initialized` **dentro del puente nativo de Capacitor**, matando el proceso entero de la app justo después de cualquier login (Sentry `ANDROID-1`). No se puede atajar con `try/catch` de JS. Ver README → "Errores históricos" ítem 9.
+- Reactivar **recién** cuando exista `google-services.json` en `android/app/` y el plugin de Gradle aplicado (`android/app/build.gradle` ya tiene el try/catch condicional listo). Sacar el `return` temprano de `registrarPushNativa()` es el único cambio de JS necesario.
+- Mientras tanto las push nativas simplemente no funcionan — nunca funcionaron, así que no hay regresión.
 - El `pushController.js` actual envía VAPID (web push). Para nativo necesita FCM API v1.
 
 ---
@@ -652,7 +653,9 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 
 **Explícitamente en pausa (decisión ya tomada, no retomar sin que el usuario lo pida):** GPS en background para cadetes, y desbloquear "Crear Promociones" en el panel de comercio (`comercio.html`, hoy con `pointer-events:none` a propósito — el dato/UI de lectura de promociones existe pero la creación está deshabilitada, no es un bug). Quedan para una fase 2 posterior al lanzamiento. **Firebase/FCM para push nativo salió de esta lista el 2026-08-19** — el usuario pidió retomarlo, ver ítem 8 de la tabla de arriba.
 
-**iOS (Capacitor):** `@capacitor/ios` agregado y `ios/` generado una vez desde Windows (2026-08-11), pero sin `pod install` real (CocoaPods no corre en Windows) — no se puede compilar/abrir en Xcode todavía. Falta la Mac (prevista fines de agosto 2026) para terminarlo — ver §12 y `docs/IOS-BUILD.md`.
+**iOS (Capacitor):** `@capacitor/ios` agregado y `ios/` generado una vez desde Windows (2026-08-11), pero sin `pod install` real (CocoaPods no corre en Windows). **La Mac ya está disponible desde el 2026-09-02** — se levanta el bloqueo, ahora se puede regenerar `ios/` con `npx cap add ios` + `pod install` de verdad y abrir en Xcode. Ver §12 y `docs/IOS-BUILD.md` para los 3 ajustes manuales de `Info.plist` que hay que reaplicar (permisos de cámara/ubicación, deep link de Google OAuth, push) y el ícono cuadrado de 1024×1024 que todavía falta.
+
+**⚠️ Deuda crítica de ramas (2026-09-01):** la rama `work/2026-08-20-google-elegir-rol` tiene **8 commits sin mergear a `main`**, incluido `c3614a8` — un **fix de crash del login con Google** que producción nunca recibió. Es el mismo patrón que hizo que un fix de crash de push estuviera perdido en un stash mientras se subían 4 builds con el bug adentro (README → "Errores históricos" ítem 8). **Antes de armar cualquier build para Play Store: `git status`, `git stash list` y `git log --oneline main..<rama>`.**
 
 ~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
 
