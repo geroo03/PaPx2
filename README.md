@@ -12,6 +12,8 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 ## 🟡 IMPORTANTE — Qué falta para poder lanzar
 
 > Checklist completo y en detalle en [`PENDIENTES-LANZAMIENTO.md`](PENDIENTES-LANZAMIENTO.md). Resumen acá porque es lo más importante del repo en este momento. Actualizado 2026-08-19.
+>
+> 📋 **Plan de trabajo de código y de Apple: [`PLAN-CODIGO-Y-APPLE.md`](PLAN-CODIGO-Y-APPLE.md)** (2026-09-02) — qué falta para terminar el código al 100%, en orden y con el porqué de cada cosa, más el plan completo de iOS/App Store. Es el documento a seguir para saber "qué sigue".
 
 1. **Google Play Console — cuenta verificada, app ya creada, completando el checklist.** El track de Closed Testing exige un mínimo de **12 testers que acepten activamente la invitación** (no ~20 como se pensaba antes de tener la cuenta real), corridos 14 días antes de poder pedir Production — sigue siendo el ítem de mayor lead-time de todo el lanzamiento. Detalle línea por línea de qué está declarado y qué falta en `PENDIENTES-LANZAMIENTO.md` ítem 1.
 2. **Backup del keystore de firma Android sin confirmar** fuera de esta máquina. Si se pierde, no hay forma de recuperarlo ni de que Google lo resetee — significaría no poder actualizar nunca más la misma ficha de Play Store.
