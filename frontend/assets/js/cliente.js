@@ -244,7 +244,55 @@ let historialAsistente=[];
 function abrirAsistente(){go('asistente');const msgs=document.getElementById('asistente-msgs');if(msgs&&!msgs.children.length)agregarMsgAsistente('bot','¡Hola! Soy el asistente de **Puerta a Puerta X**\n\nPuedo ayudarte con:\n• Cómo hacer un pedido\n• Problemas con una entrega\n• Cómo reportar un comercio\n• Métodos de pago\n• Cualquier otra duda\n\n¿En qué te puedo ayudar?');}
 function agregarMsgAsistente(de,texto){const cont=document.getElementById('asistente-msgs');if(!cont)return;const esBot=de==='bot';const div=document.createElement('div');div.style.cssText=`display:flex;justify-content:${esBot?'flex-start':'flex-end'};`;const textoHtml=_escHtml(texto).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');if(esBot){div.innerHTML=`<div style="display:flex;gap:8px;align-items:flex-start;max-width:85%;"><div style="width:30px;height:30px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px;color:#fff;font-weight:700;">IA</div><div style="background:#fff;color:#0D0D0D;border-radius:4px 16px 16px 16px;padding:12px 14px;font-size:13px;line-height:1.6;box-shadow:0 1px 4px rgba(0,0,0,.08);">${textoHtml}</div></div>`;}else{div.innerHTML=`<div style="max-width:85%;background:#FF6B35;color:#fff;border-radius:16px 16px 4px 16px;padding:12px 14px;font-size:13px;line-height:1.5;">${textoHtml}</div>`;}cont.appendChild(div);cont.scrollTop=cont.scrollHeight;}
 function agregarTyping(){const cont=document.getElementById('asistente-msgs');if(!cont)return;const div=document.createElement('div');div.id='typing-indicator';div.style.cssText='display:flex;justify-content:flex-start;';div.innerHTML=`<div style="display:flex;gap:8px;align-items:flex-start;"><div style="width:30px;height:30px;border-radius:50%;background:#FF6B35;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:#fff;font-weight:700;">IA</div><div style="background:#fff;border-radius:4px 16px 16px 16px;padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08);"><div style="display:flex;gap:4px;align-items:center;height:18px;"><div style="width:7px;height:7px;border-radius:50%;background:#9DA3AE;animation:bounce 1.2s infinite;"></div><div style="width:7px;height:7px;border-radius:50%;background:#9DA3AE;animation:bounce 1.2s .2s infinite;"></div><div style="width:7px;height:7px;border-radius:50%;background:#9DA3AE;animation:bounce 1.2s .4s infinite;"></div></div></div></div>`;cont.appendChild(div);cont.scrollTop=cont.scrollHeight;}
-async function enviarAsistente(){const input=document.getElementById('asistente-input');const btn=document.getElementById('asistente-btn');if(!input||!input.value.trim())return;const texto=input.value.trim();input.value='';btn.disabled=true;agregarMsgAsistente('usuario',texto);historialAsistente.push({role:'user',content:texto});agregarTyping();try{const res=await fetch('https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/asistente',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window.SUPABASE_ANON_KEY||'')},body:JSON.stringify({messages:historialAsistente,rol:'usuario'})});const data=await res.json();const respuesta=data.respuesta||'Lo siento, no pude procesar tu consulta.';document.getElementById('typing-indicator')?.remove();agregarMsgAsistente('bot',respuesta);historialAsistente.push({role:'assistant',content:respuesta});}catch{document.getElementById('typing-indicator')?.remove();agregarMsgAsistente('bot','Hubo un error de conexión. Intentá de nuevo en unos segundos.');}btn.disabled=false;input.focus();}
+// El catch de esta función era `catch{}` pelado: convertía CUALQUIER falla en
+// "Hubo un error de conexión", incluida la real (la Edge Function `asistente`
+// no estaba desplegada y devolvía 404). Ahora se loguea el status y el cuerpo,
+// y se muestra el mensaje que manda el servidor cuando lo hay — mismo patrón
+// que enviarIACadete() en cadete.js.
+async function enviarAsistente(){
+  const input=document.getElementById('asistente-input');
+  const btn=document.getElementById('asistente-btn');
+  if(!input||!input.value.trim())return;
+  const texto=input.value.trim();
+  input.value='';btn.disabled=true;
+  agregarMsgAsistente('usuario',texto);
+  historialAsistente.push({role:'user',content:texto});
+  agregarTyping();
+  let mensajeError='Hubo un error de conexión. Intentá de nuevo en unos segundos.';
+  try{
+    // La función exige el token de la sesión, no la anon key (que es pública,
+    // viaja en env.js): sin esto cualquiera podría consumir la cuota del
+    // asistente desde afuera de la app.
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session?.access_token){mensajeError='Necesitás iniciar sesión para usar el asistente.';throw new Error(mensajeError);}
+    const res=await fetch(`${window.SUPABASE_URL||''}/functions/v1/asistente`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({messages:historialAsistente,rol:'usuario'}),
+    });
+    if(!res.ok){
+      const cuerpo=await res.text().catch(()=>'');
+      console.error('[enviarAsistente] Respuesta no-OK del asistente:',res.status,cuerpo);
+      let delServidor='';
+      try{delServidor=JSON.parse(cuerpo)?.error||'';}catch{}
+      mensajeError=delServidor||(res.status>=500
+        ?'El servicio no respondió bien. Intentá en unos minutos.'
+        :`Error del asistente (${res.status}). Intentá de nuevo.`);
+      throw new Error(mensajeError);
+    }
+    const data=await res.json();
+    const respuesta=data.respuesta||'Lo siento, no pude procesar tu consulta.';
+    document.getElementById('typing-indicator')?.remove();
+    agregarMsgAsistente('bot',respuesta);
+    historialAsistente.push({role:'assistant',content:respuesta});
+  }catch(err){
+    console.error('[enviarAsistente] Error:',err?.message??err);
+    document.getElementById('typing-indicator')?.remove();
+    const sinConexion=!navigator.onLine||err instanceof TypeError;
+    agregarMsgAsistente('bot',sinConexion?'Parece que no tenés conexión. Revisá tu red e intentá de nuevo.':mensajeError);
+  }
+  btn.disabled=false;input.focus();
+}
 const styleAsistente=document.createElement('style');styleAsistente.textContent=`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}`;document.head.appendChild(styleAsistente);
 
 async function cargarChatsReporte(){const cont=document.getElementById('soporte-list');if(!cont)return;try{const{data:{user}}=await sb.auth.getUser();if(!user)return;const{data}=await sb.from('reportes').select('*').eq('usuario_id',user.id).order('created_at',{ascending:false}).limit(10);const rep=data||[];const badge=document.getElementById('nav-soporte-badge');if(badge)badge.style.display=rep.filter(r=>r.estado==='pendiente').length?'block':'none';if(!rep.length){cont.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;padding:48px 24px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">${ICONS.check||''}</div><div style="font-size:17px;font-weight:800;color:var(--black);margin-bottom:8px;">Sin reportes activos</div><div style="font-size:13px;color:var(--gray-400);line-height:1.6;">Cuando tengas un problema con un pedido, aparecerá acá.</div></div>`;return;}const tipoLabel={'no-llegó':'No llegó lo que pedí','mal-estado':'Llegó en mal estado','faltó-algo':'Faltó algo en el pedido','no-llegó-pedido':'No recibí el pedido'};const estadoColor={'pendiente':'#FF6B35','resuelto':'#16A34A','vencido':'#DC2626'};const estadoLabel={'pendiente':'Pendiente','resuelto':'Resuelto','vencido':'Vencido'};cont.innerHTML=rep.map(r=>{const limite=r.limite_resolucion?new Date(r.limite_resolucion):null;const vencido=limite&&new Date()>limite&&r.estado==='pendiente';const estado=vencido?'vencido':r.estado;const fecha=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});const hora=new Date(r.created_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});return`<div onclick="reabrirChat('${r.id}','${r.tipo}','${r.limite_resolucion||''}')" style="background:#fff;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid ${r.estado==='pendiente'?'#FECACA':'#E0E0E0'};cursor:pointer;display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:${r.estado==='pendiente'?'#FEE2E2':'#F0F0F0'};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${r.estado==='pendiente'?(ICONS.warn||'!'):(ICONS.check||'')}</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--black);">${tipoLabel[r.tipo]||r.tipo}</div><div style="font-size:11px;color:var(--gray-400);margin-top:3px;">${fecha} a las ${hora}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${estadoColor[estado]}20;color:${estadoColor[estado]};">${estadoLabel[estado]||estado}</span></div></div>`;}).join('');}catch{cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-400);">No hay reportes.</div>';}}

@@ -1169,19 +1169,28 @@ async function enviarIACadete() {
   let mensajeError = 'Error de conexión. Intentá de nuevo.';
   try {
     const supabaseUrl = (typeof window !== 'undefined' && window.SUPABASE_URL) ? window.SUPABASE_URL : '';
-    const anonKey     = (typeof window !== 'undefined' && window.SUPABASE_ANON_KEY) ? window.SUPABASE_ANON_KEY : '';
+    // Token de la sesión, no la anon key: la anon key es pública (viaja en
+    // env.js), así que la Edge Function ahora exige un usuario real para que
+    // nadie pueda consumir la cuota del asistente desde afuera de la app.
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) {
+      mensajeError = 'Necesitás iniciar sesión para usar el asistente.';
+      throw new Error(mensajeError);
+    }
     const res  = await fetch(`${supabaseUrl}/functions/v1/asistente`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anonKey}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body:    JSON.stringify({ messages: iaHistorialCadete, rol: 'cadete' }),
     });
 
     if (!res.ok) {
       const bodyText = await res.text().catch(() => '');
       console.error('[enviarIACadete] Respuesta no-OK del asistente:', res.status, bodyText);
-      mensajeError = res.status >= 500
+      let delServidor = '';
+      try { delServidor = JSON.parse(bodyText)?.error || ''; } catch { /* cuerpo no-JSON */ }
+      mensajeError = delServidor || (res.status >= 500
         ? 'El servicio no respondió bien. Intentá en unos minutos.'
-        : `Error del asistente (${res.status}). Intentá de nuevo.`;
+        : `Error del asistente (${res.status}). Intentá de nuevo.`);
       throw new Error(mensajeError);
     }
 
