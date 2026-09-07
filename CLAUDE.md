@@ -393,6 +393,14 @@ usaba**; se adoptó acá para el pago al cadete. `liquidado_comercio` es nueva
 siempre una suma directa sobre pedidos sin marcar — sin fechas de corte ni
 dependencia del orden en que se hicieron los depósitos.
 
+**Ojo con los restos de QA:** `backend/scripts/qa-e2e.mjs` crea una cuenta de
+cadete nueva por corrida (`qa-e2e-cadete-<timestamp>@test.local`) y deja un
+pedido entregado atrás. Al estrenar el panel había 17 de esos sumando $55.250
+de plata falsa (y 31 cuentas QA en total en producción); se marcaron como
+`liquidado = true` el 2026-09-07 — no se borró nada. El script sigue sin
+limpiar lo suyo, así que **cada corrida antes de un release suma una fila
+falsa** al panel hasta que se arregle.
+
 Dos cosas del backend que hay que respetar si se toca esto, porque mueve plata
 real: la paginación de las queries es **de verdad** (bloques de 1000 — Supabase
 corta en 1000 filas por defecto y acá se agrega en JS, así que sin paginar los
