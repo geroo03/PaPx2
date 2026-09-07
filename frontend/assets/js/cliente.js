@@ -743,7 +743,7 @@ function repetirPedido(comercioId){const com=allComercios.find(c=>c.id===comerci
 
 async function reabrirChat(reporteId,tipo,limiteStr){const tipoLabel={'no-llegó':'No llegó lo pedido','mal-estado':'Llegó en mal estado','faltó-algo':'Faltó algo','no-llegó-pedido':'No recibió el pedido'};await abrirChatReporte(reporteId,tipoLabel[tipo]||tipo,limiteStr);}
 
-async function cerrarSesion(){if(!confirm('¿Querés cerrar sesión?'))return;try{await sb.auth.signOut();}catch(e){}localStorage.clear();window.location.href='login-usuario.html';}
+async function cerrarSesion(){if(!confirm('¿Querés cerrar sesión?'))return;try{await sb.auth.signOut();}catch(e){}localStorage.clear();window.location.href='/login.html';}
 
 window.addEventListener('load', () => {
   // Sincronizar ICONS ahora que main.js (módulo) ya ejecutó
@@ -752,12 +752,12 @@ window.addEventListener('load', () => {
   const _sb = window.sb;
   if (!_sb || !_sb.auth) {
     console.error('[PaP] window.sb no disponible en load — redirigiendo a login');
-    window.location.href = 'login-usuario.html';
+    window.location.href = '/login.html';
     return;
   }
 
   _sb.auth.getSession().then(async ({data:{session}})=>{
-    if(!session){window.location.href='login-usuario.html';return;}
+    if(!session){window.location.href='/login.html';return;}
     const user=session.user;
     let rol=user.user_metadata?.role || null;
 

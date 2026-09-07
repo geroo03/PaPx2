@@ -135,3 +135,45 @@ Tamaños de referencia:
 ## Splash screen
 
 Reemplazar `android/app/src/main/res/drawable/splash.png` con la imagen de splash (recomendado: 2732x2732 px con el logo centrado).
+
+---
+
+## Sentry — reportes de crash automáticos (2026-08-31)
+
+Encontrado probando en un dispositivo real viejo (Samsung A20, poca RAM):
+la app crasheaba a nivel de proceso ("Puerta a Puerta X continúa fallando",
+el cartel nativo de Android) justo al volver del login de Google — sin
+forma de ver el error real sin conectar ese celular por USB. Sentry
+resuelve esto para cualquier tester, cualquier dispositivo, sin necesitar
+acceso físico nunca más.
+
+**SDK nativo directo, no `@sentry/capacitor`:** ese paquete asume
+`import * as Sentry from "@sentry/capacitor"`, lo cual necesita un bundler
+que este proyecto no tiene (frontend sin build step, scripts vía CDN/ES
+modules relativos). El SDK nativo de Android (`io.sentry:sentry-android`,
+ya agregado en `android/app/build.gradle`) se auto-inicializa solo leyendo
+`AndroidManifest.xml` — cero código JS necesario. Como el crash es a nivel
+de proceso (no una excepción de JS atrapable), un tracker solo-JS tampoco
+lo hubiera capturado igual — hacía falta el nativo sí o sí.
+
+### Ya activado (2026-09-01)
+
+Cuenta creada en sentry.io, organización "puerta-a-puerta-x", proyecto
+Android. DSN real ya cargado en
+`android/app/src/main/AndroidManifest.xml`:
+```
+https://e34d4fa5c35c7ba573e74a1026b99701@o4512009219670016.ingest.us.sentry.io/4512009227272192
+```
+(Un DSN no es un secreto sensible — viaja embebido en el APK igual, cualquiera
+podría extraerlo — por eso está bien documentado acá en texto plano. Lo único
+que permite es *mandar* eventos a este proyecto, no leerlos.)
+
+**Si `android/` se regenera de cero** (está en `.gitignore`, se pierde el
+manifest editado a mano): volver a pegar ese mismo DSN en la línea
+`<meta-data android:name="io.sentry.dsn" .../>` — no hace falta crear un
+proyecto nuevo en Sentry, es el mismo de siempre.
+
+A partir de acá, cualquier crash de cualquier tester aparece solo en
+[sentry.io](https://sentry.io) → proyecto Android → Issues, con stack
+trace real y, gracias a `io.sentry.attach-screenshot`, una captura de
+pantalla del momento exacto del crash.

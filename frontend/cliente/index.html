@@ -15,7 +15,15 @@
 <link rel="preconnect" href="https://fmqlpgerqdiplnvjjarl.supabase.co">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- defer (2026-08-31): Leaflet no hace falta hasta que el usuario abre una
+     pantalla con mapa (tracking, pin del carrito) — cargarlo bloqueando el
+     parseo del HTML desde el arranque le suma presión de memoria justo al
+     momento más frágil (recién volviendo del login de Google), encontrado
+     probando en un Samsung A20 real (poca RAM) que crasheaba ahí. defer deja
+     que el HTML siga parseándose mientras se descarga, y lo ejecuta recién
+     al final — Leaflet sigue disponible antes de que el usuario llegue a
+     tocar el mapa. -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,21 +84,33 @@ window.iniciarConversionCadete = iniciarConversionCadete;
   const sb = window.sb;
   if (!sb) {
     console.warn('No Supabase client available. Redirecting to login.');
-    window.location.href = 'login-usuario.html';
+    window.location.href = '/login.html';
     return;
   }
 
   try {
     const { data: { session } } = await sb.auth.getSession();
     if (!session || !session.user) {
-      window.location.href = 'login-usuario.html';
+      window.location.href = '/login.html';
       return;
     }
 
     // Persist some basic values for UI usage
     try { localStorage.setItem('access_token', session.access_token || ''); localStorage.setItem('user_id', session.user?.id || ''); localStorage.setItem('user_email', session.user?.email || ''); } catch(e){}
 
-    const role = session.user?.user_metadata?.role || null;
+    // Consulta primero 'perfiles' (fuente de verdad real, mismo criterio que
+    // login.js/login-usuario.html) y solo cae a user_metadata.role si esa
+    // fila todavía no existe. Antes esta pantalla confiaba únicamente en
+    // user_metadata — si esa cuenta tenía ese campo desincronizado/vacío
+    // (aunque perfiles.rol estuviera bien), la opción "Convertite en
+    // Cadete" del perfil (y la tarjeta flotante) se quedaban escondidas sin
+    // ningún aviso, porque ni 'usuario' ni 'cliente' hacían match.
+    let role = null;
+    try {
+      const { data: perfil } = await sb.from('perfiles').select('rol').eq('usuario_id', session.user.id).single();
+      role = perfil?.rol ?? null;
+    } catch (e) { /* fila de perfiles puede no existir todavía */ }
+    if (!role) role = session.user?.user_metadata?.role || null;
     try { localStorage.setItem('role', role || ''); } catch(e){}
 
     // Redirigir si el rol no corresponde a esta pagina.
@@ -157,7 +177,7 @@ window.iniciarConversionCadete = iniciarConversionCadete;
     }
   } catch(e) {
     console.error('Session check failed', e);
-    window.location.href = 'login-usuario.html';
+    window.location.href = '/login.html';
   }
 })();
 </script>
