@@ -24,6 +24,7 @@ import authRoutes     from './routes/authRoutes.js';
 import mpRoutes       from './routes/mpRoutes.js';
 import cadeteRoutes   from './routes/cadeteRoutes.js';
 import embajadorRoutes from './routes/embajadorRoutes.js';
+import adminRoutes    from './routes/adminRoutes.js';
 import { iniciarSchedulerMatching } from './jobs/matchingScheduler.js';
 import { iniciarSchedulerHorarios } from './jobs/horariosScheduler.js';
 
@@ -135,6 +136,9 @@ function createApp() {
 
   // Embajador: dashboard, agregar-comercio, solicitar-retiro, confirmar-pago
   app.use('/api/embajadores', embajadorRoutes);
+
+  // Admin: /api/admin/depositos (cuánto hay que depositarle a cada uno)
+  app.use('/api/admin', adminRoutes);
 
   // ─── Endpoint de diagnóstico ────────────────────────────────────────────────
   // Útil para health-checks de Railway / Render / EC2 y para depuración rápida.

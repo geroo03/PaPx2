@@ -87,6 +87,7 @@
     <div class="tab" data-tab="cadetes" onclick="switchTab('cadetes')">Cadetes</div>
     <div class="tab" data-tab="embajadores" onclick="switchTab('embajadores')">Embajadores</div>
     <div class="tab" data-tab="retiros" onclick="switchTab('retiros')">Retiros</div>
+    <div class="tab" data-tab="depositos" onclick="switchTab('depositos');loadDepositos()">Depositos</div>
     <div class="tab" data-tab="rubros" onclick="switchTab('rubros');loadRubros()">Rubros</div>
     <div class="tab" data-tab="carrusel" onclick="switchTab('carrusel');loadCarrusel()">Carrusel</div>
     <div class="tab" data-tab="crear" onclick="switchTab('crear')">Crear usuario</div>
@@ -129,6 +130,24 @@
   <!-- TAB: Retiros -->
   <div class="tab-panel" id="tab-retiros">
     <div class="panel"><h2>Solicitudes de retiro</h2><div id="retiros-list">Cargando...</div></div>
+  </div>
+
+  <!-- TAB: Depositos -->
+  <div class="tab-panel" id="tab-depositos">
+    <div class="panel">
+      <h2>Depositos pendientes</h2>
+      <p style="color:var(--muted);font-size:13px;margin:-6px 0 16px;">
+        Cuanto hay que depositarle hoy a cada uno. Al marcar un deposito como
+        hecho, los pedidos que lo componen quedan liquidados y dejan de sumar
+        aca.
+      </p>
+      <div id="depositos-resumen" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;"></div>
+      <div id="depositos-list">Cargando...</div>
+    </div>
+    <div class="panel" style="margin-top:var(--gap);">
+      <h2>Ultimos depositos registrados</h2>
+      <div id="depositos-historial">Cargando...</div>
+    </div>
   </div>
 
   <!-- TAB: Rubros -->
@@ -573,6 +592,143 @@ window.rechazarRetiro = async function(id, btn) {
     loadRetiros(); loadKPIs();
   } catch(e) { alert('Error: '+e.message); btn.disabled=false; }
 };
+
+// ── DEPOSITOS ────────────────────────────────────────────────────────────────
+// Va contra /api/admin/depositos (backend con service_role) y NO directo a
+// Supabase: billetera_embajador solo tiene policies de "el propio embajador",
+// asi que leerla desde aca con el cliente anon devuelve 0 filas sin error —
+// el mismo bug que hacia que el panel mostrara $0 para todos.
+
+const monedaAR = n => '$' + Number(n||0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+let _depositos = [];   // filas de la ultima carga, indexadas por los botones
+
+async function loadDepositos() {
+  const el = document.getElementById('depositos-list');
+  const resumenEl = document.getElementById('depositos-resumen');
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch((window.BACKEND_URL||'') + '/api/admin/depositos', {
+      headers: { 'Authorization': 'Bearer ' + session.access_token },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
+
+    const grupos = [
+      { titulo: 'Comercios',   filas: json.comercios   || [] },
+      { titulo: 'Cadetes',     filas: json.cadetes     || [] },
+      { titulo: 'Embajadores', filas: json.embajadores || [] },
+    ];
+
+    resumenEl.innerHTML = `
+      <article class="kpi"><div><div class="title">Total a depositar</div><div class="value" style="color:#16a34a;">${monedaAR(json.totalAPagar)}</div></div></article>
+      ${grupos.map(g => `<article class="kpi"><div><div class="title">${g.titulo}</div><div class="value">${g.filas.filter(f => f.monto > 0).length}</div></div></article>`).join('')}`;
+
+    const conAlgo = grupos.filter(g => g.filas.length);
+    if (!conAlgo.length) { el.innerHTML = '<div class="empty">No hay nada pendiente de depositar.</div>'; return; }
+
+    // Las filas se guardan en memoria y los botones solo llevan un indice:
+    // nada de serializar los datos dentro del HTML. El nombre de un comercio
+    // lo elige el comercio, asi que meterlo en un atributo onclick seria una
+    // via de inyeccion directa.
+    _depositos = conAlgo.flatMap(g => g.filas);
+    let i = 0;
+    el.innerHTML = conAlgo.map(g => `
+      <h3 style="font-size:14px;margin:18px 0 8px;">${g.titulo}</h3>
+      <table><thead><tr>
+        <th>Nombre</th><th>Bruto</th><th>Descuento</th><th>A depositar</th><th>Destino</th><th>Accion</th>
+      </tr></thead><tbody>${g.filas.map(f => filaDeposito(f, i++)).join('')}</tbody></table>`).join('');
+
+    el.querySelectorAll('button[data-dep]').forEach(btn => {
+      btn.addEventListener('click', () => marcarDepositado(_depositos[Number(btn.dataset.dep)], btn));
+    });
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Error cargando depositos: ' + esc(e.message) + '</div>';
+    console.error(e);
+  }
+  loadHistorialDepositos();
+}
+
+function filaDeposito(f, idx) {
+  const destino = f.tipo === 'comercio'
+    ? [f.destino?.cbu_alias, f.destino?.titular, f.destino?.cuit].filter(Boolean).join(' · ')
+    : (f.destino?.cvu || f.destino?.cbu_alias || '');
+  const detalle = f.detalle?.length ? `${f.detalle.length} pedido${f.detalle.length>1?'s':''}` : '';
+  // Negativo = no hay que depositarle nada; al reves, debe el. Se muestra
+  // igual (en rojo) para que no desaparezca de la vista sin explicacion.
+  const puedePagar = f.monto > 0;
+  const accion = puedePagar
+    ? `<button class="action-btn" data-dep="${idx}">Marcar como depositado</button>`
+    : '<span style="color:var(--muted);font-size:12px;">Nada a depositar</span>';
+
+  return `<tr>
+    <td style="font-weight:600;">${esc(f.nombre)}</td>
+    <td>${monedaAR(f.bruto)}${detalle ? `<div style="font-size:11px;color:var(--muted);">${esc(detalle)}</div>` : ''}</td>
+    <td>${f.descuento ? `<span style="color:#dc2626;">-${monedaAR(f.descuento)}</span><div style="font-size:11px;color:var(--muted);">${esc(f.descuentoConcepto||'')}</div>` : '—'}</td>
+    <td style="font-weight:700;color:${puedePagar?'#16a34a':'#dc2626'};">${monedaAR(f.monto)}</td>
+    <td style="font-size:11px;">${esc(destino) || '<span style="color:#dc2626;">sin datos bancarios</span>'}</td>
+    <td>${accion}</td>
+  </tr>`;
+}
+
+async function marcarDepositado(f, btn) {
+  if (!f) return;
+  const msg = `Confirmas que ya le depositaste ${monedaAR(f.monto)} a ${f.nombre}?\n\n`
+    + 'Esto NO transfiere plata: solo lo registra y marca lo que cubre como liquidado.';
+  if (!confirm(msg)) return;
+  const referencia = prompt('Referencia del deposito (nro de comprobante, opcional):') ?? '';
+
+  btn.disabled = true; btn.textContent = 'Registrando...';
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch((window.BACKEND_URL||'') + '/api/admin/depositos', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token },
+      body: JSON.stringify({
+        tipo:            f.tipo,
+        destinatario_id: f.destinatario_id,
+        monto:           f.monto,
+        pedido_ids:      f.pedido_ids || [],
+        solicitud_id:    f.solicitudes?.[0]?.id || null,
+        referencia,
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
+    alert('Deposito registrado.');
+    loadDepositos(); loadKPIs();
+  } catch(e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Marcar como depositado';
+  }
+}
+
+async function loadHistorialDepositos() {
+  const el = document.getElementById('depositos-historial');
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch((window.BACKEND_URL||'') + '/api/admin/depositos/historial', {
+      headers: { 'Authorization': 'Bearer ' + session.access_token },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Error');
+    const pagos = json.pagos || [];
+    if (!pagos.length) { el.innerHTML = '<div class="empty">Todavia no se registro ningun deposito.</div>'; return; }
+
+    el.innerHTML = `<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Metodo</th><th>Referencia</th></tr></thead><tbody>${
+      pagos.map(p => `<tr>
+        <td>${new Date(p.created_at).toLocaleDateString('es-AR')}</td>
+        <td><span class="badge badge-gray">${esc(p.tipo)}</span></td>
+        <td style="font-weight:700;">${monedaAR(p.monto)}</td>
+        <td>${esc(p.metodo)||'—'}</td>
+        <td style="font-size:11px;">${esc(p.referencia)||'—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Error cargando el historial.</div>';
+    console.error(e);
+  }
+}
+
+window.loadDepositos = loadDepositos;
 
 // ── CREAR USUARIO (admin) ─────────────────────────────────────────────────────
 document.getElementById('form-crear').addEventListener('submit', async (e) => {
