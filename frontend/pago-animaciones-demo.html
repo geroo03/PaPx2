@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Animaciones de pago — demo (no producción)</title>
+<link rel="stylesheet" href="assets/css/safe-area.css">
+<link rel="stylesheet" href="assets/css/animations.css">
+<link rel="stylesheet" href="assets/css/pago-animaciones.css">
+<style>
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    padding: calc(20px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #F5F5F7;
+    color: #0D0D0D;
+  }
+  .cont { max-width: 420px; margin: 0 auto; }
+  .warn {
+    background: #FFF3CD; border: 1px solid #FFE69C; color: #664D03;
+    padding: 12px 16px; border-radius: 10px; margin-bottom: 20px;
+    font-size: 13px; line-height: 1.55;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #6B7280; margin: 0 0 22px; line-height: 1.5; }
+  h2 { font-size: 14px; margin: 28px 0 12px; text-transform: uppercase; letter-spacing: .06em; color: #6B7280; }
+  .fila { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  button {
+    flex: 1 1 110px;
+    min-width: 0;
+    /* 16px mínimo: por debajo de eso iOS hace zoom al enfocar (CLAUDE.md §14) */
+    font-size: 16px; padding: 12px 14px; border: none; border-radius: 10px;
+    background: #FF6B35; color: #fff; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+  button.sec { background: #fff; color: #0D0D0D; border: 1px solid #E2E4E8; }
+  .tarjetas { display: flex; flex-direction: column; gap: 20px; }
+</style>
+</head>
+<body>
+
+<div class="cont">
+
+  <div class="warn">
+    <strong>Página de demo, no producción.</strong> No está linkeada desde ningún
+    menú ni login. Sirve para revisar a ojo las animaciones del componente
+    <code>pago-animaciones.js</code> sin tocar ningún flujo de pago real —
+    todavía no está cableado a nada (Getnet sigue esperando credenciales).
+    Ninguna de estas pantallas pide ni captura datos de tarjeta: Get Checkout es
+    hospedado, los datos se cargan del lado del procesador.
+  </div>
+
+  <h1>Animaciones de pago</h1>
+  <p class="sub">
+    Probar también con "Reducir movimiento" activado en el sistema operativo:
+    las animaciones se apagan y todo tiene que seguir siendo legible.
+  </p>
+
+  <h2>1 · Tarjeta del selector</h2>
+  <div class="tarjetas">
+    <div id="demo-credito"></div>
+    <div id="demo-debito"></div>
+  </div>
+  <div class="fila">
+    <button class="sec" id="btn-girar-credito">Girar crédito</button>
+    <button class="sec" id="btn-girar-debito">Girar débito</button>
+  </div>
+
+  <h2>2 · Overlay de procesamiento</h2>
+  <div class="fila">
+    <button id="btn-procesando">Procesando</button>
+  </div>
+  <div class="fila">
+    <button class="sec" id="btn-aprobado">Aprobado</button>
+    <button class="sec" id="btn-rechazado">Rechazado</button>
+    <button class="sec" id="btn-cerrar">Cerrar</button>
+  </div>
+
+</div>
+
+<script type="module">
+  import {
+    renderTarjeta, girarTarjeta,
+    mostrarProcesando, actualizarProcesando, ocultarProcesando,
+  } from './assets/js/pago-animaciones.js';
+
+  const credito = renderTarjeta(document.getElementById('demo-credito'), { tipo: 'credito' });
+  const debito  = renderTarjeta(document.getElementById('demo-debito'),  { tipo: 'debito' });
+
+  document.getElementById('btn-girar-credito').onclick = () => girarTarjeta(credito);
+  document.getElementById('btn-girar-debito').onclick  = () => girarTarjeta(debito);
+
+  document.getElementById('btn-procesando').onclick = () =>
+    mostrarProcesando({ mensaje: 'Procesando tu pago...' });
+
+  document.getElementById('btn-aprobado').onclick  = () => actualizarProcesando('aprobado');
+  document.getElementById('btn-rechazado').onclick = () => actualizarProcesando('rechazado');
+  document.getElementById('btn-cerrar').onclick    = () => ocultarProcesando();
+
+  // Deep-link de estado: ?demo=procesando|aprobado|rechazado abre el overlay
+  // directo al cargar. Sirve para mandar un link a un estado puntual y para
+  // capturarlo con el navegador en headless, que no puede hacer clic.
+  const estado = new URLSearchParams(location.search).get('demo');
+  if (estado === 'procesando') mostrarProcesando({ mensaje: 'Procesando tu pago...' });
+  else if (estado === 'aprobado' || estado === 'rechazado') actualizarProcesando(estado);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+/* pago-animaciones.css — animaciones de tarjeta para el flujo de pago.
+
+   Preparado para Getnet (ver docs/GETNET-INTEGRACION.md en la rama de
+   integración). Getnet usa Get Checkout HOSPEDADO: la app nunca ve ni pide
+   datos de tarjeta, así que acá NO hay ningún formulario de tarjeta. Las dos
+   piezas son:
+
+     1. .pap-card   — tarjeta decorativa para la opción "Tarjeta" del selector
+                      de método de pago. Es puramente visual: los dígitos son
+                      placeholders fijos, no hay input de ningún tipo.
+     2. .pap-pago-*  — overlay de "procesando pago", para cubrir el hueco entre
+                      que se crea la orden y el checkout hospedado toma el
+                      control, y para mostrar el resultado al volver.
+
+   Convenciones heredadas de animations.css: keyframes con prefijo pap-,
+   utilidades con prefijo .pap-. Autocontenido — no depende de portal-vars.css
+   ni de los :root de cada pantalla, y trae su propio bloque de
+   prefers-reduced-motion por si se carga en una página sin animations.css.
+
+   Se maneja desde assets/js/pago-animaciones.js — ver ese archivo para la API.
+*/
+
+:root {
+  --pap-card-radius: 14px;
+  --pap-card-naranja: #FF6B35;
+  --pap-card-naranja-osc: #E55A27;
+  --pap-card-negro: #0D0D0D;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   1. TARJETA
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pap-card-wrap {
+  perspective: 1200px;
+  /* Ancho DEFINIDO, no 100%: si el contenedor de la tarjeta es una caja de
+     ancho por contenido (un flex column con align-items:center, por ejemplo,
+     que es justo como queda dentro del overlay), un width:100% no tiene contra
+     qué resolver y la tarjeta colapsa a un punto. Con un ancho fijo + max-width
+     se comporta igual de bien adentro de un contenedor angosto. */
+  width: 340px;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.pap-card {
+  position: relative;
+  width: 100%;
+  /* Proporción real de una tarjeta física (85.6 × 53.98 mm) */
+  aspect-ratio: 1.586;
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(.4, .2, .2, 1);
+  cursor: default;
+}
+
+.pap-card.is-flipped { transform: rotateY(180deg); }
+
+/* Inclinación sutil al pasar el mouse / enfocar por teclado. En touch no
+   dispara, que es justo lo que queremos: ahí la tarjeta queda quieta. */
+@media (hover: hover) {
+  .pap-card-wrap:hover .pap-card:not(.is-flipped) { transform: rotateY(-12deg) rotateX(6deg); }
+}
+.pap-card-wrap:focus-within .pap-card:not(.is-flipped) { transform: rotateY(-12deg) rotateX(6deg); }
+
+.pap-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--pap-card-radius);
+  backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  color: #fff;
+}
+
+.pap-card-face--back { transform: rotateY(180deg); }
+
+/* Variantes de color por tipo */
+.pap-card--credito .pap-card-face {
+  background: linear-gradient(135deg, var(--pap-card-naranja) 0%, var(--pap-card-naranja-osc) 55%, #B8441A 100%);
+}
+.pap-card--debito .pap-card-face {
+  background: linear-gradient(135deg, #2B3A55 0%, #1B2438 55%, var(--pap-card-negro) 100%);
+}
+
+/* Brillo que barre la tarjeta */
+.pap-card-face::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 60%;
+  height: 220%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22), transparent);
+  transform: rotate(18deg);
+  animation: pap-card-shine 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pap-card-shine {
+  0%, 65% { left: -60%; }
+  100%    { left: 130%; }
+}
+
+.pap-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pap-card-marca {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .92;
+}
+
+.pap-card-tipo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, .18);
+  border-radius: 20px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+/* Chip dibujado en CSS, sin imagen */
+.pap-card-chip {
+  width: 42px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #F5D68A, #C9A24A 45%, #E8CE94);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18);
+}
+.pap-card-chip::before,
+.pap-card-chip::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: rgba(0, 0, 0, .25);
+}
+.pap-card-chip::before { top: 11px; }
+.pap-card-chip::after  { top: 20px; }
+
+.pap-card-numero {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+
+.pap-card-pie {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .85;
+}
+
+/* Dorso */
+.pap-card-banda {
+  height: 34px;
+  background: #14161A;
+  margin: 4px -18px 0;
+}
+.pap-card-firma {
+  height: 26px;
+  background: repeating-linear-gradient(-45deg, #EDEDED, #EDEDED 6px, #DCDCDC 6px, #DCDCDC 12px);
+  border-radius: 3px;
+  margin-top: 14px;
+}
+.pap-card-aviso {
+  font-size: 9px;
+  line-height: 1.4;
+  opacity: .75;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. OVERLAY DE PROCESAMIENTO
+   ═══════════════════════════════════════════════════════════════════ */
+
+.pap-pago-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: calc(24px + var(--safe-top, 0px)) 24px calc(24px + var(--safe-bottom, 0px));
+  box-sizing: border-box;
+  background: rgba(10, 10, 12, .78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: pap-pago-fade var(--anim-base, 200ms) ease;
+}
+
+@keyframes pap-pago-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* La tarjeta "latiendo" mientras se procesa */
+.pap-pago-overlay .pap-pago-tarjeta { width: 100%; }
+.pap-pago-overlay .pap-card-wrap { width: 300px; }
+.pap-pago-overlay[data-estado="procesando"] .pap-card {
+  animation: pap-pago-latido 1.8s ease-in-out infinite;
+}
+
+@keyframes pap-pago-latido {
+  0%, 100% { transform: translateY(0) rotateY(-8deg); }
+  50%      { transform: translateY(-10px) rotateY(8deg); }
+}
+
+.pap-pago-barra {
+  width: min(300px, 100%);
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .16);
+  overflow: hidden;
+}
+.pap-pago-barra::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--pap-card-naranja), #FFB08A);
+  animation: pap-pago-barra 1.2s ease-in-out infinite;
+}
+
+@keyframes pap-pago-barra {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.pap-pago-msg {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.pap-pago-sub {
+  color: rgba(255, 255, 255, .62);
+  font-size: 12px;
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+  margin-top: -12px;
+}
+
+/* Resultado: check / cruz dibujados con SVG */
+.pap-pago-icono {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pap-pago-pop 420ms cubic-bezier(.2, 1.3, .4, 1);
+}
+.pap-pago-icono--ok    { background: rgba(34, 197, 94, .16); }
+.pap-pago-icono--error { background: rgba(239, 68, 68, .16); }
+
+.pap-pago-icono svg path,
+.pap-pago-icono svg line {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: pap-pago-trazo 520ms 120ms ease forwards;
+}
+.pap-pago-icono svg line:nth-of-type(2) { animation-delay: 260ms; }
+
+@keyframes pap-pago-trazo {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes pap-pago-pop {
+  0%   { transform: scale(.6); opacity: 0; }
+  100% { transform: scale(1);  opacity: 1; }
+}
+
+.pap-pago-overlay[data-estado="aprobado"] .pap-card-face {
+  background: linear-gradient(135deg, #1E9E5A 0%, #167945 60%, #0F5B34 100%);
+}
+.pap-pago-overlay[data-estado="rechazado"] .pap-card-face {
+  background: linear-gradient(135deg, #B23B3B 0%, #8A2A2A 60%, #5F1C1C 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Accesibilidad — respetar "reducir movimiento" del sistema operativo.
+   El overlay sigue apareciendo y el resultado sigue siendo legible: lo
+   único que se apaga es el movimiento.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .pap-card,
+  .pap-card-face::after,
+  .pap-pago-overlay,
+  .pap-pago-overlay .pap-card,
+  .pap-pago-barra::after,
+  .pap-pago-icono,
+  .pap-pago-icono svg path,
+  .pap-pago-icono svg line {
+    animation: none !important;
+    transition: none !important;
+  }
+  .pap-card-face::after { display: none; }
+  .pap-pago-icono svg path,
+  .pap-pago-icono svg line { stroke-dashoffset: 0; }
+  /* Sin animación, la barra indeterminada no comunica nada: se deja fija
+     al 100% para que se lea como "en curso" y no como una barra rota. */
+  .pap-pago-barra::after { width: 100%; }
+}
