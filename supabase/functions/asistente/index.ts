@@ -18,12 +18,24 @@
  * gratuita. Se llama con `fetch` directo en vez de sumar un SDK: es una sola
  * llamada POST y en una Edge Function cada dependencia es arranque en frío.
  *
- * Modelo por defecto `llama-3.3-70b-versatile` (el de producción más capaz de
- * los gratuitos, ~280 tok/s). Se puede cambiar sin tocar código con el secret
- * GROQ_MODEL — `llama-3.1-8b-instant` u `openai/gpt-oss-20b` son bastante más
- * rápidos si el 70B se siente lento. Los IDs de modelo de Groq cambian cada
- * tanto: si empieza a fallar con 404/400 de modelo inexistente, mirar
- * https://console.groq.com/docs/models
+ * Modelo por defecto `openai/gpt-oss-120b`. Se puede cambiar sin tocar código
+ * con el secret GROQ_MODEL.
+ *
+ * ⚠️ **Los IDs de modelo de Groq caducan.** Al escribir esto (2026-09-07) la
+ * documentación pública todavía listaba `llama-3.3-70b-versatile` como modelo
+ * de producción, pero la API devuelve `404 The model does not exist or you do
+ * not have access to it` — Groq retiró la familia Llama. La lista real de lo
+ * que hay disponible se pide con:
+ *
+ *   curl https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY"
+ *
+ * Si el chat empieza a dar 404/400 de modelo inexistente, es esto: pedir la
+ * lista y actualizar el secret GROQ_MODEL. No hace falta redeployar.
+ *
+ * Alternativas medidas el 2026-09-07 con el prompt real de soporte:
+ *   openai/gpt-oss-120b   256 tokens, 0.23 s   ← default, el mejor Y el más rápido
+ *   openai/gpt-oss-20b    673 tokens, 0.66 s
+ * (también hay qwen/qwen3.8-27b y groq/compound, sin probar acá)
  *
  * ── Deploy (paso manual, necesita la CLI de Supabase logueada) ─────────────
  *   supabase secrets set GROQ_API_KEY=gsk_...
@@ -152,7 +164,7 @@ Estás hablando con un COMERCIO. Lo que necesitás saber:
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 const GROQ_URL      = 'https://api.groq.com/openai/v1/chat/completions';
-const MODELO_DEFECTO = 'llama-3.3-70b-versatile';
+const MODELO_DEFECTO = 'openai/gpt-oss-120b';
 const MAX_MENSAJES  = 10;    // últimos N turnos que se reenvían al modelo
 const MAX_CHARS     = 2000;  // por mensaje
 

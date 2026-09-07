@@ -617,9 +617,15 @@ una línea. Lo que hay hoy en `supabase/functions/asistente/index.ts` es una
 **reconstrucción**, no la original.
 
 - **Proveedor: Groq** (API compatible con OpenAI, capa gratuita). Modelo por
-  defecto `llama-3.3-70b-versatile`, cambiable con el secret `GROQ_MODEL` sin
-  tocar código. Los IDs de modelo de Groq cambian cada tanto — si empieza a dar
-  400/404 de modelo inexistente, mirar https://console.groq.com/docs/models
+  defecto `openai/gpt-oss-120b`, cambiable con el secret `GROQ_MODEL` sin tocar
+  código ni redeployar.
+- ⚠️ **Los IDs de modelo de Groq caducan y la documentación pública queda
+  atrasada.** El 2026-09-07 la doc de Groq seguía listando
+  `llama-3.3-70b-versatile` como modelo de producción y la API respondía `404
+  The model does not exist or you do not have access to it` — retiraron la
+  familia Llama entera. **No confiar en la doc: pedir la lista real** con
+  `curl https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY"`.
+  Si el chat empieza a fallar con 404/400 de modelo, es esto.
 - **Auth:** exige el `access_token` de la sesión, **no** la anon key (que es
   pública y viaja en `env.js`). Los dos frontends ya mandan el token.
 - **CORS:** allowlist explícita que incluye `capacitor://localhost`, aplicada

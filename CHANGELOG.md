@@ -42,7 +42,13 @@ La Edge Function `asistente` **no estaba desplegada**: el endpoint devolvía
 `404 NOT_FOUND`. Vivía solo en el Dashboard de Supabase, fuera de git, y se
 perdió — no quedó ni una línea en toda la historia del repo. Se reconstruyó en
 `supabase/functions/asistente/index.ts`, ahora versionada, con Groq
-(`llama-3.3-70b-versatile` por defecto, cambiable con el secret `GROQ_MODEL`).
+(`openai/gpt-oss-120b` por defecto, cambiable con el secret `GROQ_MODEL`).
+
+Probado contra la API real con la key del proyecto: la documentación pública de
+Groq todavía lista `llama-3.3-70b-versatile` como modelo de producción, pero la
+API devuelve 404 — retiraron la familia Llama. De los que quedan,
+`gpt-oss-120b` resultó el mejor **y** el más rápido (256 tokens / 0,23 s contra
+673 / 0,66 s del 20b, con el prompt de soporte real).
 
 Tres cosas que no estaban antes: CORS explícito incluido en las respuestas de
 error (sin eso, desde la app nativa cualquier error se ve como "error de
