@@ -828,11 +828,20 @@ No hay pre-orders ni carrito grupal (confirmado ausentes, no es un bug).
 
 ## 15. Storage buckets (Supabase)
 
-| Bucket | Contenido |
-|--------|-----------|
-| `cadetes-antecedentes` | DNI, carnet de conducir, seguro del cadete |
-| `comercios` | Imágenes de los comercios |
-| `productos` | Imágenes de productos |
+Verificado contra el proyecto real el 2026-09-07 (`storage.listBuckets()`):
+
+| Bucket (id real) | Público | Contenido | ¿Lo usa el código? |
+|--------|---------|-----------|--------------------|
+| `cadetes-antecedentes` | No | DNI, carnet de conducir, seguro del cadete | Sí — `cadete.js` |
+| `productos` | Sí | Imágenes de productos | Sí — `comercio.js` |
+| `comercio` | Sí | Imágenes de los comercios | **No.** Ningún `storage.from(...)` del repo lo toca |
+
+> ⚠️ **El bucket de comercios se llama `comercio`, en singular.** Este documento
+> decía `comercios` (plural), que no existe. Importa más de lo que parece: las
+> migraciones de Storage se envuelven en un `IF EXISTS (SELECT 1 FROM
+> storage.buckets WHERE id = '...')`, así que un nombre equivocado hace que la
+> migración **corra sin error y no haga absolutamente nada**. Antes de escribir
+> una migración de Storage, confirmar el id real con `storage.listBuckets()`.
 
 ---
 

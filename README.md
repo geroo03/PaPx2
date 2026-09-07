@@ -5,7 +5,7 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 
 > ⚠️ **Para IAs:** las secciones de **detalle de funciones por archivo** de este README quedaron desactualizadas en varios puntos (deploy del frontend, tarifas de cadete, endpoints nuevos de efectivo/liquidaciones, Capacitor). Ante cualquier contradicción ahí, confiar en **[`CLAUDE.md`](CLAUDE.md)**.
 >
-> **Excepciones — estas secciones sí están al día y son la fuente de verdad de su tema:** el checklist de lanzamiento de acá abajo, [Sesión 2026-09-01/02](#sesión-2026-09-0102--auditoría-y-fixes-de-la-app-nativa-play-store) (qué se arregló, cómo se buildea y sube a Play Store, cómo leer un crash de Sentry) y [Errores históricos y soluciones](#errores-históricos-y-soluciones).
+> **Excepciones — estas secciones sí están al día y son la fuente de verdad de su tema:** el checklist de lanzamiento de acá abajo, [Sesión 2026-09-07](#sesión-2026-09-07--deuda-de-ramas-saldada--4-ítems-nuevos) (la más reciente), [Sesión 2026-09-01/02](#sesión-2026-09-0102--auditoría-y-fixes-de-la-app-nativa-play-store) (qué se arregló, cómo se buildea y sube a Play Store, cómo leer un crash de Sentry) y [Errores históricos y soluciones](#errores-históricos-y-soluciones).
 
 ---
 
@@ -23,8 +23,138 @@ Conecta 5 roles: **cliente**, **comercio**, **cadete** (repartidor), **embajador
 6. **Firebase/FCM para push nativo — reabierto el 2026-08-19**, pospuesto a propósito hasta cerrar el checklist de Play Console (ítem 1). No está confirmado si ya existe un proyecto de Firebase de un intento anterior (hay un indicio real: una API key de Firebase huérfana en el historial de git). Ver `PENDIENTES-LANZAMIENTO.md` ítem 14.
 7. ~~**Cuenta de prueba para el revisor de Google Play**~~ — **creada** (`googleplay.reviewer@puertaapuertax.app`). Ojo: el 2026-09-01 se encontró que su `perfiles.rol` había quedado en `cadete`, así que el revisor entraba al panel de cadete en vez de la app de cliente — corregido a `cliente` en `perfiles.rol` y en `user_metadata`. Si se vuelve a tocar esa cuenta, verificar el rol antes de declararla.
 8. **Política de Privacidad — declaración en Play Console en pausa a propósito.** Hay un borrador con la cláusula de Propiedad Intelectual reforzada (`docs/legal-tyc-borrador-2026-08-17.html`) sin volcar todavía a la página en vivo (`frontend/legal.html`, ya en producción en `pa-px2.vercel.app/legal.html`).
-9. **Trabajo real sin mergear a `main`** (detectado 2026-09-01, ver sección de sesión más abajo). La rama `work/2026-08-20-google-elegir-rol` tiene 8 commits que producción nunca recibió, incluido **`c3614a8` — un fix de crash del login con Google** (carrera de doble redirect). Hay que decidir qué se mergea y qué se descarta: es exactamente el mismo patrón que causó el crash de push que estuvo días en producción sin que nadie lo notara.
+9. ~~**Trabajo real sin mergear a `main`**~~ — **resuelto el 2026-09-07** (ver [Sesión 2026-09-07](#sesión-2026-09-07--deuda-de-ramas-saldada--4-ítems-nuevos)). Se mergearon 7 de los 8 commits, incluido `c3614a8` (el fix del crash de login con Google), y se pushearon a producción. Queda afuera a propósito `93a1ae7` (GPS en segundo plano): su permiso `ACCESS_BACKGROUND_LOCATION` obliga a un formulario de Play Console que **exige un video de una pantalla de aviso previo que todavía no está construida**.
 10. **iOS — la Mac ya está disponible** (2026-09-02). Se levanta el bloqueo que había: ahora se puede correr `npx cap add ios` + `pod install` de verdad y abrir el proyecto en Xcode. Ver `docs/IOS-BUILD.md` para los 3 ajustes manuales de `Info.plist` que hay que reaplicar después de regenerar `ios/` (permisos de cámara/ubicación, deep link de Google OAuth, push). Falta todavía una fuente cuadrada de 1024×1024 para el ícono.
+
+---
+
+## Sesión 2026-09-07 — deuda de ramas saldada + 4 ítems nuevos
+
+19 commits, todos pusheados a `main` y ya en producción (Railway + Vercel,
+verificados en vivo). Orden: primero se saldó la deuda de ramas, después los
+cuatro ítems pedidos, de menor a mayor prioridad.
+
+### 1. Deuda de ramas — saldada
+
+Lo del ítem 9 del checklist de arriba. Se mergearon **7 de los 8 commits** de
+`work/2026-08-20-google-elegir-rol` (`c3614a8`, el fix del crash de login con
+Google, más elegir-rol y "Convertite en Cadete") y la rama
+`work/2026-08-20-admin-finanzas`. Riesgo de conflicto medido antes de tocar
+nada: de 15 archivos de una rama y 10 de `main`, el único solapado lo causaba
+`93a1ae7`, que no entra — así que el merge salió sin un solo conflicto.
+
+**Lo que había escondido en el stash.** `stash@{0}` tenía mezclado trabajo ya
+mergeado con trabajo único. Se rescató archivo por archivo (no `stash pop`,
+que hubiera arrastrado los reverts del parking):
+
+- Leaflet con `defer` en 3 páginas — presión de memoria en el Samsung A20.
+- Redirects de login unificados a `/login.html`.
+- Rol resuelto desde `perfiles` con fallback a `user_metadata`.
+- **El DSN de Sentry.** Solo existía en el `android/` local, que está
+  gitignoreado: si se regeneraba la carpeta, se perdía. Ahora está en
+  `docs/ANDROID-BUILD.md`.
+- Las fuentes del splash (`resources/splash*.png`), mismo problema.
+
+**Por qué el GPS en background queda afuera.** No fue una decisión del merge:
+el `AndroidManifest.xml` local tiene `ACCESS_BACKGROUND_LOCATION` sacado a
+propósito desde el 2026-09-01 porque el formulario de Play Console para ese
+permiso **exige un video mostrando una pantalla propia de "aviso previo" que
+no está construida**. Ojo con ese comentario del manifest: afirma que "el
+código del GPS en background en `cadete.js` queda intacto" y **es falso** —
+ese código nunca estuvo en `main`, vive solo en la rama.
+
+### 2. Los carteles del cliente no se actualizaban
+
+Reportado con captura. `verificarAlertasCliente()` se llamaba una sola vez, al
+arrancar la app, desde `cargarPerfil()`. `guardarDireccion()`,
+`borrarDireccion()` y `selMetodoPago()` escribían en `localStorage` pero nunca
+volvían a renderizar — así que "No tenés direcciones guardadas" seguía
+visible después de haber cargado justamente una dirección.
+
+### 3. Animaciones de tarjeta para Getnet
+
+Componente autónomo (`assets/css/pago-animaciones.css` +
+`assets/js/pago-animaciones.js` + `pago-animaciones-demo.html`), **todavía no
+cableado a ningún flujo de pago real** — Getnet sigue esperando credenciales de
+sandbox. Dos piezas: tarjeta 3D para el selector de método de pago y overlay de
+"procesando pago" con estados aprobado/rechazado.
+
+Como Get Checkout es **hospedado**, la app nunca ve datos de tarjeta: no hay ni
+va a haber formulario de tarjeta acá. Los dígitos son placeholders y el dorso
+lo dice explícito.
+
+Verificado con Edge headless contra un server local. En el camino apareció un
+bug real del propio componente: `.pap-card-wrap` con `width:100%` colapsaba a
+un punto cuando el contenedor era una caja de ancho por contenido — que es
+exactamente lo que pasa dentro del overlay.
+
+### 4. El asistente IA no era un bug de la app: la función no existía
+
+El chat devolvía "Hubo un error de conexión" para cualquier consulta. Probado
+en vivo, el endpoint respondía **`404 NOT_FOUND`**: la Edge Function
+`asistente` **no estaba desplegada**. Vivía solo en el Dashboard de Supabase,
+fuera de git (`CLAUDE.md` §9 lo advertía), y se perdió. Se buscó la original en
+todo el historial (`git log --all -S groq`): no quedó ni una línea.
+
+Reconstruida en `supabase/functions/asistente/index.ts`, ahora versionada, con
+**Groq** (capa gratuita, API compatible con OpenAI). Tres cosas que no estaban
+antes:
+
+- **CORS explícito incluido en las respuestas de error.** Sin eso, desde la app
+  nativa (origen `capacitor://localhost`) el navegador bloquea la respuesta
+  antes de que el JS pueda leer el status — por eso un 404 se veía como "error
+  de conexión" y no como lo que era.
+- **Exige el `access_token` de la sesión, no la anon key**, que es pública y
+  viaja en `env.js`. Sin esto cualquiera podía quemar la cuota gratuita desde
+  afuera de la app. `cliente.js` y `cadete.js` ahora mandan el token.
+- **Historial recortado** a los últimos 10 turnos y 2000 chars por mensaje: el
+  cliente acumulaba la conversación entera y la reenviaba completa cada vez.
+
+> ⚠️ **Los IDs de modelo de Groq caducan y su documentación queda atrasada.**
+> El primer intento usó `llama-3.3-70b-versatile` porque la doc pública de Groq
+> lo listaba como modelo de producción — la API devuelve `404 The model does
+> not exist`. Retiraron la familia Llama entera. Se cambió a
+> `openai/gpt-oss-120b`, que además resultó **el mejor Y el más rápido** de los
+> disponibles (256 tokens / 0,23 s contra 673 / 0,66 s del 20b, medido con el
+> prompt real). Ante un 404/400 de modelo: pedir la lista real a
+> `/openai/v1/models`, no confiar en la doc. El modelo sale del secret
+> `GROQ_MODEL`, así que cambiarlo no necesita redeploy.
+
+### 5. Panel de depósitos en el admin
+
+Pestaña nueva que responde "cuánta plata hay que depositarle hoy a cada
+embajador, cadete y comercio", con sus datos bancarios, y registra los
+depósitos hechos para que dejen de aparecer. Criterio de cada monto en
+`CLAUDE.md` §6 — **no son simétricos entre los tres roles**.
+
+Backend nuevo (`/api/admin`, solo-admin) en vez de leer desde el frontend:
+`billetera_embajador` solo tiene policies RLS de "el propio embajador", así que
+el cliente anon no falla, devuelve 0 filas — y el panel mostraba **$0 para
+todos los embajadores** sin ningún error visible.
+
+Dos decisiones que importan porque esto mueve plata real: la paginación es de
+verdad (bloques de 1000 — Supabase corta ahí por defecto y acá se agrega en JS,
+así que sin paginar los totales mentirían en silencio a partir del pedido
+1001); y el efecto colateral (marcar liquidados) va **antes** de registrar el
+pago, porque al revés un fallo del marcado dejaría la misma plata otra vez como
+pendiente y se podría pagar dos veces.
+
+**Al estrenarlo contra la base real aparecieron $55.250 de plata falsa:** 17
+pedidos de cuentas `qa-e2e-cadete-*@test.local` (hay 31 de esas cuentas en
+producción). Se marcaron como liquidados, sin borrar nada. `qa-e2e.mjs` sigue
+sin limpiar lo suyo, así que **cada corrida antes de un release suma una fila
+falsa** hasta que se arregle.
+
+### Hallazgos sueltos de esta sesión
+
+- **El bucket de comercios se llama `comercio`, en singular** — `CLAUDE.md` §15
+  decía `comercios`, que no existe. Importa porque las migraciones de Storage
+  se envuelven en `IF EXISTS (... WHERE id = '...')`: un nombre equivocado hace
+  que la migración corra sin error y no haga nada. Además **ningún código del
+  repo usa ese bucket**.
+- **El proyecto de Supabase se llama `nortpi` en el Dashboard**, no "Puerta a
+  Puerta X". El ref correcto es `fmqlpgerqdiplnvjjarl` — verificar por el ref,
+  no por el nombre.
 
 ---
 
@@ -617,6 +747,42 @@ Errores que surgieron durante el desarrollo y cómo se resolvieron. Útil para e
 **Causa:** el bloque que llenaba el formulario de Perfil corría una sola vez al cargar el script, o sea antes de que el onboarding guardara nada, y no se volvía a llamar nunca. El formulario quedaba vacío para siempre aunque los datos ya estuvieran en la base.
 **Solución:** extraer a una función nombrada y llamarla también después de guardar y al entrar a la pestaña.
 **Regla:** ojo con el código de inicialización a nivel de módulo que depende de estado que todavía no existe. En este proyecto los guards de sesión corren al final del archivo, así que cualquier variable global que ellos setean (por ejemplo `cadeteUserId`) está en `null` para el código de arriba.
+
+### 14. Código desplegado que no está en git: se pierde y nadie se entera
+
+**Causa:** la Edge Function `asistente` (el chat IA) vivía **solo** en el
+Dashboard de Supabase. `CLAUDE.md` §9 lo advertía explícitamente ("no vive en
+este repo"), pero eso quedó como una nota y no como un problema a resolver. Un
+día desapareció: el endpoint empezó a devolver `404 NOT_FOUND`. Nadie lo notó
+porque el frontend tenía un `catch{}` pelado que convertía **cualquier** falla
+en el mismo texto, "Hubo un error de conexión" — el mismo mensaje que sale sin
+internet. Se buscó la implementación original en todo el historial de git: no
+quedó ni una línea. Hubo que reconstruirla de cero.
+**Solución:** la función está ahora en `supabase/functions/asistente/index.ts`,
+versionada.
+**Regla doble:**
+1. Si un componente corre en producción y su único ejemplar vive fuera de git
+   (Dashboard, panel de un proveedor, una consola web), no está "documentado":
+   está a un clic de perderse para siempre. Bajarlo al repo.
+2. **Un `catch` que colapsa todos los errores en un mensaje genérico convierte
+   una falla de infraestructura en un misterio.** Loguear siempre status +
+   cuerpo, y mostrar el mensaje real del servidor cuando lo hay. Lo que se veía
+   como "el usuario no tiene internet" era en realidad "el servicio no existe".
+
+### 15. Confiar en la documentación de un proveedor en vez de preguntarle a su API
+
+**Causa:** la documentación pública de Groq listaba `llama-3.3-70b-versatile`
+como modelo de producción vigente. La API devuelve `404 The model does not
+exist or you do not have access to it` — habían retirado la familia Llama
+entera. De haberse desplegado así, el chat habría fallado en el primer mensaje,
+con la doc del proveedor "respaldando" que el modelo era correcto.
+**Solución:** pedir la lista real antes de elegir:
+```bash
+curl https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY"
+```
+**Regla:** los IDs de modelo de cualquier proveedor de IA caducan y su
+documentación queda atrasada. El modelo se lee del secret `GROQ_MODEL`,
+justamente para poder cambiarlo sin redeploy cuando vuelva a pasar.
 
 ### Regla general para SQL en Supabase
 Toda migración debe seguir este patrón:
