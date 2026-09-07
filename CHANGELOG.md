@@ -2,6 +2,76 @@
 
 ---
 
+## [3.18.0] — 7 de septiembre 2026
+
+Actualización de cuatro ítems pedidos por el usuario, más el saneamiento de
+la deuda de ramas que venía arrastrándose desde el 1 de septiembre.
+
+### Saneamiento de git (antes de tocar nada)
+
+- Mergeados a `main` **7 de los 8 commits** de
+  `work/2026-08-20-google-elegir-rol`, incluido `c3614a8` — el fix del crash
+  real del login con Google en Android, que producción nunca había recibido.
+  También entra `cb479fa` (elegir rol al loguearse con Google sin cuenta
+  previa) y `4728e3e` ("Convertite en Cadete" no aparecía).
+- Mergeada `work/2026-08-20-admin-finanzas`, que resuelve un bug silencioso:
+  `billetera_embajador` solo tiene policies RLS de "el propio embajador", así
+  que `admin.html` la leía con el cliente anon, no fallaba, devolvía 0 filas —
+  y el panel mostraba **$0 para todos los embajadores** sin ningún error.
+- Rescatado del stash lo que no estaba en `main`: Leaflet con `defer` (presión
+  de memoria en el Samsung A20 del tester), redirects de login unificados a
+  `/login.html`, resolución de rol desde `perfiles`, **el DSN de Sentry**
+  (estaba solo en el `android/` local, que está gitignoreado) y las fuentes
+  del splash.
+- **Queda afuera a propósito `93a1ae7` (GPS en segundo plano):** el formulario
+  de Play Console para `ACCESS_BACKGROUND_LOCATION` exige un video de una
+  pantalla de aviso previo que todavía no existe. Con él quedan afuera
+  `useLegacyBridge` y la dependencia de background-geolocation.
+
+### Fix: los carteles del cliente no se actualizaban
+
+`verificarAlertasCliente()` se llamaba una sola vez, al arrancar la app.
+`guardarDireccion()`, `borrarDireccion()` y `selMetodoPago()` escribían en
+`localStorage` pero nunca volvían a renderizar, así que "No tenés direcciones
+guardadas" y "No elegiste un método de pago preferido" seguían visibles
+después de haber cargado justamente eso.
+
+### Fix: el asistente IA devolvía "error de conexión" (en realidad, 404)
+
+La Edge Function `asistente` **no estaba desplegada**: el endpoint devolvía
+`404 NOT_FOUND`. Vivía solo en el Dashboard de Supabase, fuera de git, y se
+perdió — no quedó ni una línea en toda la historia del repo. Se reconstruyó en
+`supabase/functions/asistente/index.ts`, ahora versionada, con Groq
+(`llama-3.3-70b-versatile` por defecto, cambiable con el secret `GROQ_MODEL`).
+
+Tres cosas que no estaban antes: CORS explícito incluido en las respuestas de
+error (sin eso, desde la app nativa cualquier error se ve como "error de
+conexión"); la función exige el token de sesión y no la anon key, que es
+pública; y el historial se recorta a los últimos 10 turnos.
+
+**Pendiente manual:** `supabase secrets set GROQ_API_KEY=...` +
+`supabase functions deploy asistente`.
+
+### Nuevo: panel de depósitos en el admin
+
+Pestaña "Depositos" que responde cuánta plata hay que depositarle hoy a cada
+embajador, cadete y comercio, con sus datos bancarios, y permite registrar los
+depósitos ya hechos para que dejen de aparecer. Ver §6 de `CLAUDE.md` para el
+criterio de cada monto — no son simétricos entre los tres roles.
+
+**Requiere correr `migration-pagos-manuales.sql` en Supabase** antes de
+desplegar el código.
+
+### Nuevo: animaciones de tarjeta para el futuro checkout de Getnet
+
+Componente autónomo (`pago-animaciones.css/js` + página de demo), todavía sin
+cablear a ningún flujo real — Getnet sigue esperando credenciales de sandbox.
+Dos piezas: tarjeta 3D para el selector de método de pago y overlay de
+"procesando pago" con estados aprobado/rechazado. Como Get Checkout es
+**hospedado**, no hay ni habrá formulario de tarjeta en la app.
+
+---
+
 ## [3.17.0] — 13 de agosto 2026
 
 ### Fix: el link de referidos del embajador nunca generaba comisión

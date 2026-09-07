@@ -235,6 +235,19 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 >
 > También hay una Edge Function `supabase/functions/mp-webhook/index.ts` en el repo que **no parece estar en uso**: `mpController.js` configura `notification_url` apuntando al propio backend (`/api/mp/webhook`), no a la Edge Function, y esta no fue tocada desde la modularización inicial. Antes de tocarla o borrarla, confirmar con el usuario si sigue siendo necesaria (podría ser un remanente de un diseño anterior).
 
+### Admin `/api/admin`
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| GET | `/depositos` | Admin | Cuánto hay que depositarle hoy a cada embajador, cadete y comercio, con sus datos bancarios y el detalle de qué compone cada monto. Ver §6. |
+| POST | `/depositos` | Admin | Registra un depósito ya hecho a mano y cierra el circuito: marca los pedidos como liquidados (cadete/comercio) o confirma la solicitud de retiro (embajador). |
+| GET | `/depositos/historial` | Admin | Últimos 100 depósitos registrados, para auditar lo ya pagado. |
+
+> Todo este router usa `requireAdmin` (que envuelve a `requireAuth`) y
+> `supabaseAdmin`. Es a propósito que no se lea directo desde el frontend:
+> `billetera_embajador` solo tiene policies RLS de "el propio embajador", así
+> que el cliente anon no falla — devuelve 0 filas, y el panel mostraba $0 para
+> todos sin ningún error visible.
+
 ### Diagnóstico
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
@@ -363,6 +376,31 @@ WHERE id=? AND cadete_id IS NULL
 - **Inserción secuencial, no batch:** categorías nuevas → productos → grupos → opciones, todo `await` uno por uno (no un solo insert de array) para que una fila mala no aborte el resto del archivo. Productos duplicados (mismo nombre ya en el catálogo, o repetido dentro del mismo archivo) quedan `omitido` — nunca se pisa un producto existente.
 - **`opciones_items.precio_adicional`, no `precio_extra`:** el schema documentado (`schema-definitivo-v2.sql`) estaba desactualizado para esta tabla — nunca se había verificado contra la base real porque ningún código la tocaba hasta ahora. Ver nota completa en §7. `precio_extra` sigue siendo el nombre de dominio usado en el CSV/UI/tests; `comercio.js` lo traduce a `precio_adicional` en los 3 puntos donde toca esta tabla.
 
+### Depósitos manuales del admin (2026-09-07)
+Panel nuevo (`admin.html` → pestaña "Depositos", `GET /api/admin/depositos`)
+que responde "cuánta plata hay que depositarle hoy a cada uno". Los tres
+criterios, que **no** son simétricos entre sí:
+
+| Rol | Monto | Por qué |
+|---|---|---|
+| Cadete | Σ `pedidos.pago_cadete` de sus pedidos `entregado` con `liquidado = false`, menos `cadetes.deuda_efectivo` | Puede dar **negativo**: ahí no hay que depositarle nada, es él quien tiene que liquidar lo que cobró en mano |
+| Comercio | Σ `pedidos.subtotal` de sus pedidos `entregado` con `estado_pago='aprobado'` y `metodo_pago != 'efectivo'` y `liquidado_comercio = false`, menos `comercios.deuda` | Los pedidos en efectivo **no suman**: esa plata nunca pasó por la plataforma. Lo que queda a deber de ellos es la comisión, que ya está en `comercios.deuda` |
+| Embajador | `billetera_embajador.saldo_disponible` | Si además tiene `solicitudes_retiro` pendientes, se confirman por el RPC que ya existía (`confirmar_pago_retiro`), y el monto que se registra es el de la solicitud, no el saldo entero |
+
+`pedidos.liquidado` existía en el schema desde siempre y **ningún código la
+usaba**; se adoptó acá para el pago al cadete. `liquidado_comercio` es nueva
+(`migration-pagos-manuales.sql`). Con esas dos banderas, "cuánto le debo" es
+siempre una suma directa sobre pedidos sin marcar — sin fechas de corte ni
+dependencia del orden en que se hicieron los depósitos.
+
+Dos cosas del backend que hay que respetar si se toca esto, porque mueve plata
+real: la paginación de las queries es **de verdad** (bloques de 1000 — Supabase
+corta en 1000 filas por defecto y acá se agrega en JS, así que sin paginar los
+totales empezarían a mentir en silencio a partir del pedido 1001); y el efecto
+colateral (marcar liquidados / confirmar el retiro) va **antes** de insertar en
+`pagos_manuales`, porque al revés un fallo del marcado dejaría la misma plata
+otra vez como pendiente y se podría pagar dos veces.
+
 ---
 
 ## 7. Base de datos — convenciones críticas
@@ -445,8 +483,26 @@ y `confirmarImportacion()`. `schema-definitivo-v2.sql` **no** se corrigió
 migraciones incrementales del repo) — la fuente de verdad de esta tabla es
 `migration-grupos-opcionales-producto.sql` + este párrafo.
 
+### Tabla y columna nuevas (2026-09-07)
+- `pagos_manuales` — un registro por depósito hecho a mano desde la plataforma
+  hacia un embajador, cadete o comercio (`tipo`, `destinatario_id`, `monto`,
+  `metodo`, `referencia`, `notas`, `pagado_por`). **Sin FK a propósito**:
+  `destinatario_id` apunta a `auth.users` cuando el tipo es embajador/cadete y
+  a `comercios.id` cuando es comercio; Postgres no soporta una FK condicional
+  al valor de otra columna. La integridad la garantiza `adminController.js`.
+  RLS: `FOR ALL USING (public.rol_actual() = 'admin')`.
+- `pedidos.liquidado_comercio` — bandera de "a este pedido ya se le pagó al
+  comercio". Ver §6.
+
 ### Migraciones — estado
-Todas las migraciones aplicadas, incluida `migration-backfill-patrocinios-referidos.sql`
+`migration-pagos-manuales.sql` (2026-09-07) está **PENDIENTE de correr en
+Supabase**. Verificado contra la base real: el resto de columnas que usa el
+panel de depósitos existen, lo único que falta es lo que crea esta migración
+(la tabla `pagos_manuales` y `pedidos.liquidado_comercio`) — hasta que se
+corra, `GET /api/admin/depositos` devuelve 500 con
+`column pedidos.liquidado_comercio does not exist`.
+
+Todas las demás aplicadas, incluida `migration-backfill-patrocinios-referidos.sql`
 (2026-08-13, ver §6 — backfill de comisiones de embajador, corrida en
 Supabase), `migration-grupos-opcionales-producto.sql` (2026-08-15, corrida en
 Supabase — ver nota de `opciones_items` arriba) y las del 2026-08-11
@@ -548,8 +604,31 @@ El frontend usa el bundle UMD de Supabase cargado desde CDN:
 - `supabase` (anon key) → solo para validar JWTs en authMiddleware
 - `supabaseAdmin` (service_role) → todos los controllers. Bypasea RLS.
 
-### Edge Function `asistente` (chat IA — no vive en este repo)
-`cliente.js` (`enviarAsistente()`) y `cadete.js` llaman directo a una Edge Function de Supabase alojada en `https://fmqlpgerqdiplnvjjarl.supabase.co/functions/v1/asistente` con `Authorization: Bearer <ANON_KEY>` y body `{ messages, rol }`. Esta función **no está en `supabase/functions/`** de este repo — solo existe en el Dashboard de Supabase del proyecto. No hay documentación de qué modelo/prompt usa. Si se necesita modificar este asistente, hay que pedirle el código/config al usuario o acceder al Dashboard directamente; no asumir su comportamiento a partir del frontend.
+### Edge Function `asistente` (chat IA — ahora SÍ vive en este repo)
+`cliente.js` (`enviarAsistente()`) y `cadete.js` (`enviarIACadete()`) llaman a
+`${window.SUPABASE_URL}/functions/v1/asistente` con body `{ messages, rol }`.
+
+**Historia, porque explica el estado actual (2026-09-07):** esta función vivía
+solo en el Dashboard de Supabase, fuera de git — y se perdió. Probada en vivo,
+el endpoint devolvía `404 NOT_FOUND`, que es lo que hacía que el chat mostrara
+"Hubo un error de conexión" y nada más. Se buscó la implementación original en
+el working tree y en toda la historia (`git log --all -S groq`): no quedó ni
+una línea. Lo que hay hoy en `supabase/functions/asistente/index.ts` es una
+**reconstrucción**, no la original.
+
+- **Proveedor: Groq** (API compatible con OpenAI, capa gratuita). Modelo por
+  defecto `llama-3.3-70b-versatile`, cambiable con el secret `GROQ_MODEL` sin
+  tocar código. Los IDs de modelo de Groq cambian cada tanto — si empieza a dar
+  400/404 de modelo inexistente, mirar https://console.groq.com/docs/models
+- **Auth:** exige el `access_token` de la sesión, **no** la anon key (que es
+  pública y viaja en `env.js`). Los dos frontends ya mandan el token.
+- **CORS:** allowlist explícita que incluye `capacitor://localhost`, aplicada
+  también a las respuestas de error — sin eso, desde la app nativa cualquier
+  error del servidor se ve como "error de conexión" y no como lo que es.
+- **Prompts por rol** (`usuario`/`cadete`/`comercio`) dentro del mismo archivo.
+- **Pendiente:** `supabase secrets set GROQ_API_KEY=...` +
+  `supabase functions deploy asistente`. Hasta que se corra, el chat sigue
+  fallando.
 
 ---
 
@@ -655,7 +734,29 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 
 **iOS (Capacitor):** `@capacitor/ios` agregado y `ios/` generado una vez desde Windows (2026-08-11), pero sin `pod install` real (CocoaPods no corre en Windows). **La Mac ya está disponible desde el 2026-09-02** — se levanta el bloqueo, ahora se puede regenerar `ios/` con `npx cap add ios` + `pod install` de verdad y abrir en Xcode. Ver §12 y `docs/IOS-BUILD.md` para los 3 ajustes manuales de `Info.plist` que hay que reaplicar (permisos de cámara/ubicación, deep link de Google OAuth, push) y el ícono cuadrado de 1024×1024 que todavía falta.
 
-**⚠️ Deuda crítica de ramas (2026-09-01):** la rama `work/2026-08-20-google-elegir-rol` tiene **8 commits sin mergear a `main`**, incluido `c3614a8` — un **fix de crash del login con Google** que producción nunca recibió. Es el mismo patrón que hizo que un fix de crash de push estuviera perdido en un stash mientras se subían 4 builds con el bug adentro (README → "Errores históricos" ítem 8). **Antes de armar cualquier build para Play Store: `git status`, `git stash list` y `git log --oneline main..<rama>`.**
+~~**⚠️ Deuda crítica de ramas (2026-09-01)**~~ — **saldada el 2026-09-07.** Se
+mergearon a `main` 7 de los 8 commits de `work/2026-08-20-google-elegir-rol`
+(incluido `c3614a8`, el fix del crash de login con Google que producción nunca
+había recibido) más `work/2026-08-20-admin-finanzas`, y se rescató del stash lo
+que no estaba en `main` (Leaflet con `defer`, redirects a `/login.html`, rol
+desde `perfiles`, el DSN de Sentry documentado y las fuentes del splash).
+
+**Queda deliberadamente fuera `93a1ae7` (GPS en segundo plano)**, y con él
+`useLegacyBridge` y `@capacitor-community/background-geolocation`, que son
+requisitos suyos y de nada más. El motivo no es el merge: el formulario de Play
+Console para `ACCESS_BACKGROUND_LOCATION` **exige un video de una pantalla
+propia de "aviso previo" que todavía no está construida** (ver el comentario en
+`android/app/src/main/AndroidManifest.xml`, donde el permiso está sacado a
+propósito desde el 2026-09-01). Ojo con ese comentario: afirma que "el código
+del GPS en background en `cadete.js` queda intacto" y **es falso** — ese código
+nunca estuvo en `main`, vive solo en la rama.
+
+**La regla que originó esto sigue vigente: antes de armar cualquier build para
+Play Store, `git status`, `git stash list` y `git log --oneline main..<rama>`.**
+
+**Reponer a mano si se regenera `android/`** (está en `.gitignore`): el DSN de
+Sentry en `AndroidManifest.xml` (documentado en `docs/ANDROID-BUILD.md`) y,
+cuando se retome el GPS, `ACCESS_BACKGROUND_LOCATION`.
 
 ~~Horarios automáticos de comercios~~ — shippeado 2026-07-31, ver §6 y CHANGELOG v3.9.0.
 
