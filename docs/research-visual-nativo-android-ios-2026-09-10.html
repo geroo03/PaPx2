@@ -152,7 +152,15 @@
   </div>
 
   <div class="finding">
-    <h4>6. <code>env(safe-area-inset-*)</code> no se comporta idéntico en Android WebView y en iOS <span class="badge badge-new">A vigilar</span></h4>
+    <h4>6. <code>frontend/login.html</code> ignoraba <code>--safe-top</code>/<code>--safe-bottom</code> — confirmado en un Samsung S23 real <span class="badge badge-ok">Corregido</span></h4>
+    <p>Reportado por el usuario con una captura real de un Galaxy S23: la barra de navegación de 3 botones de Android tapaba el botón "Continuar con Google" en la pantalla de login. Causa encontrada: <code>frontend/login.html</code> linkea <code>safe-area.css</code> pero su <code>&lt;style&gt;</code> interno tenía <code>.wrap{padding: 52px 0 0}</code> — un valor fijo en píxeles, sin usar <code>var(--safe-top)</code>/<code>var(--safe-bottom)</code> para nada.</p>
+    <p>Lo notable: <strong>el patrón correcto ya existía en este mismo repo</strong> — <code>frontend/assets/css/login.css</code> (usado por el login viejo, <code>cliente/login-usuario.html</code>) sí hace <code>padding: calc(60px + var(--safe-top)) 0 var(--safe-bottom)</code>. Se perdió al escribir el login único (<code>login.html</code>) desde cero con su propio <code>&lt;style&gt;</code> en vez de reusar ese CSS — una regresión real, no un problema de la plataforma.</p>
+    <p><strong>Aplicado:</strong> mismo cálculo en <code>.wrap</code> de <code>login.html</code>. Se revisaron además las otras 17 páginas que linkean <code>safe-area.css</code> — todas consumen la variable correctamente (directo o vía su CSS enlazado); <code>login.html</code> era el único caso.</p>
+    <p class="src">Reportado por el usuario (captura de pantalla, Samsung Galaxy S23). Verificado en: <code>frontend/login.html</code>, <code>frontend/assets/css/login.css:6</code>.</p>
+  </div>
+
+  <div class="finding">
+    <h4>7. <code>env(safe-area-inset-*)</code> no se comporta idéntico en Android WebView y en iOS <span class="badge badge-new">A vigilar</span></h4>
     <p>Todo el mecanismo de <code>frontend/assets/css/safe-area.css</code> (usado en 18 de 19 páginas) asume que <code>viewport-fit=cover</code> + <code>env(safe-area-inset-*)</code> se comporta igual en ambas plataformas — y en general así es, pero hay reportes documentados (Android WebView issue trackers, blogs de Android Developers sobre el enforcement de edge-to-edge en Android 15/API 35) de que el WebView de Android puede devolver esos insets de forma distinta a Safari/WKWebView — a veces reportando valores no-cero de más, otras necesitando que se los inyecte la propia app en vez de heredarlos del sistema. Con <code>overlaysWebView: true</code> ya activado, esto es exactamente lo que hay que revisar a mano en un dispositivo Android real (el ítem 2 de los pendientes de CLAUDE.md ya menciona "bugs de CSS pendientes de detalle" encontrados probando en un celular real — es candidato a ser esto mismo).</p>
     <p class="src">Referencia: <a href="https://medium.com/androiddevelopers/insets-handling-tips-for-android-15s-edge-to-edge-enforcement-872774e8839b" target="_blank" rel="noopener">Android Developers — Insets handling tips for Android 15's edge-to-edge enforcement</a>.</p>
   </div>
@@ -165,7 +173,7 @@
   </ul>
 
   <h2 class="sec">Checklist priorizado</h2>
-  <p style="font-size:13px;color:var(--ink-soft)">Los primeros dos puntos de la versión anterior de este checklist (StatusBar de comercio/admin, zona segura del ícono) ya se aplicaron el 10-sep-2026 — ver hallazgos 1 y 2. Queda esto:</p>
+  <p style="font-size:13px;color:var(--ink-soft)">Tres puntos de este checklist (StatusBar de comercio/admin, zona segura del ícono, safe-area de login.html) ya se aplicaron el 10-sep-2026 — ver hallazgos 1, 2 y 6. Queda esto:</p>
   <ol class="priority">
     <li>Conseguir/crear un arte fuente de al menos 1024×1024px del logo, con márgenes de seguridad para ícono adaptativo Android <em>y</em> para el ícono de iOS — resuelve los hallazgos 4 y 5 con un solo encargo de diseño (el retoque de hoy alivia el recorte pero no reemplaza tener una fuente en alta resolución).</li>
     <li>Construir el ícono adaptativo Android (<code>mipmap-anydpi-v26/ic_launcher.xml</code> + capas foreground/background) a partir de ese arte nuevo.</li>

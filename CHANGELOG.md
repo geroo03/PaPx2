@@ -38,6 +38,16 @@ claros (correcto para las pantallas oscuras de cliente/cadete/login), pero
 propio fondo claro — icons casi invisibles en la app nativa. Se agregó el
 mismo patrón invertido (`Style.Light`) en ambos.
 
+### Fix: barra de navegación de Android tapaba el login (reportado por el usuario en un S23 real)
+
+`frontend/login.html` linkea `safe-area.css` pero su `.wrap` tenía
+`padding: 52px 0 0` fijo, sin usar `var(--safe-top)`/`var(--safe-bottom)` —
+en un Galaxy S23 real la barra de navegación de 3 botones tapaba el botón
+"Continuar con Google". El patrón correcto ya existía en el repo
+(`frontend/assets/css/login.css`, el login viejo) — se perdió al escribir el
+login único desde cero. Se revisaron las otras 17 páginas que linkean
+`safe-area.css`: todas la usan bien, esta era la única regresión.
+
 ### Fix: ícono de la app sin zona segura para máscaras (maskable/adaptive)
 
 Medido a nivel de píxel: el trazo de color del logo ocupaba 99.8% del ancho

@@ -43,7 +43,14 @@
       justify-content: space-between;
       min-height: 100vh;
       min-height: 100dvh;
-      padding: 52px 0 0;
+      /* calc(52px + --safe-top): reserva la status bar además del margen visual
+         que ya tenía. --safe-bottom (solo, sin sumar nada): reserva la barra de
+         navegación de 3 botones / gesture bar de Android — sin esto, el CTA de
+         abajo del todo (Google) queda tapado en cualquier teléfono con esa barra
+         (confirmado en un Samsung S23 real). Mismo patrón que ya usa
+         assets/css/login.css (el login viejo) — acá se había perdido al escribir
+         el login único desde cero. */
+      padding: calc(52px + var(--safe-top)) 0 var(--safe-bottom);
     }
     /* Parte superior — headline. flex-shrink:0 a propósito: con flex:1 solo
        (shrink:1 por default) el navegador podía achicar este bloque más allá
