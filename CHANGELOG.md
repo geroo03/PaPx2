@@ -4,6 +4,18 @@
 
 ## [3.19.0] — 10 de septiembre 2026
 
+### feat: conversión de rol cadete → cliente (no existía)
+
+Reportado por un tester vía el usuario: no había forma de "dejar de ser
+cadete" — el banner "¿Querés ser Cadete?" de `cliente/index.html` solo
+andaba en un sentido. Agregado el camino inverso: botón "Convertirme en
+Cliente" en Perfil (`cadete.html`/`cadete.js`), mismo endpoint
+`POST /api/auth/set-role`. De paso, `setRole()` (`authController.js`) ahora
+bloquea el cambio si el cadete tiene una entrega en curso (409) y apaga
+`cadetes.disponible` al salir del rol — sin esto, `ejecutarDifusion()`
+(que solo mira `disponible`, no el rol) lo seguiría ofreciendo como
+candidato. Detalle completo en CLAUDE.md §6.2.
+
 ### T&C reforzado, publicado en producción
 
 `frontend/legal.html` (pestaña Términos y Condiciones) reemplazado por el

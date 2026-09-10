@@ -317,6 +317,16 @@
     </div>
   </div>
 
+  <!-- Convertirme en Cliente -->
+  <div style="background:#1a1a1a;border-radius:14px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">¿Ya no querés repartir?</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.5;">Podés pasar a usar la app como Cliente. Dejás de recibir pedidos para repartir — podés volver a ser Cadete más adelante desde el panel de Cliente.</div>
+    <button onclick="iniciarConversionCliente(this)"
+      style="width:100%;background:transparent;border:1.5px solid #444;color:#ccc;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+      Convertirme en Cliente
+    </button>
+  </div>
+
   <!-- Cerrar sesión -->
   <button onclick="sb.auth.signOut().then(()=>location.href='registro-cadete.html')"
     style="width:100%;background:transparent;border:1.5px solid #B71C1C;color:#B71C1C;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;">

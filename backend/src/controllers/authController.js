@@ -161,7 +161,49 @@ export async function setRole(req, res) {
     return res.status(500).json({ error: 'Error de configuración del servidor.' });
   }
 
+  // Normalizar acá arriba (antes solo se hacía después de tocar user_metadata):
+  // si el cliente envió 'usuario' (nombre viejo), guardamos 'cliente'. Hace
+  // falta ya mismo para el chequeo de abajo, no solo para el upsert de perfiles.
+  const rolNormalizado = role === 'usuario' ? 'cliente' : role;
+
   try {
+    // Si el rol de destino NO es cadete, puede ser alguien que está dejando
+    // de serlo (ver iniciarConversionCliente() en cadete.js — antes esto no
+    // existía en ningún lado, solo cliente→cadete). Dos chequeos necesarios
+    // ANTES de tocar nada, porque ejecutarDifusion() (pedidoController.js)
+    // arma candidatos leyendo únicamente cadetes.disponible — nunca mira
+    // perfiles.rol — así que sin esto alguien podría "dejar de ser cadete"
+    // y seguir recibiendo ofertas de entrega igual:
+    if (rolNormalizado !== 'cadete') {
+      // 1) Bloquear si tiene una entrega asignada sin terminar — cambiar de
+      //    rol a mitad de un viaje dejaría a un cliente real esperando a un
+      //    cadete que ya no funciona como tal.
+      const { data: entregaEnCurso, error: entregaErr } = await supabaseAdmin
+        .from('pedidos')
+        .select('id')
+        .eq('cadete_id', req.user.id)
+        .in('estado', ['nuevo', 'preparando', 'en_camino'])
+        .limit(1);
+      if (entregaErr) {
+        console.error('[setRole] Error chequeando entregas en curso:', entregaErr.message);
+      } else if (entregaEnCurso?.length) {
+        return res.status(409).json({
+          error: 'No podés cambiar de rol mientras tenés una entrega en curso. Terminala primero.',
+        });
+      }
+
+      // 2) Apagar disponible=true si tenía fila en cadetes — si no se hace,
+      //    sigue siendo candidato para nuevos pedidos aunque su rol ya no
+      //    sea 'cadete'. No es fatal si falla (puede no tener fila todavía).
+      const { error: apagarDispErr } = await supabaseAdmin
+        .from('cadetes')
+        .update({ disponible: false })
+        .eq('auth_uid', req.user.id);
+      if (apagarDispErr) {
+        console.warn('[setRole] No se pudo apagar disponible del cadete:', apagarDispErr.message);
+      }
+    }
+
     // Actualizar user_metadata vía Admin API (no expuesto al cliente)
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
       req.user.id,
@@ -172,9 +214,6 @@ export async function setRole(req, res) {
       console.error('[setRole] Error al actualizar user_metadata:', authErr.message);
       return res.status(500).json({ error: 'No se pudo asignar el rol.' });
     }
-
-    // Normalizar: si el cliente envió 'usuario' (nombre viejo), guardamos 'cliente'
-    const rolNormalizado = role === 'usuario' ? 'cliente' : role;
 
     // Sincronizar en 'perfiles' usando usuario_id (FK a auth.users, no la PK random)
     const { error: perfilErr3 } = await supabaseAdmin

@@ -185,7 +185,7 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
 | POST | `/register` | Público | Crea usuario (roles: cliente/comercio/cadete). Bypasea confirmación email. |
-| POST | `/set-role` | JWT | El usuario asigna su propio rol post-registro. No permite admin/embajador. |
+| POST | `/set-role` | JWT | El usuario asigna su propio rol post-registro (o lo cambia después — ver "Convertirme en Cliente"/"¡Quiero ser Cadete!" en §6). No permite admin/embajador. Si el rol de destino no es `cadete`: bloquea con 409 si el usuario tiene un pedido asignado sin terminar (`estado` en nuevo/preparando/en_camino), y si no, apaga `cadetes.disponible` para que deje de recibir ofertas. |
 | POST | `/admin/crear-usuario` | Admin | Admin crea cualquier rol incluyendo embajador. |
 
 ### Pedidos `/api/pedidos`
@@ -295,6 +295,33 @@ punto 5 de la sección "Encargo para el abogado" de ese documento.
   contrato, pero el checklist del documento pedía agregar el mismo texto
   visible en la propia UI del chat (`cliente.js`/`cadete.js`) — no hecho en
   esta sesión.
+
+### 6.2 Conversión de rol — cliente↔cadete (2026-09-10)
+Un tester reportó no poder "pasar de cadete a cliente". Investigado: existía
+el camino cliente→cadete (banner "¿Querés ser Cadete?" en
+`cliente/index.html` → `iniciarConversionCadete()` → `POST
+/api/auth/set-role {role:'cadete'}`) pero el camino inverso **no existía en
+ningún lado** — ni botón, ni endpoint restringido, nada. El login
+(`login.js` → `redirectPorRol()`) es determinista: siempre manda al usuario
+a la app de su `perfiles.rol` actual, sin ofrecerle elegir.
+
+Agregado el camino inverso: botón "Convertirme en Cliente" en la pestaña
+Perfil de `cadete.html` → `iniciarConversionCliente()` (`cadete.js`) → mismo
+endpoint `set-role`, con `role:'cliente'`. El backend (`authController.js`)
+ya soportaba cualquier rol de `ROLES_AUTOREGISTRO` sin restricción — lo que
+faltaba, y se agregó de paso porque una conversión real lo necesitaba para
+no ser un bug de matching:
+- **Bloqueo si hay una entrega en curso** (`pedidos.estado` en
+  nuevo/preparando/en_camino con ese `cadete_id`) — 409, no deja cambiar de
+  rol a mitad de un viaje.
+- **Apaga `cadetes.disponible`** al salir del rol cadete — necesario porque
+  `ejecutarDifusion()` arma candidatos leyendo únicamente
+  `cadetes.disponible`, nunca `perfiles.rol`. Sin este apagado, alguien que
+  "deja de ser cadete" seguiría recibiendo ofertas de entrega igual.
+
+La fila de `cadetes` (vehículo, rating, historial) no se borra al convertir
+a cliente — si más adelante vuelve a convertirse en cadete, el `upsert` con
+`ignoreDuplicates:true` de `setRole()` la deja intacta.
 
 ### Precios de delivery (pedidoController.js)
 ```

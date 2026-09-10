@@ -65,6 +65,27 @@ async function apiPost(path, body) {
   return json;
 }
 
+// ─── CONVERTIRSE EN CLIENTE ───────────────────────────────────────────────────
+// Camino inverso al banner "¿Querés ser Cadete?" de cliente/index.html — ese
+// existía, este no. Mismo endpoint (set-role) del lado del backend, que ya
+// bloquea el cambio si hay una entrega en curso y apaga cadetes.disponible
+// para que el matching deje de ofrecerle pedidos nuevos (ver authController.js).
+async function iniciarConversionCliente(btnEl) {
+  const ok = confirm('¿Estás seguro de que querés dejar de ser Cadete y pasar a ser Cliente? Vas a dejar de recibir pedidos para repartir.');
+  if (!ok) return;
+  const textoOriginal = btnEl ? btnEl.textContent : '';
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Convirtiendo...'; }
+  try {
+    await apiPost('/api/auth/set-role', { role: 'cliente' });
+    setTimeout(() => { window.location.href = '../cliente/index.html'; }, 220);
+  } catch (err) {
+    console.error('[iniciarConversionCliente]', err.message ?? err);
+    alert(err.message || 'No se pudo completar el cambio. Intentá de nuevo o contactá soporte.');
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = textoOriginal; }
+  }
+}
+window.iniciarConversionCliente = iniciarConversionCliente;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // GPS REPORTER — envía la posición del cadete al backend cada ~10 segundos
 // El cliente la ve en tiempo real vía Supabase Realtime (tabla ubicacion_cadetes)
