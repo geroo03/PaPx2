@@ -569,24 +569,22 @@ migraciones incrementales del repo) — la fuente de verdad de esta tabla es
   comercio". Ver §6.
 
 ### Migraciones — estado
-`migration-pagos-manuales.sql` (2026-09-07) está **PENDIENTE de correr en
-Supabase**. Verificado contra la base real: el resto de columnas que usa el
-panel de depósitos existen, lo único que falta es lo que crea esta migración
-(la tabla `pagos_manuales` y `pedidos.liquidado_comercio`) — hasta que se
-corra, `GET /api/admin/depositos` devuelve 500 con
-`column pedidos.liquidado_comercio does not exist`.
+`migration-pagos-manuales.sql` (2026-09-07) y `migration-storage-productos-solo-dueno.sql`
+(2026-08-17) — corridas en Supabase el 2026-09-10, según el usuario ("creo
+que sí" — no verificado desde el código en esta sesión, no hay acceso
+directo a la base desde acá). Si `GET /api/admin/depositos` sigue devolviendo
+500 con `column pedidos.liquidado_comercio does not exist`, o si subir una
+foto de producto a un comercio ajeno todavía funciona, alguna de las dos no
+llegó a correr — repetirla es seguro, son idempotentes.
 
-Todas las demás aplicadas, incluida `migration-backfill-patrocinios-referidos.sql`
-(2026-08-13, ver §6 — backfill de comisiones de embajador, corrida en
-Supabase), `migration-grupos-opcionales-producto.sql` (2026-08-15, corrida en
-Supabase — ver nota de `opciones_items` arriba) y las del 2026-08-11
+Con esto, todas las migraciones del repo quedarían aplicadas, incluida
+`migration-backfill-patrocinios-referidos.sql` (2026-08-13, ver §6 —
+backfill de comisiones de embajador), `migration-grupos-opcionales-producto.sql`
+(2026-08-15 — ver nota de `opciones_items` arriba) y las del 2026-08-11
 (`migration-cierres-especiales.sql`, `migration-comercio-id-uuid.sql` — ver
-lista completa en §3), **salvo `migration-storage-productos-solo-dueno.sql`
-(2026-08-17), todavía PENDIENTE de correr en Supabase** — el bucket
-`productos` sigue con la policy de INSERT vieja (sin chequeo de dueño, ver
-nota arriba) hasta que se corra. Todas siguen la convención `ADD COLUMN IF
-NOT EXISTS` / `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e
-idempotentes, seguras de re-correr.
+lista completa en §3). Todas siguen la convención `ADD COLUMN IF NOT EXISTS`
+/ `DROP POLICY IF EXISTS` + `CREATE POLICY` — aditivas e idempotentes,
+seguras de re-correr.
 
 ---
 
