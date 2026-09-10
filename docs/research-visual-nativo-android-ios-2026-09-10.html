@@ -179,6 +179,14 @@
     <p class="src">Auditoría propia sobre <code>frontend/assets/css/{index,cadete,embajador,portal-components}.css</code>, disparada por el hallazgo del usuario en el hallazgo 6.</p>
   </div>
 
+  <div class="finding hot">
+    <h4>9. El selector de rol tras Google (usuario nuevo sin cuenta) tenía el mismo bug — y era el más grave de todos <span class="badge badge-ok">Corregido</span></h4>
+    <p>Ampliando la búsqueda a <em>cualquier</em> bottom-sheet (no solo los ya conocidos): dos más en <code>index.css</code> — <code>.rating-card</code> (calificar al comercio/cadete) y <code>.devolucion-card</code> (reportar un problema con el pedido) — mismo <code>padding: ... 48px</code> fijo tocando directamente el borde real de la pantalla (su contenedor es <code>position:fixed;inset:0</code>, sin ningún margen propio).</p>
+    <p>El tercero es el que más importa: <code>mostrarSelectorRol()</code> en <code>cliente.js</code> — la pantalla "¿Quién sos?" que aparece la primera vez que alguien se loguea con Google sin tener cuenta todavía, con 3 botones (Usuario / Comercio / Cadete). Es HTML generado por JavaScript (<code>style.cssText</code> inline), no CSS de un archivo — por eso no apareció en la auditoría del hallazgo 8, que solo miró archivos <code>.css</code>. El botón "Cadete", el último de los tres y el más cerca del borde inferior, podía quedar parcialmente tapado por la barra de navegación justo en el primer login de un usuario nuevo — el peor momento posible para que un botón no responda bien.</p>
+    <p><strong>Aplicado:</strong> mismo patrón (<code>calc(48px + var(--safe-bottom))</code>) en los tres. También se revisó <code>portal-components.css</code> (<code>.modal-footer</code>, comercio/admin) — ese caso está bien como está: su overlay centra el modal con margen propio en los 4 lados (<code>.modal-overlay{align-items:center;padding:var(--sp-4)}</code>), nunca toca el borde real de la pantalla, a diferencia de los bottom-sheets de arriba.</p>
+    <p class="src">Encontrado ampliando la búsqueda del hallazgo 8 a cualquier <code>border-radius</code> "solo arriba" + overlay <code>inset:0</code>, incluyendo HTML generado por JS. Verificado en: <code>frontend/assets/css/index.css</code>, <code>frontend/assets/js/cliente.js:848</code>, <code>frontend/assets/css/portal-components.css:393-412</code>.</p>
+  </div>
+
   <h2 class="sec">Lo que ya está bien resuelto — no es un gap</h2>
   <ul>
     <li><strong>Cobertura de <code>viewport-fit=cover</code>:</strong> 19 de 19 páginas HTML del frontend la tienen — 100%, sin excepciones reales (ver nota abajo).</li>

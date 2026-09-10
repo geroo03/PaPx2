@@ -61,6 +61,21 @@ ya estaban bien; el problema era el contenido y los toasts alrededor de
 ellas. Mismo fix en los seis: sumar `var(--safe-bottom)` al valor fijo que
 ya tenían, no reemplazarlo.
 
+### Fix: 3 bottom-sheets más con el mismo problema (encontrados al seguir auditando)
+
+Ampliando la búsqueda a cualquier modal "bottom-sheet" (esquinas redondeadas
+solo arriba, pegado al borde real de la pantalla) en vez de solo los ya
+conocidos: `.rating-card` y `.devolucion-card` en `index.css`, y el
+selector de rol tras loguearse con Google sin cuenta previa
+(`mostrarSelectorRol()` en `cliente.js`, generado por JS, no CSS estático —
+por eso no había aparecido en la auditoría anterior). Este último es el más
+importante de los tres: sin el fix, el botón "Cadete" (el último de los 3,
+más cerca del borde) podía quedar parcialmente tapado por la barra de
+navegación justo en el primer login con Google de un usuario nuevo. Se
+revisó también `portal-components.css` (`.modal-footer` de comercio/admin):
+ese caso no necesita el fix — su modal está centrado con margen propio en
+los 4 lados, nunca toca el borde real de la pantalla.
+
 ### Fix: ícono de la app sin zona segura para máscaras (maskable/adaptive)
 
 Medido a nivel de píxel: el trazo de color del logo ocupaba 99.8% del ancho
