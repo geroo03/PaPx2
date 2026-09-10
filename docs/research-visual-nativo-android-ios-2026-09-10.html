@@ -1,0 +1,190 @@
+<title>Visual nativo: Android vs. Apple (Capacitor)</title>
+<style>
+  :root{
+    --ink:        #1a1d1a;
+    --ink-soft:   #4b524c;
+    --paper:      #ffffff;
+    --paper-tint: #f2f4f0;
+    --paper-line: #dfe3dd;
+    --accent:     #1f6f53;
+    --accent-soft:#e3f1ea;
+    --new:        #b5602b;
+    --new-soft:   #f8e9dd;
+    --risk:       #a3312a;
+    --risk-soft:  #f7e6e4;
+    --ok:         #1f6f53;
+    --ok-soft:    #e3f1ea;
+    --shadow: 0 1px 2px rgba(20,24,20,.04), 0 8px 24px rgba(20,24,20,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+      --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a; --risk:#e2857e; --risk-soft:#3a201f; --ok:#4fae8a; --ok-soft:#173028;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1ec; --ink-soft:#aab3ab; --paper:#141815; --paper-tint:#1b201c; --paper-line:#2b312c;
+    --accent:#4fae8a; --accent-soft:#173028; --new:#e08a4f; --new-soft:#33241a; --risk:#e2857e; --risk-soft:#3a201f; --ok:#4fae8a; --ok-soft:#173028;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 28px rgba(0,0,0,.4);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Georgia,"Iowan Old Style","Palatino Linotype","Book Antiqua",serif;line-height:1.65;font-size:16px;}
+  .sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent);}
+  code{background:var(--paper-tint);padding:1px 5px;border-radius:4px;font-size:.92em;}
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px 96px;}
+  .masthead{border-bottom:3px double var(--paper-line);padding:48px 0 28px;margin-bottom:32px;}
+  .eyebrow{font-family:inherit;text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--accent);font-weight:700;margin:0 0 10px;}
+  h1.title{font-size:clamp(26px,4.2vw,40px);margin:0 0 10px;letter-spacing:-.01em;text-wrap:balance;font-weight:700;}
+  .subtitle{color:var(--ink-soft);font-size:16px;margin:0 0 18px;max-width:70ch;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12.5px;color:var(--ink-soft);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .meta-row b{color:var(--ink);}
+  .notice{margin-top:22px;padding:14px 16px;border-radius:8px;background:var(--accent-soft);border:1px solid color-mix(in srgb, var(--accent) 35%, var(--paper-line));font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:13.5px;color:var(--ink);}
+  .notice b{color:var(--accent);}
+  h2.sec{font-size:22px;margin:52px 0 6px;padding-bottom:10px;border-bottom:1px solid var(--paper-line);display:flex;align-items:baseline;gap:10px;text-wrap:balance;}
+  h2.sec .num{color:var(--accent);font-variant-numeric:tabular-nums;}
+  h3.sub{font-size:16px;margin:26px 0 8px;color:var(--ink);}
+  p{margin:0 0 12px;}
+  ul,ol{padding-left:22px;margin:0 0 14px;}
+  li{margin-bottom:5px;}
+  strong{color:var(--ink);}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap;vertical-align:middle;}
+  .badge-risk{background:var(--risk-soft);color:var(--risk);}
+  .badge-new{background:var(--new-soft);color:var(--new);}
+  .badge-ok{background:var(--ok-soft);color:var(--ok);}
+  .table-wrap{overflow-x:auto;margin:18px 0 8px;border:1px solid var(--paper-line);border-radius:10px;}
+  table.cmp{width:100%;border-collapse:collapse;min-width:680px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:13px;}
+  table.cmp th, table.cmp td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--paper-line);vertical-align:top;}
+  table.cmp thead th{background:var(--paper-tint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);}
+  table.cmp tbody tr:last-child td{border-bottom:none;}
+  table.cmp td.pt{font-weight:700;color:var(--ink);}
+  .finding{border:1px solid var(--paper-line);border-radius:12px;padding:18px 20px 20px;margin:16px 0;background:var(--paper);}
+  .finding.hot{border-color:color-mix(in srgb, var(--risk) 45%, var(--paper-line));}
+  .finding h4{margin:0 0 8px;font-size:15.5px;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .finding p{font-size:14px;}
+  .finding .src{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:11.5px;color:var(--ink-soft);}
+  .shots{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0;}
+  .shots figure{margin:0;text-align:center;}
+  .shots img{width:120px;height:120px;border-radius:16px;border:1px solid var(--paper-line);background:#fff;}
+  .shots figcaption{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:11px;color:var(--ink-soft);margin-top:6px;}
+  ol.priority{counter-reset:pri;list-style:none;padding-left:0;}
+  ol.priority li{counter-increment:pri;position:relative;padding:12px 0 12px 44px;border-bottom:1px solid var(--paper-line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14.5px;}
+  ol.priority li:last-child{border-bottom:none;}
+  ol.priority li::before{content:counter(pri);position:absolute;left:0;top:10px;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  ol.priority li.hot::before{background:var(--risk-soft);color:var(--risk);}
+  footer{margin-top:60px;padding-top:22px;border-top:1px solid var(--paper-line);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12.5px;color:var(--ink-soft);}
+  footer a{color:var(--ink-soft);}
+  footer li{margin-bottom:4px;}
+  @media (max-width:520px){ .wrap{padding:0 16px 72px;} .masthead{padding:32px 0 22px;} }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <p class="eyebrow sans">Research + comparativo — sin cambios de código</p>
+    <h1 class="title">Cómo se resuelve lo visual nativo: Android vs. Apple</h1>
+    <p class="subtitle">La app no tiene UI nativa — es un WebView de Capacitor. Lo "nativo" acá se reduce a seis puntos de contacto entre el sistema operativo y esa página web: status bar, safe areas/notch, splash screen, ícono de la app, modo oscuro y gestos del sistema. Este documento investiga qué exige cada plataforma en cada punto y lo compara contra lo que este repo tiene configurado hoy.</p>
+    <div class="meta-row">
+      <span><b>Alcance:</b> informe comparativo, cero cambios de código (decisión del usuario)</span>
+      <span><b>Repo base:</b> capacitor.config.json, frontend/assets/css/safe-area.css, frontend/manifest.json, android-icons/</span>
+      <span><b>Fecha:</b> 10-sep-2026</span>
+    </div>
+    <div class="notice">
+      Tres de los hallazgos de abajo se verificaron mirando directamente el archivo real del repo (código o la imagen del ícono), no son teóricos. El resto son gaps de configuración/documentación conocidos — algunos ya estaban anotados en <code>docs/IOS-BUILD.md</code>, se confirma acá que siguen igual.
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="num">§</span> Los seis puntos, uno por uno</h2>
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead><tr><th>Punto</th><th>Qué exige Android (Material 3 / AOSP)</th><th>Qué exige Apple (HIG)</th><th>Mecanismo compartido en una WebView</th></tr></thead>
+      <tbody>
+        <tr><td class="pt">Status bar</td><td>Iconos/hora deben contrastar con el contenido de atrás; edge-to-edge es <strong>obligatorio</strong> desde Android 15 (API 35) para apps que targetean esa API</td><td>Mismo principio: <code>UIStatusBarStyle</code> claro u oscuro según qué haya detrás; respetar el área del notch/Dynamic Island</td><td><code>@capacitor/status-bar</code> — plugin único, mismo <code>style</code>/<code>overlaysWebView</code> para ambas plataformas</td></tr>
+        <tr><td class="pt">Safe areas / notch</td><td>Insets del sistema (status bar, nav bar, cutout de cámara) — <code>WindowInsets</code> a nivel nativo</td><td>Safe area del notch/Dynamic Island/home indicator — <code>safeAreaInsets</code> a nivel nativo</td><td><code>env(safe-area-inset-*)</code> en CSS, activado por <code>viewport-fit=cover</code> — mismo mecanismo en ambas plataformas, con matices (ver hallazgo abajo)</td></tr>
+        <tr><td class="pt">Splash screen</td><td>Imagen en <code>res/drawable/splash.png</code>, referenciada por nombre en config</td><td>Imageset <code>Assets.xcassets/Splash.imageset</code> dentro del proyecto Xcode — no se referencia por nombre, se reemplaza el archivo directamente</td><td><code>@capacitor/splash-screen</code> — <code>backgroundColor</code>/duración compartidos, pero <strong>la imagen se configura por separado en cada plataforma</strong></td></tr>
+        <tr><td class="pt">Ícono de la app</td><td>Ícono adaptativo (foreground + background, Android 8+) o legacy PNG por densidad como fallback</td><td>Un único PNG de 1024×1024 sin canal alfa, Xcode genera el resto</td><td>Ninguno — cada plataforma tiene su propio formato, no hay plugin que lo unifique</td></tr>
+        <tr><td class="pt">Modo oscuro</td><td>Se recomienda seguir <code>prefers-color-scheme</code> / tema del sistema</td><td>Mismo criterio — Dark Mode es systemwide desde iOS 13</td><td><code>@media (prefers-color-scheme: dark)</code> en CSS — mismo mecanismo en ambas plataformas</td></tr>
+        <tr><td class="pt">Gestos del sistema</td><td>Barra de gestos inferior (Android 10+) puede interceptar swipes desde el borde</td><td>Home indicator + swipe-back nativo de iOS</td><td>Ninguno directo — depende de que la UI no ponga controles interactivos pegados al borde inferior/izquierdo</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sec"><span class="num">§</span> Hallazgos verificados contra el repo</h2>
+
+  <div class="finding hot">
+    <h4>1. El color de los íconos de la status bar está mal para las pantallas donde más se usa la app <span class="badge badge-risk">Alto</span></h4>
+    <p><code>capacitor.config.json</code> fija un único valor global: <code>StatusBar.style = "DARK"</code> con fondo transparente y <code>overlaysWebView: true</code>. Según la documentación oficial de <code>@capacitor/status-bar</code>, <strong><code>Style.Dark</code> pinta los íconos/hora en color oscuro — pensado para usarse sobre un fondo claro.</strong> Ese valor nunca se corrige en tiempo de ejecución: <code>grep -rn "StatusBar\." frontend/assets/js/</code> no devuelve ni un solo resultado en todo el frontend.</p>
+    <p>El problema es que el fondo detrás de la status bar <strong>no es siempre claro</strong>. <code>cliente/index.html</code> (splash), <code>login.html</code>, <code>cadete.html</code>, <code>registro-cadete.html</code> y <code>legal.html</code> comparten el mismo fondo oscuro de marca (<code>#0d0d0d</code>) justo en la franja superior de la pantalla — exactamente donde vive la status bar. Con íconos oscuros sobre un fondo casi negro, la hora/batería/señal quedan con muy bajo contraste o directamente invisibles en esas pantallas, que son las que ve el cliente y el cadete todo el tiempo. Donde sí es correcto es en <code>comercio.html</code>/<code>admin.html</code>, que usan fondo claro (<code>--bg</code>/blanco) arriba.</p>
+    <p>Es exactamente el mismo requisito en Android e iOS (Material y HIG piden lo mismo: contraste entre status bar y lo que hay detrás), así que la corrección — cuando se decida hacerla — es una sola: llamar <code>StatusBar.setStyle({style: Style.Light})</code> al entrar a las pantallas de fondo oscuro (cliente/cadete/login/legal) y dejar <code>Style.Dark</code> solo en comercio/admin. No implementado en esta tarea — es investigación, no un fix.</p>
+    <p class="src">Verificado en: <code>capacitor.config.json</code>, <code>frontend/cliente/index.html:39</code>, <code>frontend/legal.html</code>, <code>frontend/comercio/comercio.html</code>, y documentación oficial de <a href="https://capacitorjs.com/docs/apis/status-bar" target="_blank" rel="noopener">Capacitor Status Bar API</a>.</p>
+  </div>
+
+  <div class="finding hot">
+    <h4>2. El ícono de la app no respeta la "zona segura" de un ícono maskable — confirmado a simple vista <span class="badge badge-risk">Alto</span></h4>
+    <p><code>frontend/manifest.json</code> declara <code>"purpose": "any maskable"</code> en los dos íconos PWA (192 y 512). La especificación de íconos maskable exige que todo el contenido importante quede dentro del <strong>80% central</strong> de la imagen (10% de margen por lado) — el sistema operativo recorta el resto con la forma que use ese launcher (círculo en Pixel, squircle en Samsung One UI, etc.).</p>
+    <p>Abriendo <code>frontend/logo-512.png</code> y el ícono Android <code>ic_launcher_xxxhdpi.png</code> directamente: el arte real no tiene ese margen — la barra superior de la "P" y las líneas de velocidad tocan el borde izquierdo/superior, y la "X" llega prácticamente al borde inferior. Con una máscara circular (la más agresiva de las formas estándar), una porción real del logo — que es también la identidad de marca — quedaría cortada.</p>
+    <div class="shots">
+      <figure><img src="../frontend/logo-512.png" alt="logo-512.png sin padding"><figcaption>logo-512.png — arte pegado al borde</figcaption></figure>
+    </div>
+    <p class="src">Verificado visualmente. Regla de la zona segura: <a href="https://web.dev/articles/maskable-icon" target="_blank" rel="noopener">web.dev — Maskable icons</a>.</p>
+  </div>
+
+  <div class="finding">
+    <h4>3. El splash screen de iOS no está configurado en ningún lado — se perdería al regenerar <code>ios/</code> <span class="badge badge-new">Medio</span></h4>
+    <p><code>capacitor.config.json</code> solo tiene <code>androidSplashResourceName: "splash"</code> — esa clave es específica de Android (apunta a <code>res/drawable/splash.png</code>). El plugin <code>@capacitor/splash-screen</code> no tiene un equivalente por nombre para iOS: en iOS la imagen vive directamente en <code>ios/App/App/Assets.xcassets/Splash.imageset</code>, dentro del proyecto de Xcode, y se reemplaza arrastrando el archivo — no hay ninguna clave de config que lo automatice.</p>
+    <p><code>docs/IOS-BUILD.md</code> ya documenta qué reaplicar a mano después de <code>npx cap add ios</code> (permisos, deep link, push) pero <strong>no menciona el splash</strong> — así que si mañana se regenera <code>ios/</code> en la Mac, la app va a arrancar con el imageset placeholder que genera Capacitor por defecto (probablemente blanco/genérico), no con el fondo <code>#0d0d0d</code> de marca que sí se ve en Android. Vale la pena sumar este paso a <code>docs/IOS-BUILD.md</code> cuando se retome el trabajo de iOS.</p>
+    <p class="src">Verificado en: <code>capacitor.config.json</code>, <code>docs/IOS-BUILD.md</code> (sin mención de Splash.imageset).</p>
+  </div>
+
+  <div class="finding">
+    <h4>4. Sin ícono adaptativo en Android — sigue siendo el formato legacy de antes de 2017 <span class="badge badge-new">Medio</span></h4>
+    <p>Los cinco PNG en <code>frontend/assets/img/android-icons/</code> (mdpi a xxxhdpi) son íconos "legacy": un bitmap plano por densidad, sin la separación foreground/background que pide el ícono adaptativo de Android desde la versión 8.0 (API 26, la gran mayoría del parque activo hoy). Sin esa separación (que vive en <code>mipmap-anydpi-v26/ic_launcher.xml</code>), el sistema no puede aplicarle el mismo efecto de máscara/parallax que al resto de los íconos del teléfono — el ícono de PaP X se va a ver visualmente distinto (más "plano", posiblemente con forma distinta) al lado de cualquier otra app instalada.</p>
+    <p>Esto es un problema de origen: la fuente cuadrada de más resolución en el repo (<code>logo-original.png</code>) es de apenas 241×235px — insuficiente para generar un ícono adaptativo de calidad (que además necesita el mismo margen de seguridad del hallazgo 2, pero más generoso: ~33% por lado, porque el sistema recorta más agresivo que un maskable icon común). Mismo cuello de botella que ya bloquea el ícono de iOS (ver hallazgo 5) — conviene resolver ambos con un solo asset fuente nuevo en alta resolución.</p>
+    <p class="src">Verificado en: <code>frontend/assets/img/android-icons/</code> (listado + inspección visual), <code>frontend/assets/img/logo-original.png</code> (241×235px). Referencia: <a href="https://developer.android.com/develop/ui/views/launch/icon_design_adaptive" target="_blank" rel="noopener">Android Developers — Adaptive icons</a>.</p>
+  </div>
+
+  <div class="finding">
+    <h4>5. Ícono de iOS: sigue sin existir una fuente de 1024×1024 — mismo bloqueo que ya estaba documentado <span class="badge badge-ok">Ya sabido</span></h4>
+    <p>Confirmado que sigue igual: <code>docs/IOS-BUILD.md</code> ya marca esto como pendiente y no cambió — no hay ningún PNG cuadrado de 1024×1024 en el repo. <code>logo-original.png</code> (241×235) y <code>logo-512.png</code>/<code>playstore-icon.png</code> (512×512) se quedan cortos para el tamaño que exige el catálogo de assets de Xcode. No es un hallazgo nuevo, es una re-confirmación — se incluye acá porque es el mismo cuello de botella del hallazgo 4 (Android) y conviene resolverlos juntos con un solo encargo de diseño.</p>
+  </div>
+
+  <div class="finding">
+    <h4>6. <code>env(safe-area-inset-*)</code> no se comporta idéntico en Android WebView y en iOS <span class="badge badge-new">A vigilar</span></h4>
+    <p>Todo el mecanismo de <code>frontend/assets/css/safe-area.css</code> (usado en 18 de 19 páginas) asume que <code>viewport-fit=cover</code> + <code>env(safe-area-inset-*)</code> se comporta igual en ambas plataformas — y en general así es, pero hay reportes documentados (Android WebView issue trackers, blogs de Android Developers sobre el enforcement de edge-to-edge en Android 15/API 35) de que el WebView de Android puede devolver esos insets de forma distinta a Safari/WKWebView — a veces reportando valores no-cero de más, otras necesitando que se los inyecte la propia app en vez de heredarlos del sistema. Con <code>overlaysWebView: true</code> ya activado, esto es exactamente lo que hay que revisar a mano en un dispositivo Android real (el ítem 2 de los pendientes de CLAUDE.md ya menciona "bugs de CSS pendientes de detalle" encontrados probando en un celular real — es candidato a ser esto mismo).</p>
+    <p class="src">Referencia: <a href="https://medium.com/androiddevelopers/insets-handling-tips-for-android-15s-edge-to-edge-enforcement-872774e8839b" target="_blank" rel="noopener">Android Developers — Insets handling tips for Android 15's edge-to-edge enforcement</a>.</p>
+  </div>
+
+  <h2 class="sec">Lo que ya está bien resuelto — no es un gap</h2>
+  <ul>
+    <li><strong>Cobertura de <code>viewport-fit=cover</code>:</strong> 19 de 19 páginas HTML del frontend la tienen — 100%, sin excepciones reales (ver nota abajo).</li>
+    <li><strong><code>safe-area.css</code>:</strong> enlazado en 18 páginas. La única que no lo tiene (<code>frontend/comercio/login.html</code>) es un stub muerto que redirige por JS antes de pintar nada — no es un gap real, se verificó el contenido del archivo.</li>
+    <li><strong>Modo oscuro:</strong> cero uso de <code>prefers-color-scheme</code> en el CSS del frontend — pero esto parece ser una decisión de diseño consistente (marca siempre oscura en cliente/cadete/login, siempre clara en comercio/admin), no un descuido. No se marca como hallazgo, queda como pregunta abierta para confirmar con el usuario si en algún momento se quiere adaptar al tema del sistema.</li>
+  </ul>
+
+  <h2 class="sec">Checklist priorizado</h2>
+  <ol class="priority">
+    <li class="hot">Ajustar <code>StatusBar.setStyle()</code> por pantalla (<code>Style.Light</code> en cliente/cadete/login/legal, <code>Style.Dark</code> en comercio/admin) — hoy es un valor global fijo que solo es correcto para la mitad de la app.</li>
+    <li class="hot">Regenerar el ícono PWA/Android con el contenido dentro del 80% central — hoy un launcher circular corta el logo.</li>
+    <li>Conseguir/crear un arte fuente de al menos 1024×1024px del logo, con márgenes de seguridad para ícono adaptativo Android <em>y</em> para el ícono de iOS — resuelve los hallazgos 2, 4 y 5 con un solo encargo de diseño.</li>
+    <li>Construir el ícono adaptativo Android (<code>mipmap-anydpi-v26/ic_launcher.xml</code> + capas foreground/background) a partir de ese arte nuevo.</li>
+    <li>Documentar en <code>docs/IOS-BUILD.md</code> el paso de reemplazar <code>Assets.xcassets/Splash.imageset</code> en Xcode — hoy no está, y se pierde cada vez que se regenera <code>ios/</code>.</li>
+    <li>Probar en un dispositivo Android real si <code>env(safe-area-inset-*)</code> se comporta como se espera con <code>overlaysWebView: true</code> — puede ser la causa de los "bugs de CSS" ya anotados en CLAUDE.md §13 ítem 2.</li>
+  </ol>
+
+  <footer>
+    <p><strong>Fuentes consultadas:</strong></p>
+    <ul>
+      <li><a href="https://capacitorjs.com/docs/apis/status-bar" target="_blank" rel="noopener">Capacitor — Status Bar API</a></li>
+      <li><a href="https://developer.android.com/develop/ui/views/layout/edge-to-edge" target="_blank" rel="noopener">Android Developers — Edge-to-edge</a></li>
+      <li><a href="https://medium.com/androiddevelopers/insets-handling-tips-for-android-15s-edge-to-edge-enforcement-872774e8839b" target="_blank" rel="noopener">Android Developers — Insets handling tips for Android 15's edge-to-edge enforcement</a></li>
+      <li><a href="https://developer.android.com/develop/ui/views/launch/icon_design_adaptive" target="_blank" rel="noopener">Android Developers — Adaptive icons</a></li>
+      <li><a href="https://web.dev/articles/maskable-icon" target="_blank" rel="noopener">web.dev — Maskable icon</a></li>
+      <li><a href="https://capacitorjs.com/docs/guides/splash-screens-and-icons" target="_blank" rel="noopener">Capacitor — Splash Screens and Icons guide</a></li>
+      <li><a href="https://developer.apple.com/design/human-interface-guidelines" target="_blank" rel="noopener">Apple — Human Interface Guidelines</a></li>
+      <li><a href="https://developer.apple.com/forums/thread/715417" target="_blank" rel="noopener">Apple Developer Forums — safe area bajo el Dynamic Island</a></li>
+    </ul>
+    <p style="margin-top:14px">Complementa <code>docs/ANDROID-BUILD.md</code> e <code>docs/IOS-BUILD.md</code> — no los reemplaza. Este documento es research + comparación; no se tocó código de la app en esta tarea.</p>
+  </footer>
+
+</div>

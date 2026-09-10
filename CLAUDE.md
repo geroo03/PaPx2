@@ -257,6 +257,45 @@ window.VAPID_PUBLIC_KEY  = ''      // Solo web push. Opcional.
 
 ## 6. Lógica de negocio crítica
 
+### 6.1 Términos y Condiciones — publicado el texto reforzado (2026-09-10)
+`frontend/legal.html` (pestaña Términos y Condiciones — la Política de
+Privacidad no se tocó, a propósito, ver `docs/legal-tyc-final-2026-08-25.html`)
+se reemplazó por el texto de la sección "Texto final" de ese documento —
+13 secciones, con propiedad intelectual reforzada (§9.1: prohíbe clonar el
+modelo de negocio/scraping), indemnización del usuario (§10.2), fuerza mayor
+(§10.3), disclaimer del asistente IA (§6.4), cesión del contrato (§12.2), y
+jurisdicción a elección del usuario en vez de sede fija (§11) — mismo patrón
+que Rappi/PedidosYa. Decisión del usuario: publicarlo ya, sin esperar al
+punto 5 de la sección "Encargo para el abogado" de ese documento.
+
+**Lo que NO se resolvió al publicar, documentado ahí porque sigue abierto:**
+- **§8.2 (arbitraje con comercios):** el borrador dejaba `[Tribunal Arbitral a
+  definir]` como placeholder. Se optó por la opción "ad hoc" (sin institución
+  externa, árbitro único a designar de común acuerdo o por el juez del
+  domicilio de PaP X) porque no depende de confirmar que una institución externa
+  lo acepte — es la opción más simple de las tres que planteaba el documento,
+  no necesariamente la mejor. Sigue pendiente que un abogado la valide (el
+  propio documento marca esta cláusula como posible "contrato de adhesión",
+  excluido de arbitraje por el art. 1651 inc. d) del CCyC según jurisprudencia
+  no unánime).
+- **§7 (cadetes independientes):** el texto no cambió la relación operativa,
+  solo la redacción. La pregunta de fondo — si la operación real (sin turnos
+  fijos, sin exclusividad, ofertas que se pueden rechazar) sostiene "prestador
+  independiente" bajo la Ley 20.744 art. 12 — sigue sin que la mire un abogado
+  laboralista. Es el punto de mayor riesgo real de todo el documento.
+- **Registro server-side de aceptación:** no implementado. Hoy la única
+  prueba de que alguien aceptó el T&C es un timestamp en `localStorage` del
+  navegador del usuario (`pap_tyc_aceptados`), que nunca llega al backend —
+  `POST /api/auth/register` no guarda nada al respecto. Si algún día hace
+  falta probar consentimiento en una disputa real, hoy no hay cómo. Propuesta
+  ya diseñada en el documento (tabla nueva con `usuario_id`, `documento`,
+  `version`, `aceptado_at` con reloj de servidor, `ip_address`, `user_agent`) —
+  no construida.
+- **Disclaimer de IA en la pantalla del chat:** el §6.4 ya cubre esto por
+  contrato, pero el checklist del documento pedía agregar el mismo texto
+  visible en la propia UI del chat (`cliente.js`/`cadete.js`) — no hecho en
+  esta sesión.
+
 ### Precios de delivery (pedidoController.js)
 ```
 TARIFA_BASE = { moto: 1800, bici: 1200 }   // ARS
@@ -735,7 +774,7 @@ Detalle completo, incluidos los 3 ajustes manuales de Info.plist:
 
 | # | Tarea | Impacto |
 |---|-------|---------|
-| 1 | Cuenta de desarrollador de Google Play Console — **verificación superada, app ya creada (2026-08-19)**: "Puerta a Puerta X" / `com.puertaapuertax.app`, visible en el Panel. Dentro de "Contenido de la app" ya están **declarados**: Anuncios (No), Apps gubernamentales (No), Funciones financieras (ninguna — se confirmó por código que no hay ninguna función de préstamo/crédito en la app, ni activa ni deshabilitada; lo único deshabilitado a propósito hoy es "Crear Promociones", "Administración de Usuarios", "Permiso procesamiento de pedidos" y "Foto de portada" en `comercio.html`, ninguna financiera), Apps de salud (No). **Quedan pendientes:** ID de publicidad (respuesta preparada: No), Público objetivo y contenido (respuesta preparada: solo 18+), Clasificación del contenido, Seguridad de los datos (Data Safety), y Detalles de acceso (necesita una cuenta de prueba real con usuario/contraseña para el revisor de Google — todavía no armada). **Política de Privacidad deliberadamente en pausa:** la URL a declarar sería `https://pa-px2.vercel.app/legal.html` (ya en producción), pero existe un borrador más nuevo con la cláusula de Propiedad Intelectual reforzada (`docs/legal-tyc-borrador-2026-08-17.html`, ver ítem 9) todavía sin volcar a esa página en vivo — el usuario prefirió no declarar la URL hasta decidir si la actualiza antes. Ficha de Play Store: descripción corta/completa, categoría ("Comida y bebida") y datos de contacto ya redactados (pendiente pegarlos en el formulario real); faltan el feature graphic (ítem 3) y las capturas de pantalla (necesitan el `.aab` corriendo, ver ítem 2). **Corrección de dato importante:** el mínimo real que exige Play Console para el track de Closed Testing es **12 testers que acepten activamente la invitación** (no ~20 como se estimaba antes de tener la cuenta real) — corridos 14 días antes de poder pedir acceso a Producción; sigue siendo el ítem de mayor lead time del lanzamiento, conviene ir consiguiendo esos 12 testers ya. Apple Developer Account: sin novedades, no mencionado. | Distribución / fecha real de lanzamiento |
+| 1 | Cuenta de desarrollador de Google Play Console — **verificación superada, app ya creada (2026-08-19)**: "Puerta a Puerta X" / `com.puertaapuertax.app`, visible en el Panel. Dentro de "Contenido de la app" ya están **declarados**: Anuncios (No), Apps gubernamentales (No), Funciones financieras (ninguna — se confirmó por código que no hay ninguna función de préstamo/crédito en la app, ni activa ni deshabilitada; lo único deshabilitado a propósito hoy es "Crear Promociones", "Administración de Usuarios", "Permiso procesamiento de pedidos" y "Foto de portada" en `comercio.html`, ninguna financiera), Apps de salud (No). **Quedan pendientes:** ID de publicidad (respuesta preparada: No), Público objetivo y contenido (respuesta preparada: solo 18+), Clasificación del contenido, Seguridad de los datos (Data Safety), y Detalles de acceso (necesita una cuenta de prueba real con usuario/contraseña para el revisor de Google — todavía no armada). **Política de Privacidad:** URL a declarar `https://pa-px2.vercel.app/legal.html` (ya en producción). El T&C de esa misma página se actualizó el 2026-09-10 (ver §6.1) con el texto reforzado de `docs/legal-tyc-final-2026-08-25.html` — ya no hay motivo para seguir posponiendo la declaración por ese lado. Ficha de Play Store: descripción corta/completa, categoría ("Comida y bebida") y datos de contacto ya redactados (pendiente pegarlos en el formulario real); faltan el feature graphic (ítem 3) y las capturas de pantalla (necesitan el `.aab` corriendo, ver ítem 2). **Corrección de dato importante:** el mínimo real que exige Play Console para el track de Closed Testing es **12 testers que acepten activamente la invitación** (no ~20 como se estimaba antes de tener la cuenta real) — corridos 14 días antes de poder pedir acceso a Producción; sigue siendo el ítem de mayor lead time del lanzamiento, conviene ir consiguiendo esos 12 testers ya. Apple Developer Account: sin novedades, no mencionado. | Distribución / fecha real de lanzamiento |
 | 2 | Generar el `.aab` firmado en Android Studio (`docs/ANDROID-BUILD.md`) e instalarlo en un dispositivo real para probar a mano — `android/` ya existe, ya sincronizado (2026-07-31), keystore ya generado. Confirmar backup externo del keystore antes (irrecuperable si se pierde). En curso 2026-08-11: probado en un celular real, aparecieron bugs de CSS pendientes de detalle. | App nativa |
 | 3 | Diseñar el "feature graphic" 1024×500 para la ficha de Play Store (único asset gráfico que falta — el ícono 512×512 ya existe) | Ficha de Play Store |
 | 4 | Payway vs. MercadoPago — a cargo de Fabri, no tocar sin que él avance | Pagos |

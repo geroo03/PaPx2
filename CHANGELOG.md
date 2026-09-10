@@ -2,6 +2,33 @@
 
 ---
 
+## [3.19.0] — 10 de septiembre 2026
+
+### T&C reforzado, publicado en producción
+
+`frontend/legal.html` (pestaña Términos y Condiciones) reemplazado por el
+texto de `docs/legal-tyc-final-2026-08-25.html` — indemnización de usuario,
+fuerza mayor, propiedad intelectual reforzada (prohíbe clonar el modelo de
+negocio), disclaimer del asistente IA, cesión del contrato, y jurisdicción a
+elección del usuario en vez de sede fija (mismo patrón que Rappi/PedidosYa).
+La Política de Privacidad no se tocó — fuera de alcance de esta revisión.
+Publicado por decisión explícita del usuario, sin esperar la revisión de un
+abogado que el propio documento pedía para dos puntos de riesgo real (§7
+cadetes independientes, §8.2 arbitraje con comercios) — ver el detalle
+completo y lo que queda pendiente en CLAUDE.md §6.1.
+
+### Research: comparativo visual nativo Android vs. iOS (Capacitor)
+
+`docs/research-visual-nativo-android-ios-2026-09-10.html` — qué exige
+Material Design 3 / Android edge-to-edge y las Human Interface Guidelines de
+Apple para status bar, splash screen, safe areas, íconos e ícono adaptativo,
+modo oscuro, y gestos del sistema, comparado punto por punto contra lo que
+ya está configurado en este repo (`capacitor.config.json`,
+`frontend/assets/css/safe-area.css`, `frontend/manifest.json`,
+`android-icons/`). Solo informe — no se tocó código de la app en esta tarea.
+
+---
+
 ## [3.18.0] — 7 de septiembre 2026
 
 Actualización de cuatro ítems pedidos por el usuario, más el saneamiento de
