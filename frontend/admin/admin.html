@@ -216,6 +216,16 @@
 <script type="module">
 import { supabase } from '../assets/js/config.js';
 
+// ─── STATUS BAR NATIVA (Capacitor / Android-iOS) ─────────────────────────────
+// El panel admin tiene fondo claro arriba (a diferencia de cliente/cadete, que
+// son oscuros y usan Style.Dark en main.js — ver ese archivo). Esta pantalla
+// no carga main.js, así que sin esto hereda el default de main.js (íconos
+// claros, pensado para fondo oscuro) y queda invisible sobre blanco.
+if (window.Capacitor?.isNativePlatform?.()) {
+  const { StatusBar, Style } = window.Capacitor.Plugins;
+  StatusBar?.setStyle?.({ style: Style?.Light ?? 'LIGHT' }).catch(() => {});
+}
+
 // Escapa texto para uso seguro tanto en contenido de texto como dentro de
 // atributos HTML (value="", title="", etc.) — a diferencia de sanitizeHTML
 // de ui.js, esta también escapa comillas, necesarias en contexto atributo.

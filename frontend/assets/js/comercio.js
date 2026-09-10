@@ -7,6 +7,16 @@ import { supabase as sb } from './config.js';
 import { sanitizeHTML as esc } from './ui.js';
 import { procesarFilasImportacion, generarPlantillaCSV, normalizarNombre as normImport } from './importadorMenu.js';
 
+// ─── STATUS BAR NATIVA (Capacitor / Android-iOS) ─────────────────────────────
+// El panel de comercio tiene fondo claro arriba (a diferencia de cliente/cadete,
+// que son oscuros y usan Style.Dark en main.js — ver ese archivo). Esta pantalla
+// no carga main.js, así que sin esto hereda el default de main.js (íconos claros,
+// pensado para fondo oscuro) y queda invisible sobre blanco.
+if (window.Capacitor?.isNativePlatform?.()) {
+  const { StatusBar, Style } = window.Capacitor.Plugins;
+  StatusBar?.setStyle?.({ style: Style?.Light ?? 'LIGHT' }).catch(() => {});
+}
+
 // ─── CONSTANTES FINANCIERAS ───────────────────────────────────────────────────
 // El 20% se SUMA al precio que pone el comercio para el cliente.
 // El comercio recibe el 100% de su precio. PaP cobra 20% extra al cliente.

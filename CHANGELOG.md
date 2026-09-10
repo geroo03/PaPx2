@@ -25,7 +25,30 @@ Apple para status bar, splash screen, safe areas, íconos e ícono adaptativo,
 modo oscuro, y gestos del sistema, comparado punto por punto contra lo que
 ya está configurado en este repo (`capacitor.config.json`,
 `frontend/assets/css/safe-area.css`, `frontend/manifest.json`,
-`android-icons/`). Solo informe — no se tocó código de la app en esta tarea.
+`android-icons/`). Arrancó como solo-informe; dos hallazgos resultaron chicos
+y reversibles y se aplicaron directo el mismo día (ver abajo). El resto
+(ícono adaptativo Android, splash de iOS, verificación en dispositivo real)
+sigue sin implementar — necesita arte nuevo o un build nativo real.
+
+### Fix: status bar invisible en Comercio/Admin (íconos claros sobre fondo blanco)
+
+`frontend/assets/js/main.js` ya ajustaba `StatusBar.setStyle()` a íconos
+claros (correcto para las pantallas oscuras de cliente/cadete/login), pero
+`comercio.js` y `admin.html` no cargan `main.js` y nunca lo corregían para su
+propio fondo claro — icons casi invisibles en la app nativa. Se agregó el
+mismo patrón invertido (`Style.Light`) en ambos.
+
+### Fix: ícono de la app sin zona segura para máscaras (maskable/adaptive)
+
+Medido a nivel de píxel: el trazo de color del logo ocupaba 99.8% del ancho
+del ícono (tocaba el borde) — una máscara circular (Pixel) o squircle
+(Samsung) recortaba una parte real del isotipo. Se reescaló el arte
+existente al 72% centrado sobre fondo blanco sólido (sin rediseñar nada) y
+se regeneraron `frontend/logo-512.png`, `frontend/logo-192.png` y los 5
+`ic_launcher_*.png` de `android-icons/` a partir de ese mismo canvas ya
+paddeado. `playstore-icon.png` se dejó sin tocar a propósito — la ficha de
+Play Store pide arte a sangre, sin padding, ahí no se aplica ninguna
+máscara.
 
 ---
 
