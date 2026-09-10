@@ -1015,7 +1015,7 @@
 /* ── Toast ───────────────────────────────────────────────── */
 .toast {
   position: fixed;
-  bottom: var(--sp-6);
+  bottom: calc(var(--sp-6) + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(0);
   padding: 12px var(--sp-6);

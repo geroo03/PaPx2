@@ -48,6 +48,19 @@ en un Galaxy S23 real la barra de navegación de 3 botones tapaba el botón
 login único desde cero. Se revisaron las otras 17 páginas que linkean
 `safe-area.css`: todas la usan bien, esta era la única regresión.
 
+### Fix: mismo problema del login, repetido en 6 lugares más (auditoría a pedido del usuario)
+
+Después del fix de `login.html`, el usuario pidió revisar "todos los
+teléfonos", no solo el propio. Mismo patrón (número de píxeles fijo en vez
+de sumar `var(--safe-bottom)`) encontrado en: `index.css` (`.screen`, el
+botón flotante `.cart-float` y su `.toast`), `cadete.css` (`.app` — literal
+el mismo `padding-bottom:80px` que `index.css`, y su `.toast`),
+`embajador.css` (`.toast`) y `portal-components.css` de comercio/admin
+(`.toast`). Las barras de navegación inferiores (`.nav` de cliente/cadete)
+ya estaban bien; el problema era el contenido y los toasts alrededor de
+ellas. Mismo fix en los seis: sumar `var(--safe-bottom)` al valor fijo que
+ya tenían, no reemplazarlo.
+
 ### Fix: ícono de la app sin zona segura para máscaras (maskable/adaptive)
 
 Medido a nivel de píxel: el trazo de color del logo ocupaba 99.8% del ancho

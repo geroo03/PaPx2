@@ -165,6 +165,20 @@
     <p class="src">Referencia: <a href="https://medium.com/androiddevelopers/insets-handling-tips-for-android-15s-edge-to-edge-enforcement-872774e8839b" target="_blank" rel="noopener">Android Developers — Insets handling tips for Android 15's edge-to-edge enforcement</a>.</p>
   </div>
 
+  <div class="finding">
+    <h4>8. El mismo problema del hallazgo 6, repetido: scroll-clearance y toasts con un número fijo en vez de <code>--safe-bottom</code> <span class="badge badge-ok">Corregido</span></h4>
+    <p>A pedido del usuario ("hazlo para todos los teléfonos, no solo el mío") — auditado el resto del código en busca de la misma clase de bug del hallazgo 6, no solo esa página. Encontrado en <strong>seis lugares más</strong>, en cliente, cadete, embajador y comercio/admin:</p>
+    <ul>
+      <li><code>index.css</code> — <code>.screen{padding-bottom:80px}</code> (reserva espacio para no quedar detrás del <code>.nav</code> inferior, pero como número fijo) y <code>.cart-float</code> (el botón flotante "Ver carrito", mismo tipo de CTA que el de Google del hallazgo 6) y <code>.toast</code> (bottom:96px).</li>
+      <li><code>cadete.css</code> — <strong>exactamente el mismo</strong> <code>.app{padding-bottom:80px}</code> que <code>index.css</code> (parece copiado de ahí en algún momento) y su propio <code>.toast</code> (bottom:90px).</li>
+      <li><code>embajador.css</code> — <code>.toast</code> (bottom:26px).</li>
+      <li><code>portal-components.css</code> (comercio/admin) — <code>.toast</code> (<code>bottom: var(--sp-6)</code>, un token de espaciado fijo, no de safe-area).</li>
+    </ul>
+    <p>En todos los casos el <code>.nav</code> inferior (cliente/cadete) sí ya reservaba su propio espacio bien con <code>max(14px, env(safe-area-inset-bottom))</code> — el problema estaba en los elementos <em>alrededor</em> de esos nav bars (el contenido que scrollea detrás, el botón flotante que se apoya justo encima, y los toasts que se posicionan a una distancia fija de ese nav), que asumían un número de píxeles fijo en vez de sumar el inset real del dispositivo.</p>
+    <p><strong>Aplicado:</strong> mismo patrón en los seis — se mantiene el valor original como base y se le suma <code>var(--safe-bottom)</code> encima (ej. <code>padding-bottom:calc(80px + var(--safe-bottom))</code>), igual que se hizo con <code>login.html</code> en el hallazgo 6. En el peor caso (dispositivo sin ninguna barra de sistema) el resultado es idéntico al de antes; en un dispositivo con barra de navegación grande, ahora escala con ella en vez de quedarse corto.</p>
+    <p class="src">Auditoría propia sobre <code>frontend/assets/css/{index,cadete,embajador,portal-components}.css</code>, disparada por el hallazgo del usuario en el hallazgo 6.</p>
+  </div>
+
   <h2 class="sec">Lo que ya está bien resuelto — no es un gap</h2>
   <ul>
     <li><strong>Cobertura de <code>viewport-fit=cover</code>:</strong> 19 de 19 páginas HTML del frontend la tienen — 100%, sin excepciones reales (ver nota abajo).</li>
