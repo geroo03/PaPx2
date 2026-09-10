@@ -39,18 +39,26 @@ de Closed Testing — es lo que sigue destrabando todo lo demás.
   loguearse y ver el contenido de la app — todavía no está creada, avisame
   cuando quieras que la armemos
 
-**Política de Privacidad — a propósito sin declarar todavía:** la URL lista
-es `https://pa-px2.vercel.app/legal.html` (ya en producción), pero hay un
-borrador más nuevo con la cláusula de Propiedad Intelectual reforzada
-(`docs/legal-tyc-borrador-2026-08-17.html`) que todavía no se volcó a esa
-página en vivo. Se dejó en duda a propósito hasta decidir si se actualiza
-antes — avisame cuando quieras retomarlo.
+**Política de Privacidad — ✅ desbloqueada (2026-09-10):** `frontend/legal.html`
+ya tiene el texto reforzado (blindaje legal completo — indemnización,
+fuerza mayor, PI reforzada, jurisdicción a elección del usuario, etc., ver
+CLAUDE.md §6.1). La URL a declarar es `https://pa-px2.vercel.app/legal.html`
+— ya no hay motivo para seguir posponiendo esta declaración. Ojo: el propio
+documento fuente (`docs/legal-tyc-final-2026-08-25.html`) deja dos puntos
+para que confirme un abogado (cadetes independientes, arbitraje con
+comercios) — no bloquean publicar, pero convendría cerrarlos en algún
+momento.
 
 **Ficha de Play Store:** descripción corta, descripción completa, categoría
-("Comida y bebida") y datos de contacto ya redactados, listos para pegar en
-el formulario real. Faltan el **feature graphic 1024×500** (ítem 7 de esta
-lista) y las **capturas de pantalla** (necesitan el `.aab` corriendo, ver
-ítem 6).
+("Comida y bebida") y datos de contacto — la nota que había acá decía "ya
+redactados, listos para pegar", pero no encontré ese texto guardado en
+ningún archivo del repo ni en `docs/` — probablemente quedó solo en una
+conversación anterior, no en un archivo. **Si no lo tenés guardado en otro
+lado (notas propias, un Google Doc, otro chat), hay que redactarlo de
+nuevo** — avisame y lo hacemos. Faltan además el **feature graphic
+1024×500** (ítem 7 — con las herramientas de hoy sí puedo ayudar a armar un
+boceto/diseño, no solo el texto, ver ese ítem) y las **capturas de pantalla**
+(necesitan el `.aab` corriendo, ver ítem 6).
 
 **Corrección importante sobre los testers:** el mínimo real que exige Play
 Console para Closed Testing es **12 testers que acepten activamente la
@@ -64,7 +72,12 @@ lanzamiento.
 
 ## 2. 🔴 Confirmar el backup del keystore de firma
 
-Ubicación: `C:\Users\Usser\puertaapuertax-android-keystore\`
+Ubicación: `C:\Users\Usser\puertaapuertax-android-keystore\` — confirmado
+que sigue ahí (2026-09-10: `puertaapuertax-upload.jks` +
+`LEEME-CRITICO.txt`, sin tocar desde el 15 de julio). Lo que **no** se puede
+confirmar desde acá es si ya existe una copia fuera de esta compu — solo lo
+sabés vos. Si todavía no la hiciste, sigue siendo lo más urgente de esta
+lista.
 
 Copiá **toda esa carpeta** (no solo el `.jks`) a por lo menos uno de estos
 lugares, fuera de esta compu:
@@ -114,40 +127,64 @@ VAPID exige que ambas mitades sean del mismo par, si no, el push falla
 en silencio. Corregido y pusheado — `frontend/env.js` en `main` ya usa la
 misma pública que Railway. Push web funcional en producción.
 
-## 6. 🟡 Probar el APK en un dispositivo real — en curso, fix de CSS ya aplicado
+## 6. 🟡 Probar el APK en un dispositivo real — varias rondas de bugs reales encontrados y arreglados
 
-Probado en un celular real el 11 de agosto — aparecieron errores de CSS.
-Investigado y arreglado el mismo día (sin haber visto todavía las capturas
-puntuales del usuario): la causa más probable es que Android 15
-(`targetSdkVersion=35`) fuerza edge-to-edge por defecto, y no había
-ninguna protección de `safe-area-inset-top` en ningún lado — el contenido
-de arriba de cada pantalla probablemente se dibujaba debajo de la barra de
-estado. Fix aplicado (`safe-area.css` nuevo + `viewport-fit=cover` +
-padding en sidebar/topbar/headers + `StatusBar` wireado + inputs a 16px
-para prevenir zoom en iOS).
+Probado en celulares reales (Samsung) varias veces desde el 11 de agosto,
+la más reciente el 2026-09-10 — cada ronda encontró bugs de verdad, no
+falsas alarmas:
+
+- **11 de agosto:** Android 15 (`targetSdkVersion=35`) fuerza edge-to-edge
+  por defecto; sin protección de `safe-area-inset-*` en ningún lado, el
+  contenido se dibujaba debajo de la barra de estado. Fix: `safe-area.css`
+  + `viewport-fit=cover` + padding en sidebar/topbar/headers + `StatusBar`
+  wireado + inputs a 16px.
+- **2026-09-10, reportado por un tester en un Galaxy S23:** el botón
+  "Continuar con Google" del login quedaba tapado por la barra de
+  navegación de 3 botones. Causa: `login.html` (el login único, más nuevo
+  que el fix de agosto) tenía padding fijo en vez de usar
+  `var(--safe-bottom)` — una regresión real al escribirlo desde cero.
+  Arreglado, y de paso auditado el resto de la app por el mismo patrón:
+  aparecieron **9 casos más** (status bar de Comercio/Admin con íconos
+  invisibles sobre fondo blanco, el ícono de la app sin zona segura para
+  máscaras circulares, y 6+3 elementos más con la misma clase de bug —
+  toasts, el carrito flotante, calificar un pedido, el selector de rol tras
+  Google). Detalle completo y verificable en
+  `docs/research-visual-nativo-android-ios-2026-09-10.html`.
+- **2026-09-10, mismo día:** un tester reportó no poder pasar de rol
+  Cadete a Cliente — no existía ningún camino para eso (solo el inverso).
+  Agregado el botón + la lógica de bloqueo/limpieza que hacía falta para
+  que fuera seguro (ver CLAUDE.md §6.2).
+
+**Estado de los builds locales (verificado 2026-09-10):**
+- `android/app/build/outputs/bundle/release/app-release.aab` — existe,
+  pero es del **7 de septiembre**, tres días antes de todos los fixes de
+  arriba. Hace falta **regenerarlo**.
+- `android/app/build/outputs/apk/debug/app-debug.apk` — todavía más viejo,
+  del 12 de agosto.
+- Ya corrí `npx cap sync android` (2026-09-10) — el proyecto Android ya
+  tiene el HTML/JS/íconos más nuevos copiados adentro. Lo que falta es
+  **generar el bundle firmado de nuevo desde Android Studio** ("Generate
+  Signed Bundle") — no hay `signingConfig` en `build.gradle`, así que la
+  firma se hace a mano con el keystore del ítem 2, no hay forma de
+  automatizarlo desde acá sin esas credenciales (y no deberían pegarse en
+  ningún chat/terminal).
 
 **Falta:**
-- Instalar en el celular el APK debug ya recompilado el 13 de agosto
-  (`android/app/build/outputs/apk/debug/app-debug.apk`, sincronizado con
-  todo lo de `main` hasta `d96ff83`) y confirmar que los bugs de CSS
-  desaparecieron — es la única verificación real, nada emula el WebView
-  nativo con exactitud.
-- Si algo sigue roto, mandar las capturas para un segundo pase puntual.
+- Regenerar el `.aab` firmado en Android Studio con el código de hoy adentro.
+- Instalarlo en un celular real y confirmar que los 10 bugs de esta ronda
+  quedaron resueltos.
 - Terminar de confirmar el resto: login con Google (deep link), un pedido
   de punta a punta, permisos de GPS y cámara.
-- Este APK todavía **no** incluye el fix de comisiones de embajador del
-  ítem 14 (sigue sin pushear) — si querés probar eso también, avisame y
-  recompilo después de pushear.
 
-`qa-e2e.mjs` ya prueba todo el backend (56/56 la última vez) pero **no**
+`qa-e2e.mjs` ya prueba todo el backend (60/60 la última vez) pero **no**
 prueba el shell nativo — este paso a mano sigue sin ser opcional antes de
 mandar nada a Play Store.
 
 ## 7. 🟢 Diseñar el "feature graphic" de Play Store (1024×500 px)
 
 Es el único gráfico que falta para la ficha — el ícono de 512×512 ya existe.
-Si querés, te ayudo con el texto/concepto, pero el diseño en sí (imagen)
-no lo puedo generar yo.
+Ahora sí puedo armar un boceto visual real (no solo texto/concepto) con la
+herramienta de diseño — avisame cuando lo quieras encarar y lo armamos.
 
 ## 8b. ✅ Fix de comisiones de embajador — pusheado a `main`
 
