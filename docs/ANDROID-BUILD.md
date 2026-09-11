@@ -98,6 +98,21 @@ En Android Studio:
 - Crear keystore o usar uno existente
 - Seleccionar `release`
 
+**`versionCode` — Play Console exige que sea siempre mayor al último subido,
+nunca repetido ni reusado** (rechaza el `.aab` con "Ya se usó el código de
+la versión N"). Como `android/` está en `.gitignore` y se regenera de cero
+con `npx cap add android`, este número (`versionCode` en
+`android/app/build.gradle`, dentro de `defaultConfig`) se pierde si se
+regenera la carpeta — anotado acá para no perder la cuenta:
+
+| `versionCode` subido a Play Console | Fecha |
+|---|---|
+| 21 | ya estaba usado de una subida anterior — Play Console rechazó re-subirlo el 2026-09-10 ("Ya se usó el código de la versión 21") |
+| 22 | 2026-09-10 — el que se subió después del rechazo de arriba |
+
+Antes de generar el próximo `.aab`, subir este número en `build.gradle` (y
+acá) a uno más alto que el último de la tabla.
+
 ---
 
 ## Actualizar la app (cada vez que cambia el código web)
